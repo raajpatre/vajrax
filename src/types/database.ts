@@ -129,6 +129,7 @@ export type Database = {
           ends_at: string | null
           event_type: string
           id: string
+          is_exclusive: boolean
           location: string | null
           registration_url: string | null
           starts_at: string
@@ -143,6 +144,7 @@ export type Database = {
           ends_at?: string | null
           event_type?: string
           id?: string
+          is_exclusive?: boolean
           location?: string | null
           registration_url?: string | null
           starts_at: string
@@ -157,6 +159,7 @@ export type Database = {
           ends_at?: string | null
           event_type?: string
           id?: string
+          is_exclusive?: boolean
           location?: string | null
           registration_url?: string | null
           starts_at?: string
@@ -394,6 +397,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          custom_tags: string[] | null
           display_name: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
@@ -404,6 +408,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          custom_tags?: string[] | null
           display_name?: string
           id: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -414,6 +419,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          custom_tags?: string[] | null
           display_name?: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"]

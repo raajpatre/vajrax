@@ -48,13 +48,20 @@ export function useUser() {
 
         // Get initial session
         const getInitialSession = async () => {
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
-
-            if (!mounted.current) return;
-
             try {
+                const {
+                    data: { user },
+                    error,
+                } = await supabase.auth.getUser();
+
+                if (!mounted.current) return;
+
+                if (error) {
+                    console.error("Auth error:", error.message);
+                    setState({ user: null, profile: null, loading: false });
+                    return;
+                }
+
                 if (user) {
                     const profile = await fetchProfile(user.id);
                     if (mounted.current) {
@@ -64,8 +71,8 @@ export function useUser() {
                     setState({ user: null, profile: null, loading: false });
                 }
             } catch (err) {
-                console.error("getInitialSession error:", err);
-                if (mounted.current) setState({ user, profile: null, loading: false });
+                console.error("getInitialSession network/fetch exception:", err);
+                if (mounted.current) setState({ user: null, profile: null, loading: false });
             }
         };
 

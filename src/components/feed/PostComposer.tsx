@@ -48,39 +48,51 @@ export default function PostComposer({
         if (!content.trim() || !user) return;
 
         setLoading(true);
-        const supabase = createClient();
+        try {
+            const supabase = createClient();
 
-        let imageUrl: string | null = null;
+            let imageUrl: string | null = null;
 
-        // Upload image if selected
-        if (imageFile) {
-            const ext = imageFile.name.split(".").pop();
-            const path = `${user.id}/${Date.now()}.${ext}`;
-            const { error: uploadError } = await supabase.storage
-                .from("post-images")
-                .upload(path, imageFile, { contentType: imageFile.type });
+            // Upload image if selected
+            if (imageFile) {
+                const ext = imageFile.name.split(".").pop();
+                const path = `${user.id}/${Date.now()}.${ext}`;
 
-            if (!uploadError) {
-                const { data: urlData } = supabase.storage
+                const uploadPromise = supabase.storage
                     .from("post-images")
-                    .getPublicUrl(path);
-                imageUrl = urlData.publicUrl;
+                    .upload(path, imageFile, { contentType: imageFile.type });
+
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error("Upload timed out after 5 minutes.")), 300000);
+                });
+
+                const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+                if (!uploadError) {
+                    const { data: urlData } = supabase.storage
+                        .from("post-images")
+                        .getPublicUrl(path);
+                    imageUrl = urlData.publicUrl;
+                }
             }
+
+            await supabase.from("posts").insert({
+                author_id: user.id,
+                content: content.trim(),
+                image_url: imageUrl,
+                video_url: videoUrl.trim() || null,
+            });
+
+            setContent("");
+            clearImage();
+            setVideoUrl("");
+            setShowVideoInput(false);
+            onPosted?.();
+        } catch (err) {
+            console.error("Post submit error:", err);
+        } finally {
+            setLoading(false);
         }
-
-        await supabase.from("posts").insert({
-            author_id: user.id,
-            content: content.trim(),
-            image_url: imageUrl,
-            video_url: videoUrl.trim() || null,
-        });
-
-        setContent("");
-        clearImage();
-        setVideoUrl("");
-        setShowVideoInput(false);
-        setLoading(false);
-        onPosted?.();
     };
 
     if (!user) return null;

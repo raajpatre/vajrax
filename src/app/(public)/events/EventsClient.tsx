@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Tables } from "@/types/database";
 import {
@@ -12,7 +13,14 @@ import {
     Users,
     Sparkles,
     Zap,
+    Plus,
+    Trash2,
+    Loader2
 } from "lucide-react";
+import { useUser } from "@/lib/hooks/useUser";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import EventModal from "./EventModal";
 
 type Event = Tables<"events">;
 
@@ -78,23 +86,65 @@ const fadeUp = {
 };
 
 export default function EventsClient({ events }: { events: Event[] }) {
+    const { isFaculty, isModerator, isAuthenticated } = useUser();
+    const router = useRouter();
+    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
     const now = new Date();
     const upcoming = events.filter((e) => new Date(e.starts_at) >= now);
     const past = events.filter((e) => new Date(e.starts_at) < now);
 
+    const handleDelete = async (id: string, imageUrl: string | null) => {
+        if (!window.confirm("Are you sure you want to delete this event?")) return;
+        setDeletingId(id);
+        try {
+            const supabase = createClient();
+            
+            if (imageUrl) {
+                const urlParts = imageUrl.split('/event-images/');
+                const filename = urlParts.length > 1 ? urlParts[1] : null;
+                if (filename) {
+                    // Fire and forget storage deletion so it doesn't hang the UI if network is slow
+                    supabase.storage.from("event-images").remove([filename]).catch(e => console.error("Storage cleanup failed:", e));
+                }
+            }
+            
+            const { error } = await supabase.from("events").delete().eq("id", id);
+            if (error) throw error;
+            router.refresh();
+        } catch (error) {
+            console.error("Error deleting event:", error);
+            alert("Failed to delete the event. Ensure the SQL delete policies are applied.");
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     return (
         <div className="min-h-screen pt-[calc(var(--nav-height)+2rem)]">
             {/* Header */}
-            <div className="max-w-7xl mx-auto px-6 mb-12">
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-accent" />
+            <div className="max-w-7xl mx-auto px-6 mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-accent" />
+                        </div>
+                        <h1 className="section-title text-3xl">Events</h1>
                     </div>
-                    <h1 className="section-title text-3xl">Events</h1>
+                    <p className="text-text-secondary max-w-lg">
+                        Hackathons, workshops, and meetups — stay in the loop with VajraX.
+                    </p>
                 </div>
-                <p className="text-text-secondary max-w-lg">
-                    Hackathons, workshops, and meetups — stay in the loop with VajraX.
-                </p>
+                {(isFaculty || isModerator) && (
+                    <button
+                        onClick={() => setIsEventModalOpen(true)}
+                        className="btn-primary"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Event
+                    </button>
+                )}
             </div>
 
             <div className="max-w-7xl mx-auto px-6 pb-24">
@@ -127,8 +177,18 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                 initial="hidden"
                                                 animate="visible"
                                                 variants={fadeUp}
-                                                className="glass overflow-hidden group hover:border-primary/30 transition-all duration-300"
+                                                className="glass overflow-hidden group hover:border-primary/30 transition-all duration-300 relative"
                                             >
+                                                {(isFaculty || isModerator) && (
+                                                    <button
+                                                        onClick={() => handleDelete(event.id, event.cover_image_url)}
+                                                        disabled={deletingId === event.id}
+                                                        className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-red-500/80 flex items-center justify-center text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                                                        title="Delete Event"
+                                                    >
+                                                        {deletingId === event.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                    </button>
+                                                )}
                                                 {event.cover_image_url && (
                                                     <div className="aspect-[2.5/1] overflow-hidden">
                                                         <img
@@ -176,15 +236,24 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                         )}
                                                     </div>
                                                     {event.registration_url && (
-                                                        <a
-                                                            href={event.registration_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="btn-primary text-xs !py-2 !px-4 mt-4 inline-flex"
-                                                        >
-                                                            Register
-                                                            <ExternalLink className="w-3 h-3" />
-                                                        </a>
+                                                        event.is_exclusive && !isAuthenticated ? (
+                                                            <div className="mt-4 pt-4 border-t border-border/50">
+                                                                <p className="text-xs text-amber-400 font-medium flex items-center gap-1.5">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                                                    Club Exclusive Event. Login to register.
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            <a
+                                                                href={event.registration_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="btn-primary text-xs !py-2 !px-4 mt-4 inline-flex"
+                                                            >
+                                                                Register
+                                                                <ExternalLink className="w-3 h-3 ml-1" />
+                                                            </a>
+                                                        )
                                                     )}
                                                 </div>
                                             </motion.div>
@@ -234,6 +303,12 @@ export default function EventsClient({ events }: { events: Event[] }) {
                     </div>
                 )}
             </div>
+
+            <EventModal
+                isOpen={isEventModalOpen}
+                onClose={() => setIsEventModalOpen(false)}
+                onSuccess={() => router.refresh()}
+            />
         </div>
     );
 }

@@ -12,6 +12,7 @@ const publicLinks = [
     { href: "/projects", label: "Projects" },
     { href: "/gallery", label: "Gallery" },
     { href: "/events", label: "Events" },
+    { href: "/innovators", label: "Our Innovators" },
     { href: "/contact", label: "Contact" },
 ];
 

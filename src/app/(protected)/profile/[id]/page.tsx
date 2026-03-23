@@ -64,51 +64,63 @@ function EditProfileModal({
 
         setLoading(true);
         setError(null);
-        const supabase = createClient();
+        
+        try {
+            const supabase = createClient();
+            let avatarUrl = profile.avatar_url;
 
-        let avatarUrl = profile.avatar_url;
+            // Upload avatar if changed
+            if (avatarFile) {
+                const ext = avatarFile.name.split(".").pop();
+                const path = `${profile.id}/avatar.${ext}`;
 
-        // Upload avatar if changed
-        if (avatarFile) {
-            const ext = avatarFile.name.split(".").pop();
-            const path = `${profile.id}/avatar.${ext}`;
+                const uploadPromise = supabase.storage
+                    .from("avatars")
+                    .upload(path, avatarFile, { upsert: true });
 
-            const { error: uploadError } = await supabase.storage
-                .from("avatars")
-                .upload(path, avatarFile, { upsert: true });
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error("Upload timed out after 5 minutes. Check your ad-blocker or network.")), 300000);
+                });
 
-            if (uploadError) {
-                setError(`Avatar upload failed: ${uploadError.message}`);
+                const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+                if (uploadError) {
+                    setError(`Avatar upload failed: ${uploadError.message}`);
+                    setLoading(false);
+                    return;
+                }
+
+                const {
+                    data: { publicUrl },
+                } = supabase.storage.from("avatars").getPublicUrl(path);
+
+                avatarUrl = publicUrl;
+            }
+
+            // Update profile
+            const { error: updateError } = await supabase
+                .from("profiles")
+                .update({
+                    display_name: displayName.trim(),
+                    bio: bio.trim() || null,
+                    avatar_url: avatarUrl,
+                })
+                .eq("id", profile.id);
+
+            if (updateError) {
+                setError(updateError.message);
                 setLoading(false);
                 return;
             }
 
-            const {
-                data: { publicUrl },
-            } = supabase.storage.from("avatars").getPublicUrl(path);
-
-            avatarUrl = publicUrl;
-        }
-
-        // Update profile
-        const { error: updateError } = await supabase
-            .from("profiles")
-            .update({
-                display_name: displayName.trim(),
-                bio: bio.trim() || null,
-                avatar_url: avatarUrl,
-            })
-            .eq("id", profile.id);
-
-        if (updateError) {
-            setError(updateError.message);
             setLoading(false);
-            return;
+            onSaved();
+            onClose();
+        } catch (err: any) {
+            console.error("Profile save error:", err);
+            setError(err.message || "An unexpected error occurred while saving.");
+            setLoading(false);
         }
-
-        setLoading(false);
-        onSaved();
-        onClose();
     };
 
     return (

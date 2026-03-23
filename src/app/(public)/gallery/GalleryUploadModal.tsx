@@ -65,7 +65,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                 .upload(filename, imageFile, { contentType: imageFile.type });
                 
             const timeoutPromise = new Promise<{ error: any }>((_, reject) => 
-                setTimeout(() => reject(new Error("Upload timed out after 30 seconds.")), 30000)
+                setTimeout(() => reject(new Error("Upload timed out after 5 minutes. Please check your network connection.")), 300000)
             );
             
             const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;

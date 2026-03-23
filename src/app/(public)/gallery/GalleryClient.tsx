@@ -41,8 +41,8 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
             const filename = urlParts.length > 1 ? urlParts[1] : null;
 
             if (filename) {
-                // Remove from storage
-                await supabase.storage.from("gallery-images").remove([filename]);
+                // Remove from storage non-blocking to prevent UI hang on slow networks
+                supabase.storage.from("gallery-images").remove([filename]).catch(e => console.error(e));
             }
 
             // Remove from database
