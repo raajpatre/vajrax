@@ -1,26 +1,359 @@
 @import "tailwindcss";
 
+/* ============================================
+   VajraX Design System — Dark Electric Theme
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core palette */
+  --vajra-black: #050510;
+  --vajra-dark: #0a0a1a;
+  --vajra-surface: #111128;
+  --vajra-surface-light: #1a1a3e;
+  --vajra-border: rgba(99, 102, 241, 0.15);
+  --vajra-border-hover: rgba(99, 102, 241, 0.35);
+
+  /* Accent colors */
+  --vajra-primary: #6366f1;
+  --vajra-primary-light: #818cf8;
+  --vajra-primary-dark: #4f46e5;
+  --vajra-secondary: #a855f7;
+  --vajra-accent: #06b6d4;
+  --vajra-accent-green: #10b981;
+  --vajra-accent-amber: #f59e0b;
+  --vajra-accent-rose: #f43f5e;
+
+  /* Text */
+  --vajra-text: #e2e8f0;
+  --vajra-text-secondary: #94a3b8;
+  --vajra-text-muted: #64748b;
+
+  /* Gradients */
+  --vajra-gradient: linear-gradient(135deg, #6366f1, #a855f7, #06b6d4);
+  --vajra-gradient-subtle: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+  --vajra-glow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 60px rgba(99, 102, 241, 0.1);
+  --vajra-glow-strong: 0 0 30px rgba(99, 102, 241, 0.5), 0 0 80px rgba(168, 85, 247, 0.2);
+
+  /* Sizing */
+  --nav-height: 72px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--vajra-black);
+  --color-foreground: var(--vajra-text);
+  --color-primary: var(--vajra-primary);
+  --color-primary-light: var(--vajra-primary-light);
+  --color-primary-dark: var(--vajra-primary-dark);
+  --color-secondary: var(--vajra-secondary);
+  --color-accent: var(--vajra-accent);
+  --color-surface: var(--vajra-surface);
+  --color-surface-light: var(--vajra-surface-light);
+  --color-border: var(--vajra-border);
+  --color-text: var(--vajra-text);
+  --color-text-secondary: var(--vajra-text-secondary);
+  --color-text-muted: var(--vajra-text-muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================
+   Base Styles
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--vajra-black);
+  color: var(--vajra-text);
+  font-family: var(--font-sans, "Inter", system-ui, -apple-system, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--vajra-primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--vajra-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--vajra-surface-light);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vajra-primary);
+}
+
+/* ============================================
+   Glass Card Effect
+   ============================================ */
+
+.glass {
+  background: rgba(17, 17, 40, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--vajra-border);
+  border-radius: 16px;
+}
+
+.glass:hover {
+  border-color: var(--vajra-border-hover);
+}
+
+.glass-strong {
+  background: rgba(17, 17, 40, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--vajra-border);
+  border-radius: 16px;
+}
+
+/* ============================================
+   Glow Effects
+   ============================================ */
+
+.glow {
+  box-shadow: var(--vajra-glow);
+}
+
+.glow-strong {
+  box-shadow: var(--vajra-glow-strong);
+}
+
+.text-gradient {
+  background: var(--vajra-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.4), 0 0 80px rgba(168, 85, 247, 0.2); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  30% { transform: translate(3%, -15%); }
+  50% { transform: translate(-15%, 5%); }
+  70% { transform: translate(5%, 10%); }
+  90% { transform: translate(-10%, 15%); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ============================================
+   Background Patterns
+   ============================================ */
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.bg-radial {
+  background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+}
+
+.bg-noise::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.015;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ============================================
+   Button Variants
+   ============================================ */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 12px;
+  background: var(--vajra-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: var(--vajra-primary-dark);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--vajra-text);
+  border: 1px solid var(--vajra-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-secondary:hover {
+  border-color: var(--vajra-primary);
+  color: var(--vajra-primary-light);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vajra-text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-ghost:hover {
+  color: var(--vajra-text);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* ============================================
+   Role Badges
+   ============================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-member {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.badge-president {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-vp {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.badge-faculty {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+/* ============================================
+   Status Chips
+   ============================================ */
+
+.status-ongoing {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.status-completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-archived {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+/* ============================================
+   Section Styles
+   ============================================ */
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  color: var(--vajra-text-secondary);
+  max-width: 600px;
+  line-height: 1.6;
 }

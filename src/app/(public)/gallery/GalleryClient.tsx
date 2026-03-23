@@ -1,0 +1,197 @@
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Tables } from "@/types/database";
+import { Image as ImageIcon, X, Plus, Trash2, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@/lib/hooks/useUser";
+import { useRouter } from "next/navigation";
+import GalleryUploadModal from "./GalleryUploadModal";
+
+type GalleryItem = Tables<"gallery_items">;
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: { delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
+    }),
+};
+
+export default function GalleryClient({ items }: { items: GalleryItem[] }) {
+    const { isFaculty, isModerator } = useUser();
+    const router = useRouter();
+    const [selected, setSelected] = useState<GalleryItem | null>(null);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!selected) return;
+        if (!window.confirm("Are you sure you want to delete this image?")) return;
+
+        setIsDeleting(true);
+        try {
+            const supabase = createClient();
+            
+            // Extract filename from URL
+            const urlParts = selected.cover_image_url.split('/gallery-images/');
+            const filename = urlParts.length > 1 ? urlParts[1] : null;
+
+            if (filename) {
+                // Remove from storage
+                await supabase.storage.from("gallery-images").remove([filename]);
+            }
+
+            // Remove from database
+            const { error } = await supabase.from("gallery_items").delete().eq("id", selected.id);
+            if (error) throw error;
+
+            setSelected(null);
+            router.refresh();
+        } catch (error) {
+            console.error("Error deleting gallery item:", error);
+            alert("Failed to delete the image. Ensure the SQL delete policies are applied.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen pt-[calc(var(--nav-height)+2rem)]">
+            {/* Header */}
+            <div className="max-w-7xl mx-auto px-6 mb-12">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center">
+                            <ImageIcon className="w-5 h-5 text-secondary" />
+                        </div>
+                        <h1 className="section-title text-3xl">Gallery</h1>
+                    </div>
+                    
+                    {(isFaculty || isModerator) && (
+                        <button
+                            onClick={() => setIsUploadModalOpen(true)}
+                            className="btn-primary"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Image
+                        </button>
+                    )}
+                </div>
+                <p className="text-text-secondary max-w-lg">
+                    A visual showcase of our robots, builds, and moments that define VajraX.
+                </p>
+            </div>
+
+            {/* Gallery Grid */}
+            <div className="max-w-7xl mx-auto px-6 pb-24">
+                {items.length === 0 ? (
+                    <div className="glass p-16 text-center">
+                        <ImageIcon className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Gallery is empty</h3>
+                        <p className="text-text-muted text-sm">
+                            Stunning builds and moments will appear here soon.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+                        {items.map((item, i) => (
+                            <motion.div
+                                key={item.id}
+                                custom={i}
+                                initial="hidden"
+                                animate="visible"
+                                variants={fadeUp}
+                                className="break-inside-avoid glass overflow-hidden group cursor-pointer"
+                                onClick={() => setSelected(item)}
+                            >
+                                <div className="overflow-hidden">
+                                    <img
+                                        src={item.cover_image_url}
+                                        alt={item.title}
+                                        className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                </div>
+                                <div className="p-4">
+                                    <h3 className="text-sm font-semibold mb-1 group-hover:text-primary-light transition-colors">
+                                        {item.title}
+                                    </h3>
+                                    {item.description && (
+                                        <p className="text-xs text-text-muted line-clamp-2">
+                                            {item.description}
+                                        </p>
+                                    )}
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Lightbox */}
+            <AnimatePresence>
+                {selected && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+                        onClick={() => setSelected(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: "spring", damping: 25 }}
+                            className="relative max-w-4xl w-full glass overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                                {(isFaculty || isModerator) && (
+                                    <button
+                                        onClick={handleDelete}
+                                        disabled={isDeleting}
+                                        className="w-8 h-8 rounded-full bg-red-500/80 flex items-center justify-center text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                                        title="Delete Image"
+                                    >
+                                        {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setSelected(null)}
+                                    className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <img
+                                src={selected.cover_image_url}
+                                alt={selected.title}
+                                className="w-full max-h-[70vh] object-contain bg-black"
+                            />
+                            <div className="p-6">
+                                <h2 className="text-xl font-bold mb-2">{selected.title}</h2>
+                                {selected.description && (
+                                    <p className="text-text-secondary text-sm">
+                                        {selected.description}
+                                    </p>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            
+            <GalleryUploadModal 
+                isOpen={isUploadModalOpen} 
+                onClose={() => setIsUploadModalOpen(false)} 
+                onSuccess={() => {
+                    router.refresh();
+                }} 
+            />
+        </div>
+    );
+}
