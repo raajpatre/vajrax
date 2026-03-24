@@ -543,7 +543,7 @@ export default function InventoryPage() {
                                         >
                                             <Pencil className="w-3.5 h-3.5" />
                                         </button>
-                                        {(isFaculty || isModerator) && (
+                                        {canManageInventory && (
                                             <button
                                                 onClick={() => handleDelete(item.id)}
                                                 className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-text-muted hover:text-red-400 hover:bg-red-400/20 transition-all border border-white/10"
