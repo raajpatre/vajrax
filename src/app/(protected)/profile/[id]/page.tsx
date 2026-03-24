@@ -114,7 +114,6 @@ function EditProfileModal({
                 github_url: githubUrl.trim() || null,
                 linkedin_url: linkedinUrl.trim() || null,
                 avatar_url: avatarUrl,
-                updated_at: new Date().toISOString(),
             };
             console.log("Payload:", updatePayload);
 
