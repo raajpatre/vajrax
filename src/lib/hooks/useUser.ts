@@ -46,32 +46,46 @@ export function useUser() {
             }
         };
 
-        // Get initial session
+        // Get initial session — use getSession (reads local storage, never fails on network)
+        // then optionally validate with getUser (network call)
         const getInitialSession = async () => {
             try {
+                // Step 1: Read session from local storage (instant, reliable)
                 const {
-                    data: { user },
-                    error,
-                } = await supabase.auth.getUser();
+                    data: { session },
+                } = await supabase.auth.getSession();
 
                 if (!mounted.current) return;
 
-                if (error) {
-                    console.error("Auth error:", error.message);
-                    setState({ user: null, profile: null, loading: false });
-                    return;
-                }
-
-                if (user) {
-                    const profile = await fetchProfile(user.id);
+                if (session?.user) {
+                    // We have a local session — trust it immediately
+                    const profile = await fetchProfile(session.user.id);
                     if (mounted.current) {
-                        setState({ user, profile, loading: false });
+                        setState({ user: session.user, profile, loading: false });
                     }
+
+                    // Step 2: Validate with getUser in background (don't block UI)
+                    // If this fails (network issue), we keep the session-based state
+                    supabase.auth.getUser().then(({ data, error }) => {
+                        if (!mounted.current) return;
+                        if (error) {
+                            // Network error or token expired — don't sign out,
+                            // the onAuthStateChange listener will handle real sign-outs
+                            console.warn("Background getUser check failed:", error.message);
+                            return;
+                        }
+                        if (!data.user) {
+                            // Token was truly invalid server-side
+                            setState({ user: null, profile: null, loading: false });
+                        }
+                    }).catch(() => {
+                        // Network completely down — keep existing session
+                    });
                 } else {
                     setState({ user: null, profile: null, loading: false });
                 }
             } catch (err) {
-                console.error("getInitialSession network/fetch exception:", err);
+                console.error("getInitialSession exception:", err);
                 if (mounted.current) setState({ user: null, profile: null, loading: false });
             }
         };
