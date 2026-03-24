@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Github, Linkedin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -76,19 +76,12 @@ function EditProfileModal({
 
             // Upload avatar if changed
             if (avatarFile) {
-                console.log("Uploading new avatar...");
                 const ext = avatarFile.name.split(".").pop();
                 const path = `${profile.id}/avatar.${ext}`;
 
-                const uploadPromise = supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from("avatars")
                     .upload(path, avatarFile, { upsert: true });
-
-                const uploadTimeout = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error("Avatar upload timed out (30s). Check your connection.")), 30000);
-                });
-
-                const { error: uploadError } = await Promise.race([uploadPromise, uploadTimeout]) as any;
 
                 if (uploadError) {
                     console.error("Avatar upload error:", uploadError);
@@ -102,11 +95,9 @@ function EditProfileModal({
                 } = supabase.storage.from("avatars").getPublicUrl(path);
 
                 avatarUrl = publicUrl;
-                console.log("Avatar uploaded successfully:", avatarUrl);
             }
 
             // Update profile
-            console.log("Updating profile record in DB...");
             const updatePayload = {
                 display_name: displayName.trim(),
                 bio: bio.trim() || null,
@@ -115,18 +106,11 @@ function EditProfileModal({
                 linkedin_url: linkedinUrl.trim() || null,
                 avatar_url: avatarUrl,
             };
-            console.log("FINAL PAYLOAD BEFORE UPDATE:", JSON.stringify(updatePayload, null, 2));
 
-            const updatePromise = supabase
+            const { error: updateError } = await supabase
                 .from("profiles")
                 .update(updatePayload)
                 .eq("id", profile.id);
-
-            const updateTimeout = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error("Database update timed out (15s). Please check your internet or Supabase status.")), 15000);
-            });
-
-            const { error: updateError } = await Promise.race([updatePromise, updateTimeout]) as any;
 
             if (updateError) {
                 console.error("Supabase update error:", updateError);
@@ -135,7 +119,6 @@ function EditProfileModal({
                 return;
             }
 
-            console.log("Profile updated successfully!");
             setLoading(false);
             onSaved();
             onClose();
@@ -273,7 +256,7 @@ function EditProfileModal({
                         <div className="relative">
                             <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                             <input
-                                type="text"
+                                type="url"
                                 value={linkedinUrl}
                                 onChange={(e) => setLinkedinUrl(e.target.value)}
                                 placeholder="https://linkedin.com/in/username"
@@ -304,8 +287,7 @@ export default function ProfilePage() {
     const params = useParams();
     const userId = params.id as string;
     const { user: currentUser, loading: authLoading } = useUser();
-    const supabaseRef = useRef(createClient());
-    const supabase = supabaseRef.current;
+    const supabase = createClient();
 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
