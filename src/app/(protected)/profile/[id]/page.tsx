@@ -70,11 +70,13 @@ function EditProfileModal({
         setError(null);
         
         try {
+            console.log("Starting profile save process...");
             const supabase = createClient();
             let avatarUrl = profile.avatar_url;
 
             // Upload avatar if changed
             if (avatarFile) {
+                console.log("Uploading new avatar...");
                 const ext = avatarFile.name.split(".").pop();
                 const path = `${profile.id}/avatar.${ext}`;
 
@@ -82,13 +84,14 @@ function EditProfileModal({
                     .from("avatars")
                     .upload(path, avatarFile, { upsert: true });
 
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error("Upload timed out after 5 minutes. Check your ad-blocker or network.")), 300000);
+                const uploadTimeout = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error("Avatar upload timed out (30s). Check your connection.")), 30000);
                 });
 
-                const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+                const { error: uploadError } = await Promise.race([uploadPromise, uploadTimeout]) as any;
 
                 if (uploadError) {
+                    console.error("Avatar upload error:", uploadError);
                     setError(`Avatar upload failed: ${uploadError.message}`);
                     setLoading(false);
                     return;
@@ -99,32 +102,46 @@ function EditProfileModal({
                 } = supabase.storage.from("avatars").getPublicUrl(path);
 
                 avatarUrl = publicUrl;
+                console.log("Avatar uploaded successfully:", avatarUrl);
             }
 
             // Update profile
-            const { error: updateError } = await supabase
+            console.log("Updating profile record in DB...");
+            const updatePayload = {
+                display_name: displayName.trim(),
+                bio: bio.trim() || null,
+                contact_email: contactEmail.trim() || null,
+                github_url: githubUrl.trim() || null,
+                linkedin_url: linkedinUrl.trim() || null,
+                avatar_url: avatarUrl,
+                updated_at: new Date().toISOString(),
+            };
+            console.log("Payload:", updatePayload);
+
+            const updatePromise = supabase
                 .from("profiles")
-                .update({
-                    display_name: displayName.trim(),
-                    bio: bio.trim() || null,
-                    contact_email: contactEmail.trim() || null,
-                    github_url: githubUrl.trim() || null,
-                    linkedin_url: linkedinUrl.trim() || null,
-                    avatar_url: avatarUrl,
-                })
+                .update(updatePayload)
                 .eq("id", profile.id);
 
+            const updateTimeout = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("Database update timed out (15s). Please check your internet or Supabase status.")), 15000);
+            });
+
+            const { error: updateError } = await Promise.race([updatePromise, updateTimeout]) as any;
+
             if (updateError) {
-                setError(updateError.message);
+                console.error("Supabase update error:", updateError);
+                setError(`Update failed: ${updateError.message || "Unknown error"}`);
                 setLoading(false);
                 return;
             }
 
+            console.log("Profile updated successfully!");
             setLoading(false);
             onSaved();
             onClose();
         } catch (err: any) {
-            console.error("Profile save error:", err);
+            console.error("Uncaught profile save error:", err);
             setError(err.message || "An unexpected error occurred while saving.");
             setLoading(false);
         }
