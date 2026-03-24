@@ -10,10 +10,9 @@ import {
     User,
     Search,
     ChevronDown,
-    Plus,
     X,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MemberProfile {
     id: string;
@@ -23,6 +22,38 @@ interface MemberProfile {
     custom_tags: string[] | null;
     created_at: string;
 }
+
+// A tag is stored as a JSON string: '{"name":"...", "color":"#..."}'
+// Backward-compatible: plain strings are treated as a tag with a default color.
+interface TagObject {
+    name: string;
+    color: string;
+}
+
+function parseTag(raw: string): TagObject {
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed.name && parsed.color) return parsed;
+    } catch {}
+    return { name: raw, color: "#6366f1" };
+}
+
+function serializeTag(tag: TagObject): string {
+    return JSON.stringify(tag);
+}
+
+const PRESET_COLORS = [
+    "#6366f1", // indigo
+    "#22d3ee", // cyan
+    "#f59e0b", // amber
+    "#10b981", // emerald
+    "#f43f5e", // rose
+    "#a78bfa", // violet
+    "#fb923c", // orange
+    "#34d399", // green
+    "#60a5fa", // blue
+    "#e879f9", // fuchsia
+];
 
 const roles = [
     { value: "member", label: "Member" },
@@ -40,32 +71,40 @@ const roleBadge: Record<string, string> = {
 
 function MemberRow({ member, onRoleChange, supabase, onTagsChange, updatingId }: any) {
     const [tagInput, setTagInput] = useState("");
+    const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
+    const [showColorPicker, setShowColorPicker] = useState(false);
     const [isUpdatingTag, setIsUpdatingTag] = useState(false);
+    
+    const parsedTags: TagObject[] = (member.custom_tags || []).map(parseTag);
 
     const handleAddTag = async (e: React.FormEvent) => {
         e.preventDefault();
-        const newTag = tagInput.trim();
-        if (!newTag || (member.custom_tags && member.custom_tags.includes(newTag))) {
+        const name = tagInput.trim();
+        if (!name || parsedTags.some((t) => t.name === name)) {
             setTagInput("");
             return;
         }
 
         setIsUpdatingTag(true);
+        const newTag = serializeTag({ name, color: selectedColor });
         const newTags = [...(member.custom_tags || []), newTag];
         const { error } = await supabase.from("profiles").update({ custom_tags: newTags }).eq("id", member.id);
         if (!error) {
             onTagsChange(member.id, newTags);
         }
         setTagInput("");
+        setShowColorPicker(false);
         setIsUpdatingTag(false);
     };
 
-    const handleRemoveTag = async (tagToRemove: string) => {
+    const handleRemoveTag = async (nameToRemove: string) => {
         setIsUpdatingTag(true);
-        const newTags = (member.custom_tags || []).filter((t: string) => t !== tagToRemove);
-        const { error } = await supabase.from("profiles").update({ custom_tags: newTags }).eq("id", member.id);
+        const newTagStrings = (member.custom_tags || []).filter((raw: string) => {
+            return parseTag(raw).name !== nameToRemove;
+        });
+        const { error } = await supabase.from("profiles").update({ custom_tags: newTagStrings }).eq("id", member.id);
         if (!error) {
-            onTagsChange(member.id, newTags);
+            onTagsChange(member.id, newTagStrings);
         }
         setIsUpdatingTag(false);
     };
@@ -103,29 +142,81 @@ function MemberRow({ member, onRoleChange, supabase, onTagsChange, updatingId }:
                     
                     {/* Custom Tags */}
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        {member.custom_tags?.map((tag: string) => (
-                            <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface border border-border text-[10px] font-medium text-text-secondary">
-                                {tag}
+                        {parsedTags.map((tag) => (
+                            <span
+                                key={tag.name}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                style={{
+                                    color: tag.color,
+                                    backgroundColor: `${tag.color}18`,
+                                    borderColor: `${tag.color}40`,
+                                }}
+                            >
+                                {tag.name}
                                 <button
-                                    onClick={() => handleRemoveTag(tag)}
+                                    onClick={() => handleRemoveTag(tag.name)}
                                     disabled={isUpdatingTag}
-                                    className="hover:text-red-400 transition-colors disabled:opacity-50"
+                                    className="hover:opacity-60 transition-opacity disabled:opacity-30"
                                 >
                                     <X className="w-3 h-3" />
                                 </button>
                             </span>
                         ))}
                         
-                        <form onSubmit={handleAddTag} className="flex flex-wrap items-center gap-1">
-                            <input
-                                type="text"
-                                value={tagInput}
-                                onChange={(e) => setTagInput(e.target.value)}
-                                placeholder="+ add tag"
-                                disabled={isUpdatingTag}
-                                className="w-20 px-2 py-0.5 bg-background border border-border rounded-full text-[10px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary transition-all"
-                            />
-                        </form>
+                        {/* Add Tag form */}
+                        <div className="relative">
+                            <form onSubmit={handleAddTag} className="flex items-center gap-1">
+                                {/* Color dot button */}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowColorPicker((v) => !v)}
+                                    className="w-4 h-4 rounded-full border-2 border-border flex-shrink-0 transition-transform hover:scale-110"
+                                    style={{ backgroundColor: selectedColor }}
+                                    title="Pick tag color"
+                                />
+                                <input
+                                    type="text"
+                                    value={tagInput}
+                                    onChange={(e) => setTagInput(e.target.value)}
+                                    onFocus={() => setShowColorPicker(true)}
+                                    placeholder="+ add tag"
+                                    disabled={isUpdatingTag}
+                                    className="w-20 px-2 py-0.5 bg-background border border-border rounded-full text-[10px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary transition-all"
+                                />
+                            </form>
+
+                            {/* Color picker popover */}
+                            <AnimatePresence>
+                                {showColorPicker && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                                        className="absolute top-7 left-0 z-20 p-2 bg-surface border border-border rounded-xl shadow-xl"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                    >
+                                        <p className="text-[9px] text-text-muted mb-1.5 px-0.5">Tag color</p>
+                                        <div className="grid grid-cols-5 gap-1.5">
+                                            {PRESET_COLORS.map((c) => (
+                                                <button
+                                                    key={c}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedColor(c);
+                                                        setShowColorPicker(false);
+                                                    }}
+                                                    className="w-5 h-5 rounded-full transition-transform hover:scale-125 focus:outline-none"
+                                                    style={{
+                                                        backgroundColor: c,
+                                                        boxShadow: selectedColor === c ? `0 0 0 2px white, 0 0 0 3px ${c}` : "none",
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
             </div>

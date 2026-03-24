@@ -6,8 +6,20 @@ import { Tables } from "@/types/database";
 import { Users, User as UserIcon } from "lucide-react";
 
 type Profile = Tables<"profiles">;
-
 type FilterType = "all" | "faculty" | "committee" | "members";
+
+interface TagObject {
+    name: string;
+    color: string;
+}
+
+function parseTag(raw: string): TagObject {
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed.name && parsed.color) return parsed;
+    } catch {}
+    return { name: raw, color: "#6366f1" };
+}
 
 const MAPPED_ROLES: Record<string, { label: string; class: string }> = {
     member: { label: "Member", class: "text-text-muted bg-surface border-border" },
@@ -67,51 +79,59 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                 {/* Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24">
                     <AnimatePresence mode="popLayout">
-                        {filteredProfiles.map((profile, i) => (
-                            <motion.div
-                                layout
-                                key={profile.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                className="glass p-6 rounded-2xl flex flex-col items-center text-center group"
-                            >
-                                <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden mb-4 group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
-                                    {profile.avatar_url ? (
-                                        <img
-                                            src={profile.avatar_url}
-                                            alt={profile.display_name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <UserIcon className="w-10 h-10 text-primary-light/50" />
-                                    )}
-                                </div>
-                                
-                                <h3 className="text-lg font-bold mb-1 truncate w-full text-foreground group-hover:text-primary-light transition-colors">
-                                    {profile.display_name}
-                                </h3>
-                                
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-4 shadow-sm ${MAPPED_ROLES[profile.role]?.class || MAPPED_ROLES.member.class}`}>
-                                    {MAPPED_ROLES[profile.role]?.label || "Member"}
-                                </span>
-
-                                {/* Custom Tags */}
-                                {profile.custom_tags && profile.custom_tags.length > 0 && (
-                                    <div className="flex flex-wrap justify-center gap-1.5 mt-auto">
-                                        {profile.custom_tags.map(tag => (
-                                            <span 
-                                                key={tag} 
-                                                className="px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05] text-[10px] uppercase tracking-wider font-semibold text-text-secondary"
-                                            >
-                                                {tag}
-                                            </span>
-                                        ))}
+                        {filteredProfiles.map((profile) => {
+                            const parsedTags: TagObject[] = (profile.custom_tags || []).map(parseTag);
+                            return (
+                                <motion.div
+                                    layout
+                                    key={profile.id}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                    className="glass p-6 rounded-2xl flex flex-col items-center text-center group"
+                                >
+                                    <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden mb-4 group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
+                                        {profile.avatar_url ? (
+                                            <img
+                                                src={profile.avatar_url}
+                                                alt={profile.display_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <UserIcon className="w-10 h-10 text-primary-light/50" />
+                                        )}
                                     </div>
-                                )}
-                            </motion.div>
-                        ))}
+
+                                    <h3 className="text-lg font-bold mb-1 truncate w-full text-foreground group-hover:text-primary-light transition-colors">
+                                        {profile.display_name}
+                                    </h3>
+
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-4 shadow-sm ${MAPPED_ROLES[profile.role]?.class || MAPPED_ROLES.member.class}`}>
+                                        {MAPPED_ROLES[profile.role]?.label || "Member"}
+                                    </span>
+
+                                    {/* Colored Custom Tags */}
+                                    {parsedTags.length > 0 && (
+                                        <div className="flex flex-wrap justify-center gap-1.5 mt-auto">
+                                            {parsedTags.map((tag) => (
+                                                <span
+                                                    key={tag.name}
+                                                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                                    style={{
+                                                        color: tag.color,
+                                                        backgroundColor: `${tag.color}18`,
+                                                        borderColor: `${tag.color}40`,
+                                                    }}
+                                                >
+                                                    {tag.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </motion.div>
+                            );
+                        })}
                     </AnimatePresence>
 
                     {filteredProfiles.length === 0 && (
