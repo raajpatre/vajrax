@@ -40,6 +40,7 @@ function EditProfileModal({
 }) {
     const [displayName, setDisplayName] = useState(profile.display_name);
     const [bio, setBio] = useState(profile.bio || "");
+    const [contactEmail, setContactEmail] = useState(profile.contact_email || "");
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(
         profile.avatar_url
@@ -103,6 +104,7 @@ function EditProfileModal({
                 .update({
                     display_name: displayName.trim(),
                     bio: bio.trim() || null,
+                    contact_email: contactEmail.trim() || null,
                     avatar_url: avatarUrl,
                 })
                 .eq("id", profile.id);
@@ -209,6 +211,20 @@ function EditProfileModal({
                         <p className="text-[10px] text-text-muted text-right mt-1">
                             {bio.length}/200
                         </p>
+                    </div>
+
+                    {/* Contact Email */}
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                            Contact Email <span className="text-text-muted text-xs font-normal">(shown on Innovators page)</span>
+                        </label>
+                        <input
+                            type="email"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            placeholder="yourname@example.com"
+                            className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                        />
                     </div>
 
                     <button

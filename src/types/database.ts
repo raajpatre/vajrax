@@ -396,6 +396,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          contact_email: string | null
           created_at: string
           custom_tags: string[] | null
           display_name: string
@@ -407,6 +408,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          contact_email?: string | null
           created_at?: string
           custom_tags?: string[] | null
           display_name?: string
@@ -418,6 +420,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          contact_email?: string | null
           created_at?: string
           custom_tags?: string[] | null
           display_name?: string

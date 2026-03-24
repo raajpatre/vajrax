@@ -112,13 +112,7 @@ function LoginForm() {
 
             <div className="mt-6 text-center">
                 <p className="text-sm text-text-muted">
-                    Don&apos;t have an account?{" "}
-                    <Link
-                        href="/signup"
-                        className="text-primary-light hover:underline font-medium"
-                    >
-                        Create one
-                    </Link>
+                    Need an account? Contact your faculty advisor to get registered.
                 </p>
             </div>
         </div>

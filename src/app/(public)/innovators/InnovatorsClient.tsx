@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
-import { Users, User as UserIcon } from "lucide-react";
+import { Users, User as UserIcon, Mail } from "lucide-react";
 
 type Profile = Tables<"profiles">;
 type FilterType = "all" | "faculty" | "committee" | "members";
@@ -17,7 +17,7 @@ function parseTag(raw: string): TagObject {
     try {
         const parsed = JSON.parse(raw);
         if (parsed.name && parsed.color) return parsed;
-    } catch {}
+    } catch { }
     return { name: raw, color: "#6366f1" };
 }
 
@@ -65,11 +65,10 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                         <button
                             key={f.id}
                             onClick={() => setFilter(f.id)}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                                filter === f.id
+                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filter === f.id
                                     ? "bg-primary text-white shadow-lg shadow-primary/20"
                                     : "bg-surface border border-border text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
-                            }`}
+                                }`}
                         >
                             {f.label}
                         </button>
@@ -128,6 +127,17 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                                 </span>
                                             ))}
                                         </div>
+                                    )}
+
+                                    {/* Contact Email */}
+                                    {profile.contact_email && (
+                                        <a
+                                            href={`mailto:${profile.contact_email}`}
+                                            className="flex items-center gap-1.5 mt-3 text-[11px] text-text-muted hover:text-primary-light transition-colors"
+                                        >
+                                            <Mail className="w-3.5 h-3.5" />
+                                            {profile.contact_email}
+                                        </a>
                                     )}
                                 </motion.div>
                             );
