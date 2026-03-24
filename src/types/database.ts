@@ -679,6 +679,13 @@ export type Database = {
       }
       is_faculty: { Args: { uid: string }; Returns: boolean }
       is_moderator: { Args: { uid: string }; Returns: boolean }
+      lookup_profile_by_email: {
+        Args: { lookup_email: string }
+        Returns: {
+          display_name: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       request_status:
@@ -687,7 +694,12 @@ export type Database = {
         | "rejected"
         | "returned"
         | "revoked"
-      user_role: "member" | "inventory_manager" | "president" | "vice_president" | "faculty"
+      user_role:
+        | "member"
+        | "inventory_manager"
+        | "president"
+        | "vice_president"
+        | "faculty"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -822,7 +834,13 @@ export const Constants = {
         "returned",
         "revoked",
       ],
-      user_role: ["member", "president", "vice_president", "faculty"],
+      user_role: [
+        "member",
+        "inventory_manager",
+        "president",
+        "vice_president",
+        "faculty",
+      ],
     },
   },
 } as const
