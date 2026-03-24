@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
-import { Users, User as UserIcon, Mail } from "lucide-react";
+import { Users, User as UserIcon, Mail, Github, Linkedin } from "lucide-react";
 
 type Profile = Tables<"profiles">;
 type FilterType = "all" | "faculty" | "committee" | "members";
@@ -138,6 +138,34 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                             <Mail className="w-3.5 h-3.5" />
                                             {profile.contact_email}
                                         </a>
+                                    )}
+
+                                    {/* Social Links */}
+                                    {(profile.github_url || profile.linkedin_url) && (
+                                        <div className="flex items-center gap-3 mt-3">
+                                            {profile.github_url && (
+                                                <a
+                                                    href={profile.github_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-text-muted hover:text-white transition-colors"
+                                                    title="GitHub"
+                                                >
+                                                    <Github className="w-4.5 h-4.5" />
+                                                </a>
+                                            )}
+                                            {profile.linkedin_url && (
+                                                <a
+                                                    href={profile.linkedin_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-text-muted hover:text-[#0A66C2] transition-colors"
+                                                    title="LinkedIn"
+                                                >
+                                                    <Linkedin className="w-4.5 h-4.5" />
+                                                </a>
+                                            )}
+                                        </div>
                                     )}
                                 </motion.div>
                             );

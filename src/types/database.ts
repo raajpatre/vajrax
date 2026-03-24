@@ -400,7 +400,9 @@ export type Database = {
           created_at: string
           custom_tags: string[] | null
           display_name: string
+          github_url: string | null
           id: string
+          linkedin_url: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string | null
@@ -412,7 +414,9 @@ export type Database = {
           created_at?: string
           custom_tags?: string[] | null
           display_name?: string
+          github_url?: string | null
           id: string
+          linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string | null
@@ -424,7 +428,9 @@ export type Database = {
           created_at?: string
           custom_tags?: string[] | null
           display_name?: string
+          github_url?: string | null
           id?: string
+          linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string | null

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { Github, Linkedin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { Tables } from "@/types/database";
@@ -41,6 +42,8 @@ function EditProfileModal({
     const [displayName, setDisplayName] = useState(profile.display_name);
     const [bio, setBio] = useState(profile.bio || "");
     const [contactEmail, setContactEmail] = useState(profile.contact_email || "");
+    const [githubUrl, setGithubUrl] = useState(profile.github_url || "");
+    const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || "");
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(
         profile.avatar_url
@@ -105,6 +108,8 @@ function EditProfileModal({
                     display_name: displayName.trim(),
                     bio: bio.trim() || null,
                     contact_email: contactEmail.trim() || null,
+                    github_url: githubUrl.trim() || null,
+                    linkedin_url: linkedinUrl.trim() || null,
                     avatar_url: avatarUrl,
                 })
                 .eq("id", profile.id);
@@ -225,6 +230,40 @@ function EditProfileModal({
                             placeholder="yourname@example.com"
                             className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                         />
+                    </div>
+
+                    {/* GitHub */}
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                            GitHub URL
+                        </label>
+                        <div className="relative">
+                            <Github className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                            <input
+                                type="url"
+                                value={githubUrl}
+                                onChange={(e) => setGithubUrl(e.target.value)}
+                                placeholder="https://github.com/username"
+                                className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* LinkedIn */}
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                            LinkedIn URL
+                        </label>
+                        <div className="relative">
+                            <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                            <input
+                                type="url"
+                                value={linkedinUrl}
+                                onChange={(e) => setLinkedinUrl(e.target.value)}
+                                placeholder="https://linkedin.com/in/username"
+                                className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                            />
+                        </div>
                     </div>
 
                     <button
