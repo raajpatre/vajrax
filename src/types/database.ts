@@ -687,7 +687,7 @@ export type Database = {
         | "rejected"
         | "returned"
         | "revoked"
-      user_role: "member" | "president" | "vice_president" | "faculty"
+      user_role: "member" | "inventory_manager" | "president" | "vice_president" | "faculty"
     }
     CompositeTypes: {
       [_ in never]: never

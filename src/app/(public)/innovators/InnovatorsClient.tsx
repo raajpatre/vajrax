@@ -23,6 +23,7 @@ function parseTag(raw: string): TagObject {
 
 const MAPPED_ROLES: Record<string, { label: string; class: string }> = {
     member: { label: "Member", class: "text-text-muted bg-surface border-border" },
+    inventory_manager: { label: "Inventory Manager", class: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
     president: { label: "President", class: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
     vice_president: { label: "Vice President", class: "text-violet-400 bg-violet-400/10 border-violet-400/20" },
     faculty: { label: "Faculty", class: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20" },

@@ -398,7 +398,8 @@ function RequestModal({
 }
 
 export default function InventoryPage() {
-    const { isAuthenticated, isFaculty, isModerator, loading: userLoading } = useUser();
+    const { isAuthenticated, isFaculty, isModerator, isInventoryManager, loading: userLoading } = useUser();
+    const canManageInventory = isFaculty || isModerator || isInventoryManager;
     const supabase = createClient();
 
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -458,7 +459,7 @@ export default function InventoryPage() {
                         Browse and request equipment
                     </p>
                 </div>
-                {(isFaculty || isModerator) && (
+                {canManageInventory && (
                     <button
                         onClick={() => setEditItem(null)}
                         className="btn-primary text-sm"
@@ -533,7 +534,7 @@ export default function InventoryPage() {
                                 className="glass overflow-hidden group relative flex flex-col"
                             >
                                 {/* Admin Actions */}
-                                {(isFaculty || isModerator) && (
+                                {canManageInventory && (
                                     <div className="flex gap-1 absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                         <button
                                             onClick={() => setEditItem(item)}
@@ -542,13 +543,15 @@ export default function InventoryPage() {
                                         >
                                             <Pencil className="w-3.5 h-3.5" />
                                         </button>
-                                        <button
-                                            onClick={() => handleDelete(item.id)}
-                                            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-text-muted hover:text-red-400 hover:bg-red-400/20 transition-all border border-white/10"
-                                            title="Delete Item"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                        {(isFaculty || isModerator) && (
+                                            <button
+                                                onClick={() => handleDelete(item.id)}
+                                                className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-text-muted hover:text-red-400 hover:bg-red-400/20 transition-all border border-white/10"
+                                                title="Delete Item"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
                                     </div>
                                 )}
 

@@ -53,6 +53,7 @@ const PRESET_COLORS = [
 
 const roles = [
     { value: "member", label: "Member" },
+    { value: "inventory_manager", label: "Inventory Manager" },
     { value: "president", label: "President" },
     { value: "vice_president", label: "Vice President" },
     { value: "faculty", label: "Faculty" },
@@ -60,6 +61,7 @@ const roles = [
 
 const roleBadge: Record<string, string> = {
     member: "text-text-muted bg-surface border-border",
+    inventory_manager: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
     president: "text-amber-400 bg-amber-400/10 border-amber-400/20",
     vice_president: "text-violet-400 bg-violet-400/10 border-violet-400/20",
     faculty: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",

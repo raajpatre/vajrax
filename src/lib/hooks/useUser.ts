@@ -133,5 +133,6 @@ export function useUser() {
         isModerator:
             state.profile?.role === "president" ||
             state.profile?.role === "vice_president",
+        isInventoryManager: state.profile?.role === "inventory_manager",
     };
 }
