@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Github, Linkedin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -288,7 +288,8 @@ export default function ProfilePage() {
     const params = useParams();
     const userId = params.id as string;
     const { user: currentUser, loading: authLoading } = useUser();
-    const supabase = createClient();
+    const supabaseRef = useRef(createClient());
+    const supabase = supabaseRef.current;
 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -307,7 +308,7 @@ export default function ProfilePage() {
 
         if (data) setProfile(data);
         setLoading(false);
-    }, [userId, supabase]);
+    }, [userId]);
 
     const fetchStats = useCallback(async () => {
         const [postsRes, commentsRes] = await Promise.all([
@@ -322,7 +323,7 @@ export default function ProfilePage() {
         ]);
         setPostCount(postsRes.count ?? 0);
         setCommentCount(commentsRes.count ?? 0);
-    }, [userId, supabase]);
+    }, [userId]);
 
     useEffect(() => {
         fetchProfile();
