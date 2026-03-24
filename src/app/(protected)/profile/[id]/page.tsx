@@ -115,7 +115,7 @@ function EditProfileModal({
                 linkedin_url: linkedinUrl.trim() || null,
                 avatar_url: avatarUrl,
             };
-            console.log("Payload:", updatePayload);
+            console.log("FINAL PAYLOAD BEFORE UPDATE:", JSON.stringify(updatePayload, null, 2));
 
             const updatePromise = supabase
                 .from("profiles")
@@ -273,7 +273,7 @@ function EditProfileModal({
                         <div className="relative">
                             <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                             <input
-                                type="url"
+                                type="text"
                                 value={linkedinUrl}
                                 onChange={(e) => setLinkedinUrl(e.target.value)}
                                 placeholder="https://linkedin.com/in/username"
