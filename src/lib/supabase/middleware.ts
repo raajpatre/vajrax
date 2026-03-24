@@ -30,12 +30,19 @@ export async function updateSession(request: NextRequest) {
     );
 
     // Refresh session — important for Server Components
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    let user = null;
+    try {
+        const { data } = await supabase.auth.getUser();
+        user = data.user;
+    } catch (err) {
+        // Network error — don't redirect, just let the page load normally
+        // The client-side useUser hook will handle auth state from localStorage
+        console.warn("Middleware getUser failed:", err);
+        return supabaseResponse;
+    }
 
     // Protected routes — redirect to login if not authenticated
-    const protectedPaths = ["/feed", "/inventory", "/profile", "/admin"];
+    const protectedPaths = ["/feed", "/inventory", "/profile", "/admin", "/project-invites", "/my-requests"];
     const isProtected = protectedPaths.some((path) =>
         request.nextUrl.pathname.startsWith(path)
     );
