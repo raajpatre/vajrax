@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Menu, X, Zap, LogIn, LogOut, User, LayoutDashboard, Package, FolderOpen, History, Mail } from "lucide-react";
+import { Menu, X, Zap, LogIn, LogOut, User, Users, LayoutDashboard, Package, FolderOpen, History, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
 
@@ -213,6 +213,13 @@ export default function Navbar() {
                                                 <>
                                                     <div className="border-t border-border my-1" />
                                                     <p className="px-3 py-1 text-[10px] font-semibold text-text-muted uppercase tracking-wider">Admin</p>
+                                                    <Link
+                                                        href="/admin/members"
+                                                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                                    >
+                                                        <Users className="w-4 h-4" />
+                                                        Manage Members
+                                                    </Link>
                                                     <Link
                                                         href="/admin/requests"
                                                         className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
