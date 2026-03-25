@@ -56,7 +56,7 @@ export default function Navbar() {
                         ? "glass-strong border-b border-cyan-200/20 shadow-[0_24px_62px_rgba(0,0,0,0.5)]"
                         : "border-b border-cyan-200/15 bg-[linear-gradient(180deg,rgba(8,22,40,0.74),rgba(6,16,30,0.58))] backdrop-blur-2xl"
                     }`}
-                style={{ height: "var(--nav-height)" }}
+                style={{ height: "var(--nav-height)", transform: "translateZ(0)" }}
             >
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,rgba(123,97,255,0),rgba(123,97,255,0.72),rgba(76,201,240,0.72),rgba(31,232,216,0.35),rgba(31,232,216,0))] animate-[aurora-shift_7s_linear_infinite]" />
                 <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">

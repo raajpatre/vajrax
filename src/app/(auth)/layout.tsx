@@ -12,7 +12,7 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#050B14] px-6 py-12">
+        <div className="relative min-h-screen flex flex-col items-center justify-center overflow-x-hidden bg-[#050B14] px-6 py-12">
             <PublicAmbientBackground />
             <div className="absolute inset-0 bg-grid opacity-60" />
             <div className="absolute inset-0 bg-radial opacity-55" />

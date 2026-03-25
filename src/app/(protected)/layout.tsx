@@ -8,7 +8,7 @@ export default function ProtectedLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="relative min-h-screen flex flex-col overflow-hidden bg-[#050B14]">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#050B14]">
             <PublicAmbientBackground />
             <Navbar />
             <main className="relative z-10 flex-1 pt-[var(--nav-height)]">{children}</main>
