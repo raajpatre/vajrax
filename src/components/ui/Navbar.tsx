@@ -52,7 +52,7 @@ export default function Navbar() {
     return (
         <>
             <nav
-                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+                className={`fixed top-0 left-0 right-0 z-[80] transition-all duration-300 ${isScrolled
                         ? "glass-strong border-b border-cyan-200/20 shadow-[0_24px_62px_rgba(0,0,0,0.5)]"
                         : "border-b border-cyan-200/15 bg-[linear-gradient(180deg,rgba(8,22,40,0.74),rgba(6,16,30,0.58))] backdrop-blur-2xl"
                     }`}
@@ -329,57 +329,69 @@ export default function Navbar() {
             {/* Mobile menu */}
             <AnimatePresence>
                 {isMobileOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed inset-x-3 top-[calc(var(--nav-height)+8px)] z-40 glass-strong p-4 md:hidden rounded-2xl border-cyan-200/25"
-                    >
-                        <div className="flex flex-col gap-1">
-                            {publicLinks.filter(link => !(isAuthenticated && (link.href === "/" || link.href === "/contact"))).map((link) => {
-                                const isActive = pathname === link.href;
-                                return (
-                                    <Link
-                                        key={link.href}
-                                        href={link.href}
-                                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                                                ? "text-white bg-white/[0.08] border border-white/18"
-                                                : "text-text-secondary hover:text-foreground hover:bg-white/[0.04]"
-                                            }`}
-                                    >
-                                        {link.label}
-                                    </Link>
-                                );
-                            })}
-                            {isAuthenticated && (
-                                <>
-                                    <Link
-                                        href="/feed"
-                                        className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
-                                    >
-                                        Feed
-                                    </Link>
-                                    <Link
-                                        href="/inventory"
-                                        className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
-                                    >
-                                        Inventory
-                                    </Link>
-                                    <Link
-                                        href="/lab"
-                                        className="px-4 py-3 rounded-lg text-sm font-medium text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-500/10 transition-all flex items-center gap-2"
-                                    >
-                                        <FlaskConical className="w-4 h-4" />
-                                        Lab
-                                        <span className="rounded-full border border-cyan-300/50 bg-cyan-300/14 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.08em] text-cyan-100">
-                                            BETA
-                                        </span>
-                                    </Link>
-                                </>
-                            )}
-                        </div>
-                    </motion.div>
+                    <>
+                        <motion.button
+                            type="button"
+                            aria-label="Close mobile menu"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.16 }}
+                            onClick={() => setIsMobileOpen(false)}
+                            className="fixed inset-0 z-[85] bg-[radial-gradient(circle_at_top,rgba(8,20,34,0.24),rgba(3,8,18,0.62))] backdrop-blur-[2px] md:hidden"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed right-3 left-3 top-[calc(var(--nav-height)+max(env(safe-area-inset-top),0px)+8px)] z-[90] max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] overflow-y-auto rounded-2xl border border-cyan-200/30 bg-[linear-gradient(165deg,rgba(11,24,42,0.9),rgba(8,17,34,0.82))] p-4 shadow-[0_22px_62px_rgba(0,0,0,0.55),0_0_0_1px_rgba(123,97,255,0.16),0_0_38px_rgba(76,201,240,0.18)] backdrop-blur-2xl md:hidden"
+                        >
+                            <div className="flex flex-col gap-1">
+                                {publicLinks.filter(link => !(isAuthenticated && (link.href === "/" || link.href === "/contact"))).map((link) => {
+                                    const isActive = pathname === link.href;
+                                    return (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
+                                                    ? "text-white bg-white/[0.08] border border-white/18"
+                                                    : "text-text-secondary hover:text-foreground hover:bg-white/[0.04]"
+                                                }`}
+                                        >
+                                            {link.label}
+                                        </Link>
+                                    );
+                                })}
+                                {isAuthenticated && (
+                                    <>
+                                        <Link
+                                            href="/feed"
+                                            className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                        >
+                                            Feed
+                                        </Link>
+                                        <Link
+                                            href="/inventory"
+                                            className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                        >
+                                            Inventory
+                                        </Link>
+                                        <Link
+                                            href="/lab"
+                                            className="px-4 py-3 rounded-lg text-sm font-medium text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-500/10 transition-all flex items-center gap-2"
+                                        >
+                                            <FlaskConical className="w-4 h-4" />
+                                            Lab
+                                            <span className="rounded-full border border-cyan-300/50 bg-cyan-300/14 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.08em] text-cyan-100">
+                                                BETA
+                                            </span>
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </>
