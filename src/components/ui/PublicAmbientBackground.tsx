@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import FloatingLines from "@/components/FloatingLines";
 
 export default function PublicAmbientBackground() {
+    const pathname = usePathname();
     const [isCompact, setIsCompact] = useState(false);
     const [reduceMotion, setReduceMotion] = useState(false);
+    const [isLowPowerDevice, setIsLowPowerDevice] = useState(false);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia("(max-width: 768px)");
         const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+        const cores = navigator.hardwareConcurrency;
+
+        const lowPower = (memory !== undefined && memory <= 4) || (cores !== undefined && cores <= 6);
+        setIsLowPowerDevice(lowPower);
 
         const syncState = () => {
             setIsCompact(mediaQuery.matches);
@@ -26,12 +34,15 @@ export default function PublicAmbientBackground() {
         };
     }, []);
 
-    if (reduceMotion) {
+    const useDynamicBackground = pathname === "/" || pathname === "/login";
+
+    if (reduceMotion || !useDynamicBackground) {
         return (
             <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
                 <div className="absolute inset-0 bg-[#050B14]" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,242,255,0.10),_transparent_35%),radial-gradient(circle_at_80%_18%,_rgba(212,175,55,0.08),_transparent_24%)]" />
                 <div className="absolute inset-0 bg-grid opacity-25" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#050B14]/78" />
             </div>
         );
     }
@@ -42,15 +53,19 @@ export default function PublicAmbientBackground() {
             <div className="absolute inset-0 opacity-45 md:opacity-55">
                 <FloatingLines
                     linesGradient={["#00f2ff", "#e0e6ed", "#ffc400"]}
+                    lineCount={isCompact || isLowPowerDevice ? [3, 4, 3] : [4, 5, 4]}
+                    lineDistance={isCompact || isLowPowerDevice ? [4.4, 5.2, 4.6] : [5.2, 6.0, 5.4]}
                     topWavePosition={{ x: 10, y: 0.55, rotate: -0.42 }}
                     middleWavePosition={{ x: 5.4, y: 0.02, rotate: 0.18 }}
-                    animationSpeed={isCompact ? 0.9 : 1.15}
-                    interactive={!isCompact}
-                    bendRadius={isCompact ? 5.5 : 7.5}
+                    animationSpeed={isCompact || isLowPowerDevice ? 0.72 : 0.92}
+                    interactive={!isCompact && !isLowPowerDevice}
+                    bendRadius={isCompact || isLowPowerDevice ? 5.0 : 6.6}
                     bendStrength={-0.53}
                     mouseDamping={0.05}
-                    parallax
-                    parallaxStrength={isCompact ? 0.14 : 0.24}
+                    parallax={!isLowPowerDevice}
+                    parallaxStrength={isCompact || isLowPowerDevice ? 0.08 : 0.16}
+                    pixelRatioCap={isLowPowerDevice ? 1 : 1.3}
+                    maxFps={isLowPowerDevice ? 28 : 38}
                 />
             </div>
             <div className="animate-ambient-drift absolute inset-0 bg-grid opacity-[0.2]" />

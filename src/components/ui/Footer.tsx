@@ -92,7 +92,7 @@ export default function Footer() {
                         &copy; {new Date().getFullYear()} VajraX Robotics Club. All rights reserved.
                     </p>
                     <p className="text-xs text-text-muted">
-                        Built with ⚡ by the VajraX Engineering Team
+                        Built with ⚡️ for VajraX by Raaj Patre
                     </p>
                 </div>
             </div>

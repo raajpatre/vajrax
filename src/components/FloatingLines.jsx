@@ -244,7 +244,9 @@ export default function FloatingLines({
   mouseDamping = 0.05,
   parallax = true,
   parallaxStrength = 0.2,
-  mixBlendMode = 'screen'
+  mixBlendMode = 'screen',
+  pixelRatioCap = 1.4,
+  maxFps = 40
 }) {
   const containerRef = useRef(null);
   const targetMouseRef = useRef(new Vector2(-1000, -1000));
@@ -287,8 +289,8 @@ export default function FloatingLines({
     const camera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
     camera.position.z = 1;
 
-    const renderer = new WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatioCap));
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
     container.appendChild(renderer.domElement);
@@ -365,6 +367,7 @@ export default function FloatingLines({
     scene.add(mesh);
 
     const clock = new Clock();
+    let lastFrameTime = 0;
 
     const setSize = () => {
       if (!active) return;
@@ -420,6 +423,13 @@ export default function FloatingLines({
     let raf = 0;
     const renderLoop = () => {
       if (!active) return;
+      raf = requestAnimationFrame(renderLoop);
+
+      if (typeof document !== 'undefined' && document.hidden) return;
+      const now = performance.now();
+      const minFrameGap = 1000 / Math.max(maxFps, 1);
+      if (now - lastFrameTime < minFrameGap) return;
+      lastFrameTime = now;
 
       uniforms.iTime.value = clock.getElapsedTime();
 
@@ -437,7 +447,6 @@ export default function FloatingLines({
       }
 
       renderer.render(scene, camera);
-      raf = requestAnimationFrame(renderLoop);
     };
     renderLoop();
 
@@ -476,7 +485,9 @@ export default function FloatingLines({
     bendStrength,
     mouseDamping,
     parallax,
-    parallaxStrength
+    parallaxStrength,
+    pixelRatioCap,
+    maxFps
   ]);
 
   return (

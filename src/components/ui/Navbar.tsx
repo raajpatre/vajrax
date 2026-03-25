@@ -143,6 +143,9 @@ export default function Navbar() {
                             >
                                 <FlaskConical className="w-3.5 h-3.5 opacity-80" />
                                 Lab
+                                <span className="ml-1 rounded-full border border-cyan-300/50 bg-cyan-300/14 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.08em] text-cyan-100">
+                                    BETA
+                                </span>
                                 {pathname.startsWith("/lab") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
@@ -233,6 +236,9 @@ export default function Navbar() {
                                             >
                                                 <FlaskConical className="w-4 h-4 text-cyan-300/90" />
                                                 Lab
+                                                <span className="rounded-full border border-cyan-300/50 bg-cyan-300/14 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.08em] text-cyan-100">
+                                                    BETA
+                                                </span>
                                             </Link>
                                             <Link
                                                 href="/project-invites"
@@ -366,6 +372,9 @@ export default function Navbar() {
                                     >
                                         <FlaskConical className="w-4 h-4" />
                                         Lab
+                                        <span className="rounded-full border border-cyan-300/50 bg-cyan-300/14 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.08em] text-cyan-100">
+                                            BETA
+                                        </span>
                                     </Link>
                                 </>
                             )}
