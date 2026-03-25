@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
 import { LucideIcon } from "lucide-react";
+import { submitEquipmentRequest } from "@/actions/equipment-requests";
 
 type InventoryItem = Tables<"inventory_items">;
 
@@ -78,6 +79,7 @@ function ItemModal({
     const [totalQuantity, setTotalQuantity] = useState(item?.total_quantity || 1);
     const [availableQuantity, setAvailableQuantity] = useState(item?.available_quantity || 1);
     const [imageUrl, setImageUrl] = useState(item?.image_url || "");
+    const [requiredSafetyCertification, setRequiredSafetyCertification] = useState(item?.required_safety_certification || "");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -97,6 +99,7 @@ function ItemModal({
             total_quantity: totalQuantity,
             available_quantity: availableQuantity,
             image_url: imageUrl.trim() || null,
+            required_safety_certification: requiredSafetyCertification.trim() || null,
         };
 
         try {
@@ -193,6 +196,16 @@ function ItemModal({
                                 </div>
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Required Safety Certification (optional)</label>
+                                <input
+                                    type="text"
+                                    value={requiredSafetyCertification}
+                                    onChange={(e) => setRequiredSafetyCertification(e.target.value)}
+                                    placeholder="e.g. Laser Cutter Level 1"
+                                    className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1.5">Image URL (optional)</label>
                                 <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all" />
                             </div>
@@ -233,19 +246,15 @@ function RequestModal({
         setLoading(true);
         setError(null);
 
-        const supabase = createClient();
-        const { error: insertError } = await supabase
-            .from("equipment_requests")
-            .insert({
-                item_id: item.id,
-                requester_id: user.id,
-                quantity,
-                reason: reason.trim(),
-                request_type: requestType,
-            });
+        const result = await submitEquipmentRequest({
+            itemId: item.id,
+            quantity,
+            reason: reason.trim(),
+            requestType,
+        });
 
-        if (insertError) {
-            setError(insertError.message);
+        if (!result.ok) {
+            setError(result.error);
             setLoading(false);
             return;
         }
@@ -306,6 +315,11 @@ function RequestModal({
                                 <p className="text-xs text-text-muted">
                                     {item.available_quantity} of {item.total_quantity} available
                                 </p>
+                                {item.required_safety_certification && (
+                                    <p className="text-[11px] text-amber-300 mt-1">
+                                        Requires certification: <span className="font-semibold">{item.required_safety_certification}</span>
+                                    </p>
+                                )}
                             </div>
                         </div>
 
