@@ -48,27 +48,25 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
     ];
 
     return (
-        <div className="min-h-screen pt-[calc(var(--nav-height)+2rem)]">
-            <div className="max-w-7xl mx-auto px-6 mb-12">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-primary-light" />
-                    </div>
-                    <h1 className="section-title text-3xl">Our Innovators</h1>
-                </div>
-                <p className="text-text-secondary max-w-2xl mb-8">
+        <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(0,242,255,0.1),transparent_30%),radial-gradient(circle_at_86%_16%,rgba(125,114,255,0.11),transparent_32%)]" />
+
+            <div className="relative z-10 mx-auto mb-12 max-w-7xl px-6">
+                <h1 className="section-title mb-4 text-3xl">Our Innovators</h1>
+                <p className="mb-8 max-w-2xl text-text-secondary">
                     Meet the brilliant minds behind VajraX. From dedicated faculty and leadership to our active builders shaping the future of robotics.
                 </p>
 
                 {/* Filters */}
-                <div className="flex flex-wrap items-center gap-2 mb-10">
+                <div className="glass mb-10 inline-flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2">
                     {filters.map((f) => (
                         <button
                             key={f.id}
                             onClick={() => setFilter(f.id)}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filter === f.id
-                                    ? "bg-primary text-white shadow-lg shadow-primary/20"
-                                    : "bg-surface border border-border text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
+                            className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${
+                                filter === f.id
+                                    ? "border-cyan-300/35 bg-cyan-300/14 text-cyan-100 shadow-[0_0_20px_rgba(0,242,255,0.15)]"
+                                    : "border-transparent text-text-secondary hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground"
                                 }`}
                         >
                             {f.label}
@@ -89,7 +87,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
                                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                    className="glass p-6 rounded-2xl flex flex-col items-center text-center group"
+                                    className="glass group flex flex-col items-center rounded-2xl p-6 text-center"
                                 >
                                     <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden mb-4 group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
                                         {profile.avatar_url ? (
@@ -177,7 +175,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="col-span-full py-20 text-center glass rounded-2xl"
+                            className="glass col-span-full rounded-2xl py-20 text-center"
                         >
                             <Users className="w-12 h-12 text-text-muted mx-auto mb-4" />
                             <h3 className="text-lg font-semibold mb-2">No innovators found</h3>

@@ -256,8 +256,17 @@ function ItemModal({
 
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                                    Image URL (optional)
+                                    Item Image (optional)
                                 </label>
+                                {imageUrl && (
+                                    <div className="mb-3 overflow-hidden rounded-xl border border-border/70 bg-surface/40">
+                                        <img
+                                            src={imageUrl}
+                                            alt={name || "Inventory item preview"}
+                                            className="h-40 w-full object-cover"
+                                        />
+                                    </div>
+                                )}
                                 <input
                                     type="url"
                                     value={imageUrl}
@@ -265,6 +274,15 @@ function ItemModal({
                                     placeholder="https://..."
                                     className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                                 />
+                                {imageUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageUrl("")}
+                                        className="mt-3 btn-ghost text-sm !py-2.5 !px-4"
+                                    >
+                                        Remove Image
+                                    </button>
+                                )}
                             </div>
 
                             <button
@@ -288,7 +306,8 @@ function ItemModal({
 }
 
 export default function InventoryManagement() {
-    const { isModerator, isFaculty, loading: authLoading } = useUser();
+    const { isModerator, isFaculty, isInventoryManager, loading: authLoading } = useUser();
+    const canManageInventory = isModerator || isFaculty || isInventoryManager;
     const supabase = createClient();
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -323,7 +342,7 @@ export default function InventoryManagement() {
         );
     }
 
-    if (!isModerator && !isFaculty) {
+    if (!canManageInventory) {
         return (
             <div className="max-w-3xl mx-auto px-4 py-16 text-center">
                 <ShieldCheck className="w-16 h-16 text-text-muted mx-auto mb-4" />
@@ -337,9 +356,6 @@ export default function InventoryManagement() {
         <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-emerald-400" />
-                </div>
                 <div className="flex-1">
                     <h1 className="text-xl font-bold">Inventory Management</h1>
                     <p className="text-xs text-text-muted">{items.length} items</p>

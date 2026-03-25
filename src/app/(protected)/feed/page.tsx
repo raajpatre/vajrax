@@ -113,9 +113,6 @@ export default function FeedPage() {
         <div className="max-w-2xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <Newspaper className="w-5 h-5 text-primary-light" />
-                </div>
                 <div>
                     <h1 className="text-xl font-bold">Feed</h1>
                     <p className="text-xs text-text-muted">

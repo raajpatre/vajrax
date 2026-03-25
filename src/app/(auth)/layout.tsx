@@ -1,5 +1,6 @@
 import { Zap } from "lucide-react";
 import Link from "next/link";
+import PublicAmbientBackground from "@/components/ui/PublicAmbientBackground";
 
 export const metadata = {
     title: "Authentication — VajraX",
@@ -11,7 +12,10 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-grid bg-radial px-6 py-12 relative">
+        <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#050B14] px-6 py-12">
+            <PublicAmbientBackground />
+            <div className="absolute inset-0 bg-grid opacity-60" />
+            <div className="absolute inset-0 bg-radial opacity-55" />
             {/* Background glow */}
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 

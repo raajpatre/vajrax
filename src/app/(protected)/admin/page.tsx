@@ -8,44 +8,57 @@ import {
     Package,
     ClipboardList,
     Newspaper,
+    History,
     Loader2,
     ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-const adminLinks = [
-    {
-        href: "/admin/members",
-        label: "Member Management",
-        desc: "View all members, change roles",
-        icon: <Users className="w-5 h-5" />,
-        color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
-    },
-    {
-        href: "/admin/inventory",
-        label: "Inventory Management",
-        desc: "Add, edit, or remove equipment",
-        icon: <Package className="w-5 h-5" />,
-        color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-    },
-    {
-        href: "/admin/requests",
-        label: "Equipment Requests",
-        desc: "Approve or reject pending requests",
-        icon: <ClipboardList className="w-5 h-5" />,
-        color: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-    },
-    {
-        href: "/admin/posts",
-        label: "Post Moderation",
-        desc: "Review and moderate feed posts",
-        icon: <Newspaper className="w-5 h-5" />,
-        color: "text-violet-400 bg-violet-400/10 border-violet-400/20",
-    },
-];
-
 export default function AdminDashboard() {
-    const { isModerator, isFaculty, loading } = useUser();
+    const { isModerator, isFaculty, loading, role } = useUser();
+    const canViewLabHistory = role === "faculty" || role === "president";
+
+    const adminLinks = [
+        {
+            href: "/admin/members",
+            label: "Member Management",
+            desc: "View all members, change roles",
+            icon: <Users className="w-5 h-5" />,
+            color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
+        },
+        {
+            href: "/admin/inventory",
+            label: "Inventory Management",
+            desc: "Add, edit, or remove equipment",
+            icon: <Package className="w-5 h-5" />,
+            color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+        },
+        {
+            href: "/admin/requests",
+            label: "Equipment Requests",
+            desc: "Approve or reject pending requests",
+            icon: <ClipboardList className="w-5 h-5" />,
+            color: "text-amber-400 bg-amber-400/10 border-amber-400/20",
+        },
+        {
+            href: "/admin/posts",
+            label: "Post Moderation",
+            desc: "Review and moderate feed posts",
+            icon: <Newspaper className="w-5 h-5" />,
+            color: "text-violet-400 bg-violet-400/10 border-violet-400/20",
+        },
+        ...(canViewLabHistory
+            ? [
+                {
+                    href: "/admin/lab-history",
+                    label: "Lab Booking History",
+                    desc: "Review which equipment was booked by whom",
+                    icon: <History className="w-5 h-5" />,
+                    color: "text-sky-300 bg-sky-400/10 border-sky-400/20",
+                },
+            ]
+            : []),
+    ];
 
     if (loading) {
         return (
@@ -71,9 +84,6 @@ export default function AdminDashboard() {
         <div className="max-w-3xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <ShieldCheck className="w-6 h-6 text-primary-light" />
-                </div>
                 <div>
                     <h1 className="text-2xl font-bold">Admin Panel</h1>
                     <p className="text-sm text-text-muted">

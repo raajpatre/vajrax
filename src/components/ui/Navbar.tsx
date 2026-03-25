@@ -30,6 +30,7 @@ export default function Navbar() {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const { user, profile, loading, isAuthenticated, signOut, isFaculty, isModerator } = useUser();
+    const canViewLabHistory = profile?.role === "faculty" || profile?.role === "president";
 
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -52,18 +53,19 @@ export default function Navbar() {
         <>
             <nav
                 className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-                        ? "glass-strong shadow-lg shadow-black/20"
-                        : "bg-transparent"
+                        ? "glass-strong border-b border-cyan-200/20 shadow-[0_24px_62px_rgba(0,0,0,0.5)]"
+                        : "border-b border-cyan-200/15 bg-[linear-gradient(180deg,rgba(8,22,40,0.74),rgba(6,16,30,0.58))] backdrop-blur-2xl"
                     }`}
                 style={{ height: "var(--nav-height)" }}
             >
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,rgba(123,97,255,0),rgba(123,97,255,0.72),rgba(76,201,240,0.72),rgba(31,232,216,0.35),rgba(31,232,216,0))] animate-[aurora-shift_7s_linear_infinite]" />
                 <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2.5 group">
-                        <div className="w-9 h-9 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center group-hover:bg-primary/30 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all duration-300">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/35 via-secondary/25 to-accent/20 border border-white/24 flex items-center justify-center group-hover:shadow-[0_0_28px_rgba(76,201,240,0.32)] transition-all duration-300">
                             <Zap className="w-5 h-5 text-primary-light" />
                         </div>
-                        <span className="text-xl font-bold tracking-tight">
+                        <span className="text-xl font-black tracking-tight">
                             <span className="text-gradient">Vajra</span>
                             <span className="text-foreground">X</span>
                         </span>
@@ -78,15 +80,15 @@ export default function Navbar() {
                                     key={link.href}
                                     href={link.href}
                                     className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-                                            ? "text-primary-light"
-                                            : "text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
+                                            ? "text-white bg-[linear-gradient(130deg,rgba(123,97,255,0.24),rgba(76,201,240,0.2))] border border-cyan-200/34 shadow-[0_0_0_1px_rgba(123,97,255,0.24),0_0_26px_rgba(76,201,240,0.2)]"
+                                            : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                         }`}
                                 >
                                     {link.label}
                                     {isActive && (
                                         <motion.div
                                             layoutId="navbar-indicator"
-                                            className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
+                                            className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                                             transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                         />
                                     )}
@@ -99,15 +101,15 @@ export default function Navbar() {
                             <Link
                                 href="/feed"
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${pathname.startsWith("/feed")
-                                        ? "text-primary-light"
-                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
+                                        ? "text-white bg-[linear-gradient(130deg,rgba(123,97,255,0.24),rgba(76,201,240,0.2))] border border-cyan-200/34 shadow-[0_0_0_1px_rgba(123,97,255,0.24),0_0_26px_rgba(76,201,240,0.2)]"
+                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                     }`}
                             >
                                 Feed
                                 {pathname.startsWith("/feed") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
+                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                     />
                                 )}
@@ -117,15 +119,15 @@ export default function Navbar() {
                             <Link
                                 href="/inventory"
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${pathname.startsWith("/inventory")
-                                        ? "text-primary-light"
-                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
+                                        ? "text-white bg-[linear-gradient(130deg,rgba(123,97,255,0.24),rgba(76,201,240,0.2))] border border-cyan-200/34 shadow-[0_0_0_1px_rgba(123,97,255,0.24),0_0_26px_rgba(76,201,240,0.2)]"
+                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                     }`}
                             >
                                 Inventory
                                 {pathname.startsWith("/inventory") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
+                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                     />
                                 )}
@@ -135,8 +137,8 @@ export default function Navbar() {
                             <Link
                                 href="/lab"
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${pathname.startsWith("/lab")
-                                        ? "text-cyan-300"
-                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
+                                        ? "text-cyan-100 bg-[linear-gradient(130deg,rgba(15,112,132,0.42),rgba(76,201,240,0.2))] border border-cyan-300/35 shadow-[0_0_0_1px_rgba(86,237,255,0.3),0_0_24px_rgba(0,234,255,0.24)]"
+                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                     }`}
                             >
                                 <FlaskConical className="w-3.5 h-3.5 opacity-80" />
@@ -144,7 +146,7 @@ export default function Navbar() {
                                 {pathname.startsWith("/lab") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-cyan-400"
+                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-cyan-400 to-accent"
                                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                     />
                                 )}
@@ -164,7 +166,7 @@ export default function Navbar() {
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowUserMenu(!showUserMenu)}
-                                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all"
+                                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl border border-transparent hover:bg-white/[0.04] hover:border-white/12 transition-all"
                                     >
                                         {/* Avatar */}
                                         <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center overflow-hidden">
@@ -200,7 +202,7 @@ export default function Navbar() {
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: 4, scale: 0.95 }}
                                                 transition={{ duration: 0.15 }}
-                                                className="absolute right-0 top-full mt-2 w-56 glass-strong p-2 rounded-xl shadow-xl shadow-black/30"
+                                                className="absolute right-0 top-full mt-2 w-56 glass-strong p-2 rounded-2xl shadow-[0_24px_58px_rgba(0,0,0,0.48)]"
                                             >
                                                 <div className="px-3 py-2 border-b border-border mb-1">
                                                     <p className="text-sm font-medium truncate">
@@ -271,6 +273,15 @@ export default function Navbar() {
                                                         <History className="w-4 h-4" />
                                                         Inventory History
                                                     </Link>
+                                                    {canViewLabHistory && (
+                                                        <Link
+                                                            href="/admin/lab-history"
+                                                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                                        >
+                                                            <FlaskConical className="w-4 h-4" />
+                                                            Lab History
+                                                        </Link>
+                                                    )}
                                                 </>
                                             )}
                                             <div className="border-t border-border my-1" />
@@ -317,7 +328,7 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed inset-x-0 top-[var(--nav-height)] z-40 glass-strong p-4 md:hidden"
+                        className="fixed inset-x-3 top-[calc(var(--nav-height)+8px)] z-40 glass-strong p-4 md:hidden rounded-2xl border-cyan-200/25"
                     >
                         <div className="flex flex-col gap-1">
                             {publicLinks.filter(link => !(isAuthenticated && (link.href === "/" || link.href === "/contact"))).map((link) => {
@@ -327,8 +338,8 @@ export default function Navbar() {
                                         key={link.href}
                                         href={link.href}
                                         className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                                                ? "text-primary-light bg-primary/10"
-                                                : "text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
+                                                ? "text-white bg-white/[0.08] border border-white/18"
+                                                : "text-text-secondary hover:text-foreground hover:bg-white/[0.04]"
                                             }`}
                                     >
                                         {link.label}

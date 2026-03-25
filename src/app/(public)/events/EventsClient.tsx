@@ -122,36 +122,32 @@ export default function EventsClient({ events }: { events: Event[] }) {
     };
 
     return (
-        <div className="min-h-screen pt-[calc(var(--nav-height)+2rem)]">
-            {/* Header */}
-            <div className="max-w-7xl mx-auto px-6 mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-accent" />
-                        </div>
-                        <h1 className="section-title text-3xl">Events</h1>
-                    </div>
-                    <p className="text-text-secondary max-w-lg">
-                        Hackathons, workshops, and meetups — stay in the loop with VajraX.
-                    </p>
-                </div>
-                {(isFaculty || isModerator) && (
-                    <button
-                        onClick={() => setIsEventModalOpen(true)}
-                        className="btn-primary"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Event
-                    </button>
-                )}
-            </div>
+        <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(0,242,255,0.12),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(125,114,255,0.12),transparent_32%)]" />
 
-            <div className="max-w-7xl mx-auto px-6 pb-24">
+            <div className="relative z-10 mx-auto max-w-7xl px-6">
+                <div className="mb-12 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+                    <div>
+                        <h1 className="section-title mb-3 text-3xl">Events</h1>
+                        <p className="max-w-lg text-text-secondary">
+                            Hackathons, workshops, and meetups that keep VajraX moving forward.
+                        </p>
+                    </div>
+                    {(isFaculty || isModerator) && (
+                        <button
+                            onClick={() => setIsEventModalOpen(true)}
+                            className="btn-primary w-fit"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Add Event
+                        </button>
+                    )}
+                </div>
+
                 {events.length === 0 ? (
                     <div className="glass p-16 text-center">
-                        <Calendar className="w-12 h-12 text-text-muted mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No events yet</h3>
+                        <Calendar className="mx-auto mb-4 h-12 w-12 text-text-muted" />
+                        <h3 className="mb-2 text-lg font-semibold">No events yet</h3>
                         <p className="text-text-muted text-sm">
                             Upcoming hackathons and workshops will be listed here.
                         </p>
@@ -161,11 +157,11 @@ export default function EventsClient({ events }: { events: Event[] }) {
                         {/* Upcoming Events */}
                         {upcoming.length > 0 && (
                             <div>
-                                <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold">
+                                    <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
                                     Upcoming
                                 </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     {upcoming.map((event, i) => {
                                         const config =
                                             eventTypeConfig[event.event_type] ?? eventTypeConfig.other;
@@ -177,7 +173,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                 initial="hidden"
                                                 animate="visible"
                                                 variants={fadeUp}
-                                                className="glass overflow-hidden group hover:border-primary/30 transition-all duration-300 relative"
+                                                className="glass energy-card group relative overflow-hidden rounded-[22px] border-white/14 transition-all duration-500 hover:border-cyan-300/30"
                                             >
                                                 {(isFaculty || isModerator) && (
                                                     <button
@@ -201,9 +197,9 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                 <div className="p-6">
                                                     <div className="flex items-start gap-3 mb-4">
                                                         <div
-                                                            className={`w-10 h-10 rounded-lg ${config.bg} border ${config.border} flex items-center justify-center flex-shrink-0`}
+                                                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${config.bg} ${config.border}`}
                                                         >
-                                                            <Icon className={`w-5 h-5 ${config.color}`} />
+                                                            <Icon className={`h-5 w-5 ${config.color}`} />
                                                         </div>
                                                         <div className="min-w-0">
                                                             <span
@@ -267,10 +263,10 @@ export default function EventsClient({ events }: { events: Event[] }) {
                         {past.length > 0 && (
                             <div>
                                 <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 text-text-muted">
-                                    <div className="w-2 h-2 rounded-full bg-text-muted" />
+                                    <div className="h-2 w-2 rounded-full bg-text-muted" />
                                     Past Events
                                 </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                     {past.map((event, i) => {
                                         const config =
                                             eventTypeConfig[event.event_type] ?? eventTypeConfig.other;
@@ -283,7 +279,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                 whileInView="visible"
                                                 viewport={{ once: true }}
                                                 variants={fadeUp}
-                                                className="glass p-5 opacity-70 hover:opacity-100 transition-opacity"
+                                                className="glass energy-card rounded-2xl p-5 opacity-75 transition-all duration-500 hover:border-cyan-300/20 hover:opacity-100"
                                             >
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <Icon className={`w-4 h-4 ${config.color}`} />
