@@ -83,6 +83,7 @@ export async function createResourceBooking(
     }
 
     revalidatePath("/lab");
+    revalidatePath("/admin/lab-history");
     return { ok: true };
 }
 
@@ -145,6 +146,7 @@ export async function cancelResourceBooking(bookingId: string) {
 
     if (error) return { ok: false, error: error.message };
     revalidatePath("/lab");
+    revalidatePath("/admin/lab-history");
     return { ok: true };
 }
 
@@ -174,4 +176,3 @@ export async function listMyUpcomingResourceBookings(): Promise<
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: data || [] };
 }
-

@@ -60,38 +60,35 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
     };
 
     return (
-        <div className="min-h-screen pt-[calc(var(--nav-height)+2rem)]">
-            {/* Header */}
-            <div className="max-w-7xl mx-auto px-6 mb-12">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-                            <ImageIcon className="w-5 h-5 text-secondary" />
-                        </div>
-                        <h1 className="section-title text-3xl">Gallery</h1>
-                    </div>
-                    
-                    {(isFaculty || isModerator) && (
-                        <button
-                            onClick={() => setIsUploadModalOpen(true)}
-                            className="btn-primary"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Image
-                        </button>
-                    )}
-                </div>
-                <p className="text-text-secondary max-w-lg">
-                    A visual showcase of our robots, builds, and moments that define VajraX.
-                </p>
-            </div>
+        <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(77,168,255,0.12),transparent_30%),radial-gradient(circle_at_88%_16%,rgba(0,242,255,0.1),transparent_30%)]" />
 
-            {/* Gallery Grid */}
-            <div className="max-w-7xl mx-auto px-6 pb-24">
+            <div className="relative z-10 mx-auto max-w-7xl px-6">
+                <div className="mb-12">
+                    <div className="mb-3 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <h1 className="section-title text-3xl">Gallery</h1>
+                        </div>
+                        
+                        {(isFaculty || isModerator) && (
+                            <button
+                                onClick={() => setIsUploadModalOpen(true)}
+                                className="btn-primary"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Image
+                            </button>
+                        )}
+                    </div>
+                    <p className="max-w-lg text-text-secondary">
+                        A visual archive of robots, prototypes, events, and behind-the-scenes moments.
+                    </p>
+                </div>
+
                 {items.length === 0 ? (
                     <div className="glass p-16 text-center">
-                        <ImageIcon className="w-12 h-12 text-text-muted mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">Gallery is empty</h3>
+                        <ImageIcon className="mx-auto mb-4 h-12 w-12 text-text-muted" />
+                        <h3 className="mb-2 text-lg font-semibold">Gallery is empty</h3>
                         <p className="text-text-muted text-sm">
                             Stunning builds and moments will appear here soon.
                         </p>
@@ -105,18 +102,18 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                                 initial="hidden"
                                 animate="visible"
                                 variants={fadeUp}
-                                className="break-inside-avoid glass overflow-hidden group cursor-pointer"
+                                className="glass energy-card group relative cursor-pointer overflow-hidden rounded-[22px] border-white/14 break-inside-avoid"
                                 onClick={() => setSelected(item)}
                             >
                                 <div className="overflow-hidden">
                                     <img
                                         src={item.cover_image_url}
                                         alt={item.title}
-                                        className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                                        className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
                                 </div>
                                 <div className="p-4">
-                                    <h3 className="text-sm font-semibold mb-1 group-hover:text-primary-light transition-colors">
+                                    <h3 className="mb-1 text-sm font-semibold transition-colors group-hover:text-cyan-100">
                                         {item.title}
                                     </h3>
                                     {item.description && (
@@ -146,7 +143,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             transition={{ type: "spring", damping: 25 }}
-                            className="relative max-w-4xl w-full glass overflow-hidden"
+                            className="glass relative w-full max-w-4xl overflow-hidden rounded-[24px]"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">

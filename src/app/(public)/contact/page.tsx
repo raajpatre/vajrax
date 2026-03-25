@@ -60,17 +60,13 @@ const socialLinks = [
 
 export default function ContactPage() {
     return (
-        <div className="min-h-screen pt-[calc(var(--nav-height)+2rem)]">
-            <div className="max-w-4xl mx-auto px-6 pb-24">
-                {/* Header */}
+        <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(0,242,255,0.1),transparent_28%),radial-gradient(circle_at_86%_12%,rgba(125,114,255,0.12),transparent_30%)]" />
+
+            <div className="relative z-10 mx-auto max-w-4xl px-6">
                 <div className="mb-12">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                            <Mail className="w-5 h-5 text-emerald-400" />
-                        </div>
-                        <h1 className="section-title text-3xl">Contact</h1>
-                    </div>
-                    <p className="text-text-secondary max-w-lg">
+                    <h1 className="section-title mb-3 text-3xl">Contact</h1>
+                    <p className="max-w-lg text-text-secondary">
                         Got questions? Want to collaborate? We&apos;d love to hear from you.
                     </p>
                 </div>
@@ -84,10 +80,10 @@ export default function ContactPage() {
                         {contactInfo.map((item) => (
                             <div
                                 key={item.label}
-                                className="glass p-5 flex items-start gap-4 hover:border-primary/30 transition-all"
+                                className="glass flex items-start gap-4 p-5 transition-all hover:border-cyan-300/30"
                             >
-                                <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                                    <item.icon className="w-5 h-5 text-primary-light" />
+                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
+                                    <item.icon className="h-5 w-5 text-primary-light" />
                                 </div>
                                 <div>
                                     <p className="text-xs text-text-muted mb-1">{item.label}</p>

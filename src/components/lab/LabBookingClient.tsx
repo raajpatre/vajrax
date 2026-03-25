@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlaskConical, Loader2, CalendarDays, Clock, XCircle } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
+import { LAB_RESOURCES } from "@/lib/lab-resources";
 import type { Tables } from "@/types/database";
 import {
     cancelResourceBooking,
@@ -10,16 +11,6 @@ import {
     listMyUpcomingResourceBookings,
     listResourceBookings,
 } from "@/actions/resource-bookings";
-
-const LAB_RESOURCES = [
-    "3D Printer — Prusa",
-    "3D Printer — Resin",
-    "Laser Cutter",
-    "CNC / Mill",
-    "Reflow Oven",
-    "Oscilloscope Bay",
-    "Soldering Station Pod",
-] as const;
 
 type BookingRow = Tables<"resource_bookings">;
 
@@ -58,6 +49,16 @@ function defaultBookingRange() {
     const end = new Date(start);
     end.setHours(end.getHours() + 1);
     return { start, end };
+}
+
+function formatBookingTooltip(booking: BookingRow, isMine: boolean) {
+    const start = new Date(booking.start_time);
+    const end = new Date(booking.end_time);
+    const date = start.toLocaleDateString(undefined, { dateStyle: "medium" });
+    const startTime = start.toLocaleTimeString(undefined, { timeStyle: "short" });
+    const endTime = end.toLocaleTimeString(undefined, { timeStyle: "short" });
+
+    return `${isMine ? "Your booking" : "Booked"}\n${date}\n${startTime} - ${endTime}`;
 }
 
 export default function LabBookingClient() {
@@ -184,9 +185,6 @@ export default function LabBookingClient() {
     return (
         <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-400/25 flex items-center justify-center shrink-0">
-                    <FlaskConical className="w-6 h-6 text-cyan-300" />
-                </div>
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Lab</h1>
                     <p className="text-sm text-text-muted max-w-xl">
@@ -289,11 +287,8 @@ export default function LabBookingClient() {
                                         key={b.id}
                                         className={`absolute top-1 bottom-1 rounded-md text-[10px] flex items-center px-1 truncate ${s.className}`}
                                         style={{ left: s.left, width: s.width }}
-                                        title={
-                                            isMine
-                                                ? "Your booking"
-                                                : "Booked"
-                                        }
+                                        title={formatBookingTooltip(b, isMine)}
+                                        aria-label={formatBookingTooltip(b, isMine)}
                                     >
                                         <span className="text-[9px] font-medium text-foreground/90 px-1 truncate">
                                             {isMine ? "You" : "Booked"}

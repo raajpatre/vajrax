@@ -1,5 +1,6 @@
 import Navbar from "@/components/ui/Navbar";
 import Footer from "@/components/ui/Footer";
+import PublicAmbientBackground from "@/components/ui/PublicAmbientBackground";
 
 export default function ProtectedLayout({
     children,
@@ -7,10 +8,13 @@ export default function ProtectedLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#050B14]">
+            <PublicAmbientBackground />
             <Navbar />
-            <main className="flex-1 pt-[var(--nav-height)]">{children}</main>
-            <Footer />
+            <main className="relative z-10 flex-1 pt-[var(--nav-height)]">{children}</main>
+            <div className="relative z-10">
+                <Footer />
+            </div>
         </div>
     );
 }

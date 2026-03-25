@@ -206,8 +206,32 @@ function ItemModal({
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Image URL (optional)</label>
-                                <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all" />
+                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Item Image (optional)</label>
+                                {imageUrl && (
+                                    <div className="mb-3 overflow-hidden rounded-xl border border-border/70 bg-surface/40">
+                                        <img
+                                            src={imageUrl}
+                                            alt={name || "Inventory item preview"}
+                                            className="h-40 w-full object-cover"
+                                        />
+                                    </div>
+                                )}
+                                <input
+                                    type="url"
+                                    value={imageUrl}
+                                    onChange={(e) => setImageUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                                />
+                                {imageUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageUrl("")}
+                                        className="mt-3 btn-ghost text-sm !py-2.5 !px-4"
+                                    >
+                                        Remove Image
+                                    </button>
+                                )}
                             </div>
                             <button type="submit" disabled={loading || !name.trim()} className="btn-primary w-full !py-3 disabled:opacity-40">
                                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -464,9 +488,6 @@ export default function InventoryPage() {
         <div className="max-w-6xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-primary-light" />
-                </div>
                 <div className="flex-1">
                     <h1 className="text-xl font-bold">Inventory</h1>
                     <p className="text-xs text-text-muted">

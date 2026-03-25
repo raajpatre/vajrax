@@ -239,9 +239,6 @@ export default function ProjectManagePage() {
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-primary-light" />
-                </div>
                 <div>
                     <h1 className="text-xl font-bold">{project?.title || "Manage Project"}</h1>
                     <p className="text-xs text-text-muted">Manage team and post progress updates</p>

@@ -397,6 +397,39 @@ export type Database = {
           },
         ]
       }
+      sponsors: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string
+          name: string
+          tier: string
+          updated_at: string
+          website_link: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url: string
+          name: string
+          tier: string
+          updated_at?: string
+          website_link?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string
+          name?: string
+          tier?: string
+          updated_at?: string
+          website_link?: string | null
+        }
+        Relationships: []
+      }
       post_likes: {
         Row: {
           created_at: string

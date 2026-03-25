@@ -137,9 +137,6 @@ export default function AdminRequestsPage() {
         <div className="max-w-3xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
-                    <ShieldCheck className="w-5 h-5 text-amber-400" />
-                </div>
                 <div className="flex-1">
                     <h1 className="text-xl font-bold">Equipment Requests</h1>
                     <p className="text-xs text-text-muted">

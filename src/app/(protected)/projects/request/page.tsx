@@ -4,7 +4,6 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import {
-    FolderPlus,
     Loader2,
     Send,
     CheckCircle2,
@@ -87,9 +86,6 @@ export default function ProjectRequestPage() {
         <div className="max-w-xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <FolderPlus className="w-5 h-5 text-primary-light" />
-                </div>
                 <div>
                     <h1 className="text-xl font-bold">Request a Project</h1>
                     <p className="text-xs text-text-muted">
