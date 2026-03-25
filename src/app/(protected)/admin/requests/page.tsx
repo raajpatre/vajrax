@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { processEquipmentRequestModeration } from "@/actions/equipment-requests";
 
 interface RequestDetail {
     id: string;
@@ -27,7 +28,13 @@ interface RequestDetail {
     status: string;
     status_note: string | null;
     created_at: string;
-    item: { id: string; name: string; category: string; available_quantity: number };
+    item: {
+        id: string;
+        name: string;
+        category: string;
+        available_quantity: number;
+        is_consumable: boolean;
+    };
     requester: { id: string; display_name: string; avatar_url: string | null };
 }
 
@@ -54,13 +61,14 @@ export default function AdminRequestsPage() {
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("pending");
+    const [actionError, setActionError] = useState<string | null>(null);
 
     const fetchRequests = useCallback(async () => {
         setLoading(true);
         const { data } = await supabase
             .from("equipment_requests")
             .select(
-                "id, quantity, reason, status, status_note, created_at, item:inventory_items!equipment_requests_item_id_fkey(id, name, category, available_quantity), requester:profiles!equipment_requests_requester_id_fkey(id, display_name, avatar_url)"
+                "id, quantity, reason, status, status_note, created_at, item:inventory_items!equipment_requests_item_id_fkey(id, name, category, available_quantity, is_consumable), requester:profiles!equipment_requests_requester_id_fkey(id, display_name, avatar_url)"
             )
             .eq("status", activeTab as "pending" | "approved" | "rejected" | "returned" | "revoked")
             .order("created_at", { ascending: activeTab === "pending" });
@@ -69,7 +77,7 @@ export default function AdminRequestsPage() {
             setRequests(
                 data.map((r) => ({
                     ...r,
-                    item: r.item as unknown as { id: string; name: string; category: string; available_quantity: number },
+                    item: r.item as unknown as RequestDetail["item"],
                     requester: r.requester as unknown as {
                         id: string;
                         display_name: string;
@@ -91,45 +99,14 @@ export default function AdminRequestsPage() {
     ) => {
         if (!user) return;
         setProcessingId(req.id);
+        setActionError(null);
 
-        // Update the request status
-        await supabase
-            .from("equipment_requests")
-            .update({
-                status: action,
-                approved_by: user.id,
-                status_note: null,
-            })
-            .eq("id", req.id);
+        const result = await processEquipmentRequestModeration(req.id, action);
 
-        // Log to inventory_history
-        await supabase.from("inventory_history").insert({
-            request_id: req.id,
-            item_id: req.item.id,
-            actor_id: user.id,
-            action,
-            quantity: req.quantity,
-        });
-
-        // Adjust available_quantity
-        if (action === "approved") {
-            await supabase
-                .from("inventory_items")
-                .update({ available_quantity: req.item.available_quantity - req.quantity })
-                .eq("id", req.item.id);
-        } else if (action === "returned") {
-            // Get current quantity first
-            const { data: item } = await supabase
-                .from("inventory_items")
-                .select("available_quantity")
-                .eq("id", req.item.id)
-                .single();
-            if (item) {
-                await supabase
-                    .from("inventory_items")
-                    .update({ available_quantity: item.available_quantity + req.quantity })
-                    .eq("id", req.item.id);
-            }
+        if (!result.ok) {
+            setActionError(result.error);
+            setProcessingId(null);
+            return;
         }
 
         setRequests((prev) => prev.filter((r) => r.id !== req.id));
@@ -177,6 +154,12 @@ export default function AdminRequestsPage() {
                     History
                 </Link>
             </div>
+
+            {actionError && (
+                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {actionError}
+                </div>
+            )}
 
             {/* Status Tabs */}
             <div className="flex gap-2 mb-6 flex-wrap">
@@ -256,16 +239,23 @@ export default function AdminRequestsPage() {
 
                                 {/* Item + details */}
                                 <div className="glass p-3 mb-3">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between gap-2">
                                         <div>
                                             <p className="text-sm font-medium">{req.item.name}</p>
                                             <p className="text-xs text-text-muted capitalize">
                                                 {req.item.category}
                                             </p>
                                         </div>
-                                        <span className="text-lg font-bold text-primary-light">
-                                            ×{req.quantity}
-                                        </span>
+                                        <div className="flex flex-col items-end gap-1">
+                                            {req.item.is_consumable && (
+                                                <span className="text-[10px] font-semibold uppercase tracking-wide text-cyan-400/90 border border-cyan-400/25 rounded-md px-1.5 py-0.5">
+                                                    Consumable
+                                                </span>
+                                            )}
+                                            <span className="text-lg font-bold text-primary-light">
+                                                ×{req.quantity}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -295,7 +285,7 @@ export default function AdminRequestsPage() {
                                             </button>
                                         </>
                                     )}
-                                    {activeTab === "approved" && (
+                                    {activeTab === "approved" && !req.item.is_consumable && (
                                         <button
                                             onClick={() => handleAction(req, "returned")}
                                             disabled={processingId === req.id}
@@ -304,6 +294,12 @@ export default function AdminRequestsPage() {
                                             <RotateCcw className="w-4 h-4" />
                                             Mark as Returned
                                         </button>
+                                    )}
+                                    {activeTab === "approved" && req.item.is_consumable && (
+                                        <p className="text-xs text-text-muted text-center w-full py-2">
+                                            Consumable approvals close automatically; use the Returned tab if
+                                            this request still appears here.
+                                        </p>
                                     )}
                                 </div>
                             </motion.div>
