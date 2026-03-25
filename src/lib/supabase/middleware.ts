@@ -42,7 +42,15 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Protected routes — redirect to login if not authenticated
-    const protectedPaths = ["/feed", "/inventory", "/profile", "/admin", "/project-invites", "/my-requests"];
+    const protectedPaths = [
+        "/feed",
+        "/inventory",
+        "/lab",
+        "/profile",
+        "/admin",
+        "/project-invites",
+        "/my-requests",
+    ];
     const isProtected = protectedPaths.some((path) =>
         request.nextUrl.pathname.startsWith(path)
     );

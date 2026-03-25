@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Menu, X, Zap, LogIn, LogOut, User, Users, LayoutDashboard, Package, FolderOpen, History, Mail } from "lucide-react";
+import { Menu, X, Zap, LogIn, LogOut, User, Users, Package, FolderOpen, History, Mail, FlaskConical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 const publicLinks = [
     { href: "/", label: "Home" },
@@ -130,6 +131,25 @@ export default function Navbar() {
                                 )}
                             </Link>
                         )}
+                        {isAuthenticated && (
+                            <Link
+                                href="/lab"
+                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${pathname.startsWith("/lab")
+                                        ? "text-cyan-300"
+                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.03]"
+                                    }`}
+                            >
+                                <FlaskConical className="w-3.5 h-3.5 opacity-80" />
+                                Lab
+                                {pathname.startsWith("/lab") && (
+                                    <motion.div
+                                        layoutId="navbar-indicator"
+                                        className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-cyan-400"
+                                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                                    />
+                                )}
+                            </Link>
+                        )}
                     </div>
 
                     {/* Auth section + Mobile toggle */}
@@ -137,63 +157,66 @@ export default function Navbar() {
                         {loading ? (
                             <div className="w-8 h-8 rounded-full bg-surface animate-pulse" />
                         ) : isAuthenticated && profile ? (
-                            /* Logged in — Avatar + dropdown */
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowUserMenu(!showUserMenu)}
-                                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all"
-                                >
-                                    {/* Avatar */}
-                                    <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center overflow-hidden">
-                                        {profile.avatar_url ? (
-                                            <img
-                                                src={profile.avatar_url}
-                                                alt={profile.display_name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <User className="w-4 h-4 text-primary-light" />
-                                        )}
-                                    </div>
-                                    <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
-                                        {profile.display_name}
-                                    </span>
-                                    {/* Role badge */}
-                                    {profile.role && roleLabels[profile.role] && (
-                                        <span
-                                            className={`badge text-[9px] hidden sm:inline-flex ${roleLabels[profile.role].class
-                                                }`}
-                                        >
-                                            {roleLabels[profile.role].label}
-                                        </span>
-                                    )}
-                                </button>
+                            /* Logged in — Notifications + avatar dropdown */
+                            <div className="flex items-center gap-1">
+                                <NotificationBell userId={profile.id} />
 
-                                {/* Dropdown */}
-                                <AnimatePresence>
-                                    {showUserMenu && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                                            transition={{ duration: 0.15 }}
-                                            className="absolute right-0 top-full mt-2 w-56 glass-strong p-2 rounded-xl shadow-xl shadow-black/30"
-                                        >
-                                            <div className="px-3 py-2 border-b border-border mb-1">
-                                                <p className="text-sm font-medium truncate">
-                                                    {profile.display_name}
-                                                </p>
-                                                <p className="text-xs text-text-muted truncate">
-                                                    {user?.email}
-                                                </p>
-                                            </div>
-                                            <Link
-                                                href={`/profile/${user?.id}`}
-                                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowUserMenu(!showUserMenu)}
+                                        className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all"
+                                    >
+                                        {/* Avatar */}
+                                        <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center overflow-hidden">
+                                            {profile.avatar_url ? (
+                                                <img
+                                                    src={profile.avatar_url}
+                                                    alt={profile.display_name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <User className="w-4 h-4 text-primary-light" />
+                                            )}
+                                        </div>
+                                        <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
+                                            {profile.display_name}
+                                        </span>
+                                        {/* Role badge */}
+                                        {profile.role && roleLabels[profile.role] && (
+                                            <span
+                                                className={`badge text-[9px] hidden sm:inline-flex ${roleLabels[profile.role].class
+                                                    }`}
                                             >
-                                                <User className="w-4 h-4" />
-                                                Profile
-                                            </Link>
+                                                {roleLabels[profile.role].label}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {/* Dropdown */}
+                                    <AnimatePresence>
+                                        {showUserMenu && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                                transition={{ duration: 0.15 }}
+                                                className="absolute right-0 top-full mt-2 w-56 glass-strong p-2 rounded-xl shadow-xl shadow-black/30"
+                                            >
+                                                <div className="px-3 py-2 border-b border-border mb-1">
+                                                    <p className="text-sm font-medium truncate">
+                                                        {profile.display_name}
+                                                    </p>
+                                                    <p className="text-xs text-text-muted truncate">
+                                                        {user?.email}
+                                                    </p>
+                                                </div>
+                                                <Link
+                                                    href={`/profile/${user?.id}`}
+                                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                                >
+                                                    <User className="w-4 h-4" />
+                                                    Profile
+                                                </Link>
 
                                             <Link
                                                 href="/inventory"
@@ -201,6 +224,13 @@ export default function Navbar() {
                                             >
                                                 <Package className="w-4 h-4" />
                                                 Inventory
+                                            </Link>
+                                            <Link
+                                                href="/lab"
+                                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                            >
+                                                <FlaskConical className="w-4 h-4 text-cyan-300/90" />
+                                                Lab
                                             </Link>
                                             <Link
                                                 href="/project-invites"
@@ -251,9 +281,10 @@ export default function Navbar() {
                                                 <LogOut className="w-4 h-4" />
                                                 Sign Out
                                             </button>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                             </div>
                         ) : (
                             /* Not logged in — Sign In button */
@@ -317,6 +348,13 @@ export default function Navbar() {
                                         className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                     >
                                         Inventory
+                                    </Link>
+                                    <Link
+                                        href="/lab"
+                                        className="px-4 py-3 rounded-lg text-sm font-medium text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-500/10 transition-all flex items-center gap-2"
+                                    >
+                                        <FlaskConical className="w-4 h-4" />
+                                        Lab
                                     </Link>
                                 </>
                             )}

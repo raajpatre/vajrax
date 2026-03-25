@@ -52,6 +52,8 @@ function ItemModal({
         item?.available_quantity || 1
     );
     const [imageUrl, setImageUrl] = useState(item?.image_url || "");
+    const [isConsumable, setIsConsumable] = useState(item?.is_consumable ?? false);
+    const [requiredSafetyCertification, setRequiredSafetyCertification] = useState(item?.required_safety_certification || "");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -71,6 +73,8 @@ function ItemModal({
             total_quantity: totalQuantity,
             available_quantity: availableQuantity,
             image_url: imageUrl.trim() || null,
+            is_consumable: isConsumable,
+            required_safety_certification: requiredSafetyCertification.trim() || null,
         };
 
         try {
@@ -220,6 +224,36 @@ function ItemModal({
                                 </div>
                             </div>
 
+                            <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border/80 bg-surface/40 px-4 py-3">
+                                <input
+                                    type="checkbox"
+                                    checked={isConsumable}
+                                    onChange={(e) => setIsConsumable(e.target.checked)}
+                                    className="mt-1 rounded border-border text-primary focus:ring-primary/40"
+                                />
+                                <span>
+                                    <span className="block text-sm font-medium text-text-secondary">
+                                        Consumable
+                                    </span>
+                                    <span className="block text-xs text-text-muted mt-0.5">
+                                        Approving a request reduces total stock and skips the return step.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                                    Required Safety Certification (optional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={requiredSafetyCertification}
+                                    onChange={(e) => setRequiredSafetyCertification(e.target.value)}
+                                    placeholder="e.g. Laser Cutter Level 1"
+                                    className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                                />
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1.5">
                                     Image URL (optional)
@@ -355,7 +389,19 @@ export default function InventoryManagement() {
                                         className="border-b border-border/30 last:border-0 hover:bg-surface/30 transition-colors"
                                     >
                                         <td className="px-4 py-3">
-                                            <p className="font-medium">{item.name}</p>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <p className="font-medium">{item.name}</p>
+                                                {item.is_consumable && (
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-cyan-400/90 border border-cyan-400/25 rounded px-1.5 py-0.5">
+                                                        Consumable
+                                                    </span>
+                                                )}
+                                                {item.required_safety_certification && (
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-300 border border-amber-400/30 rounded px-1.5 py-0.5">
+                                                        Cert: {item.required_safety_certification}
+                                                    </span>
+                                                )}
+                                            </div>
                                             {item.description && (
                                                 <p className="text-xs text-text-muted truncate max-w-[200px]">
                                                     {item.description}

@@ -11,6 +11,7 @@ import {
     MessageSquare,
     Heart,
     Calendar,
+    ShieldCheck,
     Edit3,
     Camera,
     Loader2,
@@ -383,6 +384,20 @@ export default function ProfilePage() {
                             <p className="text-sm text-text-secondary mb-3">
                                 {profile.bio}
                             </p>
+                        )}
+
+                        {(profile.safety_certifications || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-3 justify-center sm:justify-start">
+                                {profile.safety_certifications.map((cert) => (
+                                    <span
+                                        key={cert}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border text-amber-300 bg-amber-400/10 border-amber-400/25"
+                                    >
+                                        <ShieldCheck className="w-3 h-3" />
+                                        {cert}
+                                    </span>
+                                ))}
+                            </div>
                         )}
 
                         <div className="flex items-center gap-1 text-xs text-text-muted justify-center sm:justify-start">

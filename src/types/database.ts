@@ -284,7 +284,9 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_consumable: boolean
           name: string
+          required_safety_certification: string | null
           total_quantity: number
           updated_at: string
         }
@@ -295,7 +297,9 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_consumable?: boolean
           name: string
+          required_safety_certification?: string | null
           total_quantity?: number
           updated_at?: string
         }
@@ -306,11 +310,92 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_consumable?: boolean
           name?: string
+          required_safety_certification?: string | null
           total_quantity?: number
           updated_at?: string
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          related_entity_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          related_entity_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          related_entity_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_bookings: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          resource_name: string
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          resource_name: string
+          start_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          resource_name?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       post_likes: {
         Row: {
@@ -404,6 +489,7 @@ export type Database = {
           id: string
           linkedin_url: string | null
           role: Database["public"]["Enums"]["user_role"]
+          safety_certifications: string[]
           updated_at: string
           username: string | null
         }
@@ -418,6 +504,7 @@ export type Database = {
           id: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          safety_certifications?: string[]
           updated_at?: string
           username?: string | null
         }
@@ -432,6 +519,7 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          safety_certifications?: string[]
           updated_at?: string
           username?: string | null
         }

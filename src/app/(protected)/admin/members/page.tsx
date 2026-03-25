@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import {
+    grantSafetyCertification,
+    revokeSafetyCertification,
+} from "@/actions/safety-certifications";
+import {
     Users,
     ShieldCheck,
     Loader2,
@@ -26,6 +30,7 @@ interface MemberProfile {
     avatar_url: string | null;
     role: string;
     custom_tags: string[] | null;
+    safety_certifications: string[];
     created_at: string;
 }
 
@@ -207,11 +212,20 @@ function AddMemberModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 }
 
 // ─── Member Row ──────────────────────────────────────
-function MemberRow({ member, onRoleChange, supabase, onTagsChange, updatingId }: any) {
+function MemberRow({
+    member,
+    onRoleChange,
+    supabase,
+    onTagsChange,
+    onSafetyCertsChange,
+    updatingId,
+}: any) {
     const [tagInput, setTagInput] = useState("");
+    const [certInput, setCertInput] = useState("");
     const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [isUpdatingTag, setIsUpdatingTag] = useState(false);
+    const [isUpdatingCert, setIsUpdatingCert] = useState(false);
 
     const parsedTags: TagObject[] = (member.custom_tags || []).map(parseTag);
 
@@ -245,6 +259,35 @@ function MemberRow({ member, onRoleChange, supabase, onTagsChange, updatingId }:
             onTagsChange(member.id, newTagStrings);
         }
         setIsUpdatingTag(false);
+    };
+
+    const handleGrantCert = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const cert = certInput.trim();
+        if (!cert) return;
+        if ((member.safety_certifications || []).includes(cert)) {
+            setCertInput("");
+            return;
+        }
+        setIsUpdatingCert(true);
+        const result = await grantSafetyCertification({ userId: member.id, certification: cert });
+        if (result.ok) {
+            onSafetyCertsChange(member.id, [...(member.safety_certifications || []), cert]);
+            setCertInput("");
+        }
+        setIsUpdatingCert(false);
+    };
+
+    const handleRevokeCert = async (cert: string) => {
+        setIsUpdatingCert(true);
+        const result = await revokeSafetyCertification({ userId: member.id, certification: cert });
+        if (result.ok) {
+            onSafetyCertsChange(
+                member.id,
+                (member.safety_certifications || []).filter((c: string) => c !== cert)
+            );
+        }
+        setIsUpdatingCert(false);
     };
 
     return (
@@ -344,6 +387,35 @@ function MemberRow({ member, onRoleChange, supabase, onTagsChange, updatingId }:
                             </AnimatePresence>
                         </div>
                     </div>
+
+                    {/* Safety Certifications */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        {(member.safety_certifications || []).map((cert: string) => (
+                            <span
+                                key={cert}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border text-amber-300 bg-amber-400/10 border-amber-400/25"
+                            >
+                                {cert}
+                                <button
+                                    onClick={() => handleRevokeCert(cert)}
+                                    disabled={isUpdatingCert}
+                                    className="hover:opacity-60 transition-opacity disabled:opacity-30"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        ))}
+                        <form onSubmit={handleGrantCert} className="flex items-center gap-1">
+                            <input
+                                type="text"
+                                value={certInput}
+                                onChange={(e) => setCertInput(e.target.value)}
+                                placeholder="+ safety cert"
+                                disabled={isUpdatingCert}
+                                className="w-24 px-2 py-0.5 bg-background border border-border rounded-full text-[10px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-amber-400/40 transition-all"
+                            />
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -379,7 +451,7 @@ export default function MemberManagement() {
     const fetchMembers = useCallback(async () => {
         const { data } = await supabase
             .from("profiles")
-            .select("id, display_name, avatar_url, role, created_at, custom_tags")
+            .select("id, display_name, avatar_url, role, created_at, custom_tags, safety_certifications")
             .order("created_at", { ascending: true });
         if (data) setMembers(data);
         setLoading(false);
@@ -404,6 +476,12 @@ export default function MemberManagement() {
     const handleTagsChange = useCallback((userId: string, newTags: string[]) => {
         setMembers((prev) =>
             prev.map((m) => (m.id === userId ? { ...m, custom_tags: newTags } : m))
+        );
+    }, []);
+
+    const handleSafetyCertsChange = useCallback((userId: string, certs: string[]) => {
+        setMembers((prev) =>
+            prev.map((m) => (m.id === userId ? { ...m, safety_certifications: certs } : m))
         );
     }, []);
 
@@ -477,6 +555,7 @@ export default function MemberManagement() {
                         onRoleChange={handleRoleChange}
                         supabase={supabase}
                         onTagsChange={handleTagsChange}
+                        onSafetyCertsChange={handleSafetyCertsChange}
                         updatingId={updatingId}
                     />
                 ))}
