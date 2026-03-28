@@ -2,6 +2,29 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+    const protectedPaths = [
+        "/inventory",
+        "/lab",
+        "/profile",
+        "/admin",
+        "/project-invites",
+        "/my-requests",
+    ];
+    const isProtected = protectedPaths.some((path) =>
+        request.nextUrl.pathname.startsWith(path)
+    );
+    const isAuthPage =
+        request.nextUrl.pathname.startsWith("/login") ||
+        request.nextUrl.pathname.startsWith("/signup");
+
+    // Public pages do not need a server-side auth roundtrip on every request.
+    // Let them render immediately and let the client auth hook hydrate on its own.
+    if (!isProtected && !isAuthPage) {
+        return NextResponse.next({
+            request,
+        });
+    }
+
     let supabaseResponse = NextResponse.next({
         request,
     });
@@ -41,20 +64,6 @@ export async function updateSession(request: NextRequest) {
         return supabaseResponse;
     }
 
-    // Protected routes — redirect to login if not authenticated
-    const protectedPaths = [
-        "/feed",
-        "/inventory",
-        "/lab",
-        "/profile",
-        "/admin",
-        "/project-invites",
-        "/my-requests",
-    ];
-    const isProtected = protectedPaths.some((path) =>
-        request.nextUrl.pathname.startsWith(path)
-    );
-
     if (isProtected && !user) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";
@@ -62,14 +71,10 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url);
     }
 
-    // Redirect authenticated users away from home and auth pages
-    if (user && (
-        request.nextUrl.pathname === "/" ||
-        request.nextUrl.pathname.startsWith("/login") ||
-        request.nextUrl.pathname.startsWith("/signup")
-    )) {
+    // Redirect authenticated users away from auth pages.
+    if (user && isAuthPage) {
         const url = request.nextUrl.clone();
-        url.pathname = "/feed";
+        url.pathname = "/inventory";
         return NextResponse.redirect(url);
     }
 

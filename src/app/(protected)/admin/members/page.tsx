@@ -59,6 +59,8 @@ const PRESET_COLORS = [
 const roles = [
     { value: "member", label: "Member" },
     { value: "inventory_manager", label: "Inventory Manager" },
+    { value: "website_manager", label: "Website Manager" },
+    { value: "printing_head", label: "3D Printing Head" },
     { value: "president", label: "President" },
     { value: "vice_president", label: "Vice President" },
     { value: "faculty", label: "Faculty" },
@@ -67,6 +69,8 @@ const roles = [
 const roleBadge: Record<string, string> = {
     member: "text-text-muted bg-surface border-border",
     inventory_manager: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+    website_manager: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+    printing_head: "text-orange-400 bg-orange-400/10 border-orange-400/20",
     president: "text-amber-400 bg-amber-400/10 border-amber-400/20",
     vice_president: "text-violet-400 bg-violet-400/10 border-violet-400/20",
     faculty: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
@@ -465,7 +469,16 @@ export default function MemberManagement() {
         setUpdatingId(userId);
         await supabase
             .from("profiles")
-            .update({ role: newRole as "member" | "president" | "vice_president" | "faculty" })
+            .update({
+                role: newRole as
+                    | "member"
+                    | "inventory_manager"
+                    | "website_manager"
+                    | "printing_head"
+                    | "president"
+                    | "vice_president"
+                    | "faculty",
+            })
             .eq("id", userId);
         setMembers((prev) =>
             prev.map((m) => (m.id === userId ? { ...m, role: newRole } : m))

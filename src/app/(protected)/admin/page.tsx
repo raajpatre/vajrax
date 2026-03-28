@@ -7,7 +7,6 @@ import {
     Users,
     Package,
     ClipboardList,
-    Newspaper,
     History,
     Loader2,
     ChevronRight,
@@ -39,13 +38,6 @@ export default function AdminDashboard() {
             desc: "Approve or reject pending requests",
             icon: <ClipboardList className="w-5 h-5" />,
             color: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-        },
-        {
-            href: "/admin/posts",
-            label: "Post Moderation",
-            desc: "Review and moderate feed posts",
-            icon: <Newspaper className="w-5 h-5" />,
-            color: "text-violet-400 bg-violet-400/10 border-violet-400/20",
         },
         ...(canViewLabHistory
             ? [

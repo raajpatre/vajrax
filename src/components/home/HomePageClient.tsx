@@ -24,9 +24,7 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
                 <div className="pointer-events-none absolute left-[-10%] top-[45%] h-[96px] w-[124%] -rotate-6 bg-[linear-gradient(90deg,rgba(123,97,255,0),rgba(123,97,255,0.12),rgba(76,201,240,0.2),rgba(212,175,55,0.16),rgba(123,97,255,0))] blur-3xl" />
 
                 <div className="relative z-10 mx-auto flex min-h-[calc(88vh-var(--nav-height))] max-w-6xl items-center px-6">
-                    <div className="glass-strong energy-card mx-auto w-full max-w-4xl rounded-[34px] border-cyan-100/25 bg-[linear-gradient(140deg,rgba(14,33,58,0.55),rgba(8,20,39,0.26)_48%,rgba(13,36,60,0.44))] p-8 text-center shadow-[0_28px_76px_rgba(0,0,0,0.42)] sm:p-12">
-                        <div className="pointer-events-none absolute -left-4 top-0 h-24 w-24 rounded-full bg-cyan-300/22 blur-3xl" />
-                        <div className="pointer-events-none absolute -right-3 bottom-2 h-24 w-24 rounded-full bg-primary/24 blur-3xl" />
+                    <div className="mx-auto w-full max-w-4xl p-8 text-center sm:p-12">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -34,7 +32,7 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
                             className="mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-300/22 bg-cyan-300/10 px-4 py-1.5 text-sm font-semibold tracking-wide text-cyan-100 shadow-[0_0_24px_rgba(0,242,255,0.12)]"
                         >
                             <Zap className="w-3.5 h-3.5" />
-                            College Robotics Club
+                            Robotics Club @ Newton School of Technology - Bengaluru
                         </motion.div>
 
                         <motion.h1

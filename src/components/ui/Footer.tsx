@@ -8,7 +8,7 @@ const footerLinks = [
             { label: "Projects", href: "/projects" },
             { label: "Gallery", href: "/gallery" },
             { label: "Events", href: "/events" },
-            { label: "Social Feed", href: "/feed" },
+            { label: "Lab", href: "/lab" },
         ],
     },
     {

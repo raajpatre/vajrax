@@ -27,13 +27,28 @@ export function useUser() {
     useEffect(() => {
         mounted.current = true;
 
+        const withTimeout = async <T>(promise: Promise<T>, ms: number): Promise<T> => {
+            return await Promise.race([
+                promise,
+                new Promise<T>((_, reject) =>
+                    setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+                ),
+            ]);
+        };
+
         const fetchProfile = async (userId: string) => {
             try {
-                const { data, error } = await supabase
-                    .from("profiles")
-                    .select("*")
-                    .eq("id", userId)
-                    .single();
+                const result = await withTimeout(
+                    Promise.resolve(
+                        supabase
+                            .from("profiles")
+                            .select("*")
+                            .eq("id", userId)
+                            .single()
+                    ),
+                    4000
+                );
+                const { data, error } = result;
                 
                 if (error) {
                     console.error("Error fetching profile:", error.message);
@@ -53,16 +68,22 @@ export function useUser() {
                 // Step 1: Read session from local storage (instant, reliable)
                 const {
                     data: { session },
-                } = await supabase.auth.getSession();
+                } = await withTimeout(supabase.auth.getSession(), 3000);
 
                 if (!mounted.current) return;
 
                 if (session?.user) {
-                    // We have a local session — trust it immediately
-                    const profile = await fetchProfile(session.user.id);
-                    if (mounted.current) {
-                        setState({ user: session.user, profile, loading: false });
-                    }
+                    // We have a local session — trust it immediately and hydrate profile in background.
+                    setState({ user: session.user, profile: null, loading: false });
+
+                    fetchProfile(session.user.id).then((profile) => {
+                        if (!mounted.current) return;
+                        setState((current) => ({
+                            user: current.user ?? session.user,
+                            profile,
+                            loading: false,
+                        }));
+                    });
 
                     // Step 2: Validate with getUser in background (don't block UI)
                     // If this fails (network issue), we keep the session-based state
@@ -100,10 +121,16 @@ export function useUser() {
 
             try {
                 if (session?.user) {
-                    const profile = await fetchProfile(session.user.id);
-                    if (mounted.current) {
-                        setState({ user: session.user, profile, loading: false });
-                    }
+                    setState({ user: session.user, profile: null, loading: false });
+
+                    fetchProfile(session.user.id).then((profile) => {
+                        if (!mounted.current) return;
+                        setState((current) => ({
+                            user: current.user ?? session.user,
+                            profile,
+                            loading: false,
+                        }));
+                    });
                 } else {
                     setState({ user: null, profile: null, loading: false });
                 }

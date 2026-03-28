@@ -183,7 +183,10 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          location_city: string | null
+          location_country: string | null
           project_id: string | null
+          tag: string | null
           title: string
         }
         Insert: {
@@ -192,7 +195,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          location_city?: string | null
+          location_country?: string | null
           project_id?: string | null
+          tag?: string | null
           title: string
         }
         Update: {
@@ -201,7 +207,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          location_city?: string | null
+          location_country?: string | null
           project_id?: string | null
+          tag?: string | null
           title?: string
         }
         Relationships: [
@@ -516,6 +525,7 @@ export type Database = {
           bio: string | null
           contact_email: string | null
           created_at: string
+          current_semester: number | null
           custom_tags: string[] | null
           display_name: string
           github_url: string | null
@@ -531,6 +541,7 @@ export type Database = {
           bio?: string | null
           contact_email?: string | null
           created_at?: string
+          current_semester?: number | null
           custom_tags?: string[] | null
           display_name?: string
           github_url?: string | null
@@ -546,6 +557,7 @@ export type Database = {
           bio?: string | null
           contact_email?: string | null
           created_at?: string
+          current_semester?: number | null
           custom_tags?: string[] | null
           display_name?: string
           github_url?: string | null
@@ -818,6 +830,8 @@ export type Database = {
       user_role:
         | "member"
         | "inventory_manager"
+        | "website_manager"
+        | "printing_head"
         | "president"
         | "vice_president"
         | "faculty"
@@ -958,6 +972,8 @@ export const Constants = {
       user_role: [
         "member",
         "inventory_manager",
+        "website_manager",
+        "printing_head",
         "president",
         "vice_president",
         "faculty",
