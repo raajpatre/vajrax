@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
 import { Users, User as UserIcon, Mail, Github, Linkedin } from "lucide-react";
+import { TeamSection } from "@/components/ui/TeamSection";
 
 type Profile = Tables<"profiles">;
 type FilterType = "all" | "faculty" | "committee" | "members";
@@ -24,6 +25,8 @@ function parseTag(raw: string): TagObject {
 const MAPPED_ROLES: Record<string, { label: string; class: string }> = {
     member: { label: "Member", class: "text-text-muted bg-surface border-border" },
     inventory_manager: { label: "Inventory Manager", class: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
+    website_manager: { label: "Website Manager", class: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20" },
+    printing_head: { label: "3D Printing Head", class: "text-orange-400 bg-orange-400/10 border-orange-400/20" },
     president: { label: "President", class: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
     vice_president: { label: "Vice President", class: "text-violet-400 bg-violet-400/10 border-violet-400/20" },
     faculty: { label: "Faculty", class: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20" },
@@ -35,7 +38,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
     const filteredProfiles = profiles.filter((p) => {
         if (filter === "all") return true;
         if (filter === "faculty") return p.role === "faculty";
-        if (filter === "committee") return p.role === "president" || p.role === "vice_president";
+        if (filter === "committee") return p.role !== "faculty" && p.role !== "member";
         if (filter === "members") return p.role === "member";
         return true;
     });
@@ -74,104 +77,8 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                     ))}
                 </div>
 
-                {/* Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24">
-                    <AnimatePresence mode="popLayout">
-                        {filteredProfiles.map((profile) => {
-                            const parsedTags: TagObject[] = (profile.custom_tags || []).map(parseTag);
-                            return (
-                                <motion.div
-                                    layout
-                                    key={profile.id}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                    className="glass group flex flex-col items-center rounded-2xl p-6 text-center"
-                                >
-                                    <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden mb-4 group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
-                                        {profile.avatar_url ? (
-                                            <img
-                                                src={profile.avatar_url}
-                                                alt={profile.display_name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <UserIcon className="w-10 h-10 text-primary-light/50" />
-                                        )}
-                                    </div>
-
-                                    <h3 className="text-lg font-bold mb-1 truncate w-full text-foreground group-hover:text-primary-light transition-colors">
-                                        {profile.display_name}
-                                    </h3>
-
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-4 shadow-sm ${MAPPED_ROLES[profile.role]?.class || MAPPED_ROLES.member.class}`}>
-                                        {MAPPED_ROLES[profile.role]?.label || "Member"}
-                                    </span>
-
-                                    {/* Colored Custom Tags */}
-                                    {parsedTags.length > 0 && (
-                                        <div className="flex flex-wrap justify-center gap-1.5 mt-auto">
-                                            {parsedTags.map((tag) => (
-                                                <span
-                                                    key={tag.name}
-                                                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
-                                                    style={{
-                                                        color: tag.color,
-                                                        backgroundColor: `${tag.color}18`,
-                                                        borderColor: `${tag.color}40`,
-                                                    }}
-                                                >
-                                                    {tag.name}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Contact Email */}
-                                    {profile.contact_email && (
-                                        <a
-                                            href={`mailto:${profile.contact_email}`}
-                                            className="flex items-center gap-1.5 mt-3 text-[11px] text-text-muted hover:text-primary-light transition-colors"
-                                        >
-                                            <Mail className="w-3.5 h-3.5" />
-                                            {profile.contact_email}
-                                        </a>
-                                    )}
-
-                                    {/* Social Links */}
-                                    {(profile.github_url || profile.linkedin_url) && (
-                                        <div className="flex items-center gap-3 mt-3">
-                                            {profile.github_url && (
-                                                <a
-                                                    href={profile.github_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-text-muted hover:text-white transition-colors"
-                                                    title="GitHub"
-                                                >
-                                                    <Github className="w-4.5 h-4.5" />
-                                                </a>
-                                            )}
-                                            {profile.linkedin_url && (
-                                                <a
-                                                    href={profile.linkedin_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-text-muted hover:text-[#0A66C2] transition-colors"
-                                                    title="LinkedIn"
-                                                >
-                                                    <Linkedin className="w-4.5 h-4.5" />
-                                                </a>
-                                            )}
-                                        </div>
-                                    )}
-                                </motion.div>
-                            );
-                        })}
-                    </AnimatePresence>
-
-                    {filteredProfiles.length === 0 && (
+                {filteredProfiles.length === 0 ? (
+                    <div className="pb-24">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -183,8 +90,108 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                 There are currently no members in this category.
                             </p>
                         </motion.div>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    <>
+                        <AnimatePresence mode="popLayout">
+                            <TeamSection profiles={filteredProfiles} roleMap={MAPPED_ROLES} />
+                        </AnimatePresence>
+
+                        <div className="grid grid-cols-1 gap-6 pb-24 sm:grid-cols-2 lg:hidden">
+                            <AnimatePresence mode="popLayout">
+                                {filteredProfiles.map((profile) => {
+                                    const parsedTags: TagObject[] = (profile.custom_tags || []).map(parseTag);
+                                    return (
+                                        <motion.div
+                                            layout
+                                            key={profile.id}
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                            className="glass group flex flex-col items-center rounded-2xl p-6 text-center"
+                                        >
+                                            <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-primary/20 bg-primary/10 transition-all duration-300 group-hover:scale-105 group-hover:border-primary/40">
+                                                {profile.avatar_url ? (
+                                                    <img
+                                                        src={profile.avatar_url}
+                                                        alt={profile.display_name}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <UserIcon className="h-10 w-10 text-primary-light/50" />
+                                                )}
+                                            </div>
+
+                                            <h3 className="mb-1 w-full truncate text-lg font-bold text-foreground transition-colors group-hover:text-primary-light">
+                                                {profile.display_name}
+                                            </h3>
+
+                                            <span className={`mb-4 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold shadow-sm ${MAPPED_ROLES[profile.role]?.class || MAPPED_ROLES.member.class}`}>
+                                                {MAPPED_ROLES[profile.role]?.label || "Member"}
+                                            </span>
+
+                                            {parsedTags.length > 0 && (
+                                                <div className="mt-auto flex flex-wrap justify-center gap-1.5">
+                                                    {parsedTags.map((tag) => (
+                                                        <span
+                                                            key={tag.name}
+                                                            className="rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                                                            style={{
+                                                                color: tag.color,
+                                                                backgroundColor: `${tag.color}18`,
+                                                                borderColor: `${tag.color}40`,
+                                                            }}
+                                                        >
+                                                            {tag.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {profile.contact_email && (
+                                                <a
+                                                    href={`mailto:${profile.contact_email}`}
+                                                    className="mt-3 flex items-center gap-1.5 text-[11px] text-text-muted transition-colors hover:text-primary-light"
+                                                >
+                                                    <Mail className="h-3.5 w-3.5" />
+                                                    {profile.contact_email}
+                                                </a>
+                                            )}
+
+                                            {(profile.github_url || profile.linkedin_url) && (
+                                                <div className="mt-3 flex items-center gap-3">
+                                                    {profile.github_url && (
+                                                        <a
+                                                            href={profile.github_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-text-muted transition-colors hover:text-white"
+                                                            title="GitHub"
+                                                        >
+                                                            <Github className="h-4.5 w-4.5" />
+                                                        </a>
+                                                    )}
+                                                    {profile.linkedin_url && (
+                                                        <a
+                                                            href={profile.linkedin_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-text-muted transition-colors hover:text-[#0A66C2]"
+                                                            title="LinkedIn"
+                                                        >
+                                                            <Linkedin className="h-4.5 w-4.5" />
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
+                            </AnimatePresence>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

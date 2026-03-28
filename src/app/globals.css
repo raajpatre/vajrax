@@ -525,6 +525,20 @@ body {
   border: 1px solid rgba(244, 63, 94, 0.3);
 }
 
+.badge-website-manager {
+  background: rgba(250, 204, 21, 0.12);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.12);
+}
+
+.badge-printing-head {
+  background: rgba(251, 146, 60, 0.14);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.28);
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.12);
+}
+
 /* ============================================
    Status Chips
    ============================================ */

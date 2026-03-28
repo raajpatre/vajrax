@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
 import { Image as ImageIcon, X, Plus, Trash2, Loader2 } from "lucide-react";
@@ -8,17 +9,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useRouter } from "next/navigation";
 import GalleryUploadModal from "./GalleryUploadModal";
+import { ArticleCard } from "@/components/ui/article-card";
 
 type GalleryItem = Tables<"gallery_items">;
-
-const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: { delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-    }),
-};
 
 export default function GalleryClient({ items }: { items: GalleryItem[] }) {
     const { isFaculty, isModerator } = useUser();
@@ -26,6 +19,30 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
     const [selected, setSelected] = useState<GalleryItem | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const formatCardDate = (value: string) => {
+        const date = new Date(value);
+        return {
+            month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+            day: date.getDate(),
+        };
+    };
+
+    const shouldBypassOptimization = (url: string) => {
+        try {
+            const hostname = new URL(url).hostname;
+            return ![
+                "drive.google.com",
+                "lh3.googleusercontent.com",
+                "docs.googleusercontent.com",
+                process.env.NEXT_PUBLIC_SUPABASE_URL
+                    ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+                    : "",
+            ].includes(hostname);
+        } catch {
+            return true;
+        }
+    };
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -94,35 +111,28 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                         </p>
                     </div>
                 ) : (
-                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-                        {items.map((item, i) => (
-                            <motion.div
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {items.map((item) => (
+                            <button
                                 key={item.id}
-                                custom={i}
-                                initial="hidden"
-                                animate="visible"
-                                variants={fadeUp}
-                                className="glass energy-card group relative cursor-pointer overflow-hidden rounded-[22px] border-white/14 break-inside-avoid"
+                                type="button"
+                                className="cursor-pointer text-left"
                                 onClick={() => setSelected(item)}
                             >
-                                <div className="overflow-hidden">
-                                    <img
-                                        src={item.cover_image_url}
-                                        alt={item.title}
-                                        className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    />
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="mb-1 text-sm font-semibold transition-colors group-hover:text-cyan-100">
-                                        {item.title}
-                                    </h3>
-                                    {item.description && (
-                                        <p className="text-xs text-text-muted line-clamp-2">
-                                            {item.description}
-                                        </p>
-                                    )}
-                                </div>
-                            </motion.div>
+                                <ArticleCard
+                                    tag={item.tag || "Gallery"}
+                                    date={formatCardDate(item.created_at)}
+                                    title={item.title}
+                                    description={item.description || "Captured moments from VajraX projects, events, and milestones."}
+                                    imageUrl={item.cover_image_url}
+                                    imageAlt={item.title}
+                                    location={{
+                                        city: item.location_city || "Bengaluru",
+                                        country: item.location_country || "India",
+                                    }}
+                                    className="max-w-none"
+                                />
+                            </button>
                         ))}
                     </div>
                 )}
@@ -164,11 +174,16 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
-                            <img
-                                src={selected.cover_image_url}
-                                alt={selected.title}
-                                className="w-full max-h-[70vh] object-contain bg-black"
-                            />
+                            <div className="relative h-[70vh] w-full bg-black">
+                                <Image
+                                    src={selected.cover_image_url}
+                                    alt={selected.title}
+                                    fill
+                                    sizes="100vw"
+                                    unoptimized={shouldBypassOptimization(selected.cover_image_url)}
+                                    className="object-contain"
+                                />
+                            </div>
                             <div className="p-6">
                                 <h2 className="text-xl font-bold mb-2">{selected.title}</h2>
                                 {selected.description && (
@@ -176,6 +191,21 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                                         {selected.description}
                                     </p>
                                 )}
+                                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-text-muted">
+                                    <span className="rounded-full border border-cyan-300/12 bg-cyan-300/10 px-3 py-1 text-cyan-100">
+                                        {selected.tag || "Gallery"}
+                                    </span>
+                                    <span>
+                                        {selected.location_city || "Bengaluru"}, {selected.location_country || "India"}
+                                    </span>
+                                    <span>
+                                        {new Date(selected.created_at).toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                        })}
+                                    </span>
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

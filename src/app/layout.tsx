@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VajraX — College Robotics Club",
+  title: "VajraX — Robotics Club @ Newton School of Technology - Bengaluru",
   description:
     "The ultimate power in robotics innovation. VajraX is a cutting-edge college robotics club pushing the boundaries of technology.",
   keywords: ["robotics", "college club", "VajraX", "engineering", "technology", "innovation"],

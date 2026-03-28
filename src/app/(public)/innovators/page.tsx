@@ -9,6 +9,8 @@ export const metadata = {
 
 type Profile = Tables<"profiles">;
 
+const HIDDEN_INNOVATOR_DISPLAY_NAMES = new Set(["Dr. Admin"]);
+
 export default async function InnovatorsPage() {
     const supabase = await createClient();
     
@@ -18,5 +20,8 @@ export default async function InnovatorsPage() {
         .select("*")
         .order("created_at", { ascending: true });
 
-    return <InnovatorsClient profiles={profiles ?? []} />;
+    const visibleProfiles =
+        (profiles ?? []).filter((profile) => !HIDDEN_INNOVATOR_DISPLAY_NAMES.has(profile.display_name));
+
+    return <InnovatorsClient profiles={visibleProfiles} />;
 }
