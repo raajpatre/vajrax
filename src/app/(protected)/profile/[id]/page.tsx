@@ -494,6 +494,11 @@ export default function ProfilePage() {
                                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">
                                     {profile.bio || "A builder shaping the next generation of robotics at VajraX."}
                                 </p>
+                                {!isOwnProfile && (
+                                    <p className="mt-3 text-xs font-medium uppercase tracking-[0.14em] text-text-muted">
+                                        Read-only member profile
+                                    </p>
+                                )}
                             </div>
                             {isOwnProfile && (
                                 <button onClick={() => setShowEdit(true)} className="btn-secondary text-sm !px-4 !py-2.5">
@@ -552,7 +557,7 @@ export default function ProfilePage() {
                     <StatCard
                         icon={<Github className="h-5 w-5" />}
                         label="GitHub"
-                        value={profile.github_url ? "Open repository profile" : "Not linked"}
+                        value={profile.github_url ? "Open Github Profile" : "Not linked"}
                         hint={profile.github_url ? "Code, experiments, and open source work." : "No GitHub URL added yet."}
                         href={profile.github_url ?? undefined}
                     />
@@ -582,10 +587,6 @@ export default function ProfilePage() {
                             </div>
                         </div>
                         <div className="grid gap-3 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Profile ID</p>
-                                <p className="mt-2 break-all text-sm text-foreground">{profile.id}</p>
-                            </div>
                             <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Contact Email</p>
                                 <p className="mt-2 break-all text-sm leading-relaxed text-foreground/90">

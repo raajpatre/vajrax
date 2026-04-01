@@ -37,6 +37,8 @@ interface ProjectUpdate {
     title: string;
     content: string | null;
     version_tag: string | null;
+    source_urls: string[] | null;
+    image_urls: string[] | null;
     created_at: string | null;
     author: {
         id: string;
@@ -100,7 +102,7 @@ export default function ProjectDetailClient({
 
             const { data: updData } = await supabase
                 .from("project_updates")
-                .select("id, title, content, version_tag, created_at, author:profiles!project_updates_author_id_fkey(id, display_name, avatar_url)")
+                .select("id, title, content, version_tag, source_urls, image_urls, created_at, author:profiles!project_updates_author_id_fkey(id, display_name, avatar_url)")
                 .eq("project_id", project.id)
                 .order("created_at", { ascending: false });
             if (updData) {
@@ -137,7 +139,7 @@ export default function ProjectDetailClient({
 
             // 1. If input looks like an email, look up via DB function
             if (input.includes("@")) {
-                const { data } = await (supabase.rpc as Function)("lookup_profile_by_email", {
+                const { data } = await supabase.rpc("lookup_profile_by_email", {
                     lookup_email: input.toLowerCase(),
                 });
                 if (data && Array.isArray(data) && data.length > 0) {
@@ -200,6 +202,17 @@ export default function ProjectDetailClient({
                     setInviteError(error.message);
                 }
             } else {
+                await supabase.from("notifications").insert({
+                    user_id: profile.id,
+                    type: "project_invite_received",
+                    message: `${user.user_metadata?.display_name || "A team lead"} invited you to join ${project.title}.`,
+                    related_entity_id: project.id,
+                }).then(({ error: notificationError }) => {
+                    if (notificationError) {
+                        console.error("Notification insert failed:", notificationError.message);
+                    }
+                });
+
                 setInviteEmail("");
                 setInviteSuccess(`Invite sent to ${profile.display_name}!`);
                 setTimeout(() => setInviteSuccess(null), 3000);
@@ -220,6 +233,8 @@ export default function ProjectDetailClient({
     const [updateTitle, setUpdateTitle] = useState("");
     const [updateContent, setUpdateContent] = useState("");
     const [versionTag, setVersionTag] = useState("");
+    const [updateSourceUrls, setUpdateSourceUrls] = useState("");
+    const [updateImageUrls, setUpdateImageUrls] = useState("");
     const [postingUpdate, setPostingUpdate] = useState(false);
     const [showUpdateForm, setShowUpdateForm] = useState(false);
 
@@ -227,6 +242,15 @@ export default function ProjectDetailClient({
         e.preventDefault();
         if (!updateTitle.trim() || !user) return;
         setPostingUpdate(true);
+
+        const sourceUrls = updateSourceUrls
+            .split("\n")
+            .map((value) => value.trim())
+            .filter(Boolean);
+        const imageUrls = updateImageUrls
+            .split("\n")
+            .map((value) => value.trim())
+            .filter(Boolean);
 
         const { data } = await supabase
             .from("project_updates")
@@ -236,8 +260,10 @@ export default function ProjectDetailClient({
                 title: updateTitle.trim(),
                 content: updateContent.trim() || null,
                 version_tag: versionTag.trim() || null,
+                source_urls: sourceUrls,
+                image_urls: imageUrls,
             })
-            .select("id, title, content, version_tag, created_at")
+            .select("id, title, content, version_tag, source_urls, image_urls, created_at")
             .single();
 
         if (data) {
@@ -263,6 +289,8 @@ export default function ProjectDetailClient({
         setUpdateTitle("");
         setUpdateContent("");
         setVersionTag("");
+        setUpdateSourceUrls("");
+        setUpdateImageUrls("");
         setPostingUpdate(false);
         setShowUpdateForm(false);
     };
@@ -454,6 +482,20 @@ export default function ProjectDetailClient({
                                     rows={2}
                                     className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
                                 />
+                                <textarea
+                                    value={updateSourceUrls}
+                                    onChange={(e) => setUpdateSourceUrls(e.target.value)}
+                                    placeholder={"Source links (one per line)\nhttps://github.com/...\nhttps://docs.google.com/..."}
+                                    rows={2}
+                                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                                />
+                                <textarea
+                                    value={updateImageUrls}
+                                    onChange={(e) => setUpdateImageUrls(e.target.value)}
+                                    placeholder={"Embedded image URLs (one per line)\nhttps://...\nhttps://drive.google.com/..."}
+                                    rows={3}
+                                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                                />
                                 <div className="flex gap-2 items-center">
                                     <div className="flex items-center gap-1 flex-1 bg-surface border border-border rounded-lg px-2.5 py-2">
                                         <Tag className="w-3 h-3 text-text-muted" />
@@ -521,6 +563,40 @@ export default function ProjectDetailClient({
                                                     <p className="text-xs text-text-secondary mt-0.5 leading-relaxed whitespace-pre-wrap">
                                                         {update.content}
                                                     </p>
+                                                )}
+                                                {update.source_urls && update.source_urls.length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        {update.source_urls.map((sourceUrl) => (
+                                                            <a
+                                                                key={sourceUrl}
+                                                                href={sourceUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-100 hover:bg-cyan-300/15"
+                                                            >
+                                                                Source
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {update.image_urls && update.image_urls.length > 0 && (
+                                                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                                        {update.image_urls.map((imageUrl) => (
+                                                            <a
+                                                                key={imageUrl}
+                                                                href={imageUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="overflow-hidden rounded-xl border border-white/10 bg-surface/60"
+                                                            >
+                                                                <img
+                                                                    src={imageUrl}
+                                                                    alt={update.title}
+                                                                    className="h-24 w-full object-cover transition-transform duration-300 hover:scale-105"
+                                                                />
+                                                            </a>
+                                                        ))}
+                                                    </div>
                                                 )}
                                                 <p className="text-[10px] text-text-muted mt-1 flex items-center gap-1">
                                                     {update.author.display_name} ·{" "}

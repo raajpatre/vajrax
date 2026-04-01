@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import {
     Loader2,
@@ -11,6 +10,7 @@ import {
     X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { submitProjectRequest } from "@/actions/project-requests";
 
 export default function ProjectRequestPage() {
     const { user, loading: userLoading } = useUser();
@@ -42,18 +42,14 @@ export default function ProjectRequestPage() {
         setLoading(true);
         setError(null);
 
-        const supabase = createClient();
-        const { error: insertError } = await supabase
-            .from("project_requests")
-            .insert({
-                title: title.trim(),
-                description: description.trim(),
-                tech_stack: techStack,
-                requester_id: user.id,
-            });
+        const result = await submitProjectRequest({
+            title,
+            description,
+            techStack,
+        });
 
-        if (insertError) {
-            setError(insertError.message);
+        if (!result.ok) {
+            setError(result.error);
             setLoading(false);
             return;
         }

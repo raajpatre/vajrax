@@ -36,11 +36,11 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(125,114,255,0.12),transparent_30%),radial-gradient(circle_at_88%_14%,rgba(0,242,255,0.12),transparent_28%)]" />
 
-            <div className="relative z-10 mx-auto max-w-7xl px-6">
+            <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="mb-11 flex flex-col gap-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div>
-                            <h1 className="section-title mb-3 text-3xl">Projects</h1>
+                            <h1 className="section-title mb-3 text-2xl sm:text-3xl">Projects</h1>
                             <p className="max-w-xl text-text-secondary">
                                 Explore our robotics R&D portfolio, from first prototype to competition-ready systems.
                             </p>
@@ -56,7 +56,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
                         )}
                     </div>
 
-                    <div className="glass inline-flex w-fit flex-wrap items-center gap-2 rounded-2xl px-3 py-2">
+                    <div className="glass inline-flex w-full flex-wrap items-center gap-2 rounded-2xl px-3 py-2 sm:w-fit">
                         <Filter className="h-4 w-4 text-text-muted" />
                         {["all", "in_progress", "completed", "archived"].map((s) => {
                             const isActive = filter === s;
@@ -64,7 +64,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
                                 <button
                                     key={s}
                                     onClick={() => setFilter(s)}
-                                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition-all ${
+                                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition-all sm:text-sm ${
                                         isActive
                                             ? "border-cyan-300/35 bg-cyan-300/14 text-cyan-100 shadow-[0_0_20px_rgba(0,242,255,0.15)]"
                                             : "border-transparent text-text-muted hover:border-white/12 hover:bg-white/[0.05] hover:text-text-secondary"
@@ -115,7 +115,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
                                         </div>
                                     )}
 
-                                    <div className="relative p-6">
+                                    <div className="relative p-5 sm:p-6">
                                         <div className="mb-3 flex items-start justify-between gap-3">
                                             <h3 className="line-clamp-1 text-lg font-semibold transition-colors group-hover:text-cyan-100">
                                                 {project.title}

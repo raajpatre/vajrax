@@ -33,6 +33,25 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
     ctx.closePath();
 }
 
+function truncateCanvasText(
+    ctx: CanvasRenderingContext2D,
+    value: string,
+    maxWidth: number
+) {
+    if (ctx.measureText(value).width <= maxWidth) {
+        return value;
+    }
+
+    const ellipsis = "...";
+    let truncated = value;
+
+    while (truncated.length > 0 && ctx.measureText(`${truncated}${ellipsis}`).width > maxWidth) {
+        truncated = truncated.slice(0, -1);
+    }
+
+    return `${truncated.trimEnd()}${ellipsis}`;
+}
+
 async function loadCardTexture(avatarUrl: string | null, displayName: string, roleLabel?: string | null) {
     const canvas = document.createElement("canvas");
     canvas.width = 900;
@@ -132,7 +151,8 @@ async function loadCardTexture(avatarUrl: string | null, displayName: string, ro
 
     ctx.fillStyle = "#eff6ff";
     ctx.font = "700 78px sans-serif";
-    ctx.fillText(displayName, 92, 1090);
+    const fittedDisplayName = truncateCanvasText(ctx, displayName, canvas.width - 184);
+    ctx.fillText(fittedDisplayName, 92, 1090);
 
     if (roleLabel) {
         ctx.fillStyle = "rgba(255,255,255,0.08)";

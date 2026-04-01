@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useParams, useRouter } from "next/navigation";
@@ -8,7 +8,6 @@ import {
     Settings,
     Loader2,
     UserPlus,
-    X,
     User,
     Send,
     Tag,
@@ -20,9 +19,11 @@ import {
     CheckCircle,
     Pause,
     Play,
+    Image as ImageIcon,
+    Link2,
+    Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 
 interface Member {
     id: string;
@@ -35,13 +36,40 @@ interface Member {
     };
 }
 
+function normalizeImageUrl(raw: string) {
+    const value = raw.trim();
+    if (!value) return "";
+
+    try {
+        const url = new URL(value);
+
+        if (url.hostname === "drive.google.com") {
+            const fileId = url.searchParams.get("id") || url.pathname.match(/\/file\/d\/([^/]+)/)?.[1];
+            if (fileId) {
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`;
+            }
+        }
+
+        return url.toString();
+    } catch {
+        return "";
+    }
+}
+
+function splitLines(value: string) {
+    return value
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+}
+
 export default function ProjectManagePage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const { user, isFaculty, loading: userLoading } = useUser();
     const supabase = createClient();
 
-    const [project, setProject] = useState<{ title: string; status: string } | null>(null);
+    const [project, setProject] = useState<{ title: string; status: string; cover_image_url: string | null } | null>(null);
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
     const [isLead, setIsLead] = useState(false);
@@ -56,7 +84,12 @@ export default function ProjectManagePage() {
     const [updateTitle, setUpdateTitle] = useState("");
     const [updateContent, setUpdateContent] = useState("");
     const [versionTag, setVersionTag] = useState("");
+    const [updateSourceUrls, setUpdateSourceUrls] = useState("");
+    const [updateImageUrls, setUpdateImageUrls] = useState("");
     const [postingUpdate, setPostingUpdate] = useState(false);
+    const [projectHeroUrl, setProjectHeroUrl] = useState("");
+    const [savingHeroImage, setSavingHeroImage] = useState(false);
+    const [heroImageMessage, setHeroImageMessage] = useState<string | null>(null);
 
     // Project Actions
     const [actionLoading, setActionLoading] = useState<"delete" | "pause" | "complete" | null>(null);
@@ -65,10 +98,11 @@ export default function ProjectManagePage() {
         setLoading(true);
         const { data: proj } = await supabase
             .from("projects")
-            .select("title, status")
+            .select("title, status, cover_image_url")
             .eq("id", id)
             .single();
         setProject(proj);
+        setProjectHeroUrl(proj?.cover_image_url || "");
 
         const { data: mem } = await supabase
             .from("project_members")
@@ -92,7 +126,13 @@ export default function ProjectManagePage() {
         setLoading(false);
     }, [supabase, id, user]);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            void fetchData();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [fetchData]);
 
     const handleAddMember = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -146,19 +186,59 @@ export default function ProjectManagePage() {
         if (!updateTitle.trim() || !user) return;
         setPostingUpdate(true);
 
+        const normalizedSourceUrls = splitLines(updateSourceUrls);
+        const normalizedImageUrls = splitLines(updateImageUrls)
+            .map(normalizeImageUrl)
+            .filter(Boolean);
+
         await supabase.from("project_updates").insert({
             project_id: id,
             author_id: user.id,
             title: updateTitle.trim(),
             content: updateContent.trim() || null,
             version_tag: versionTag.trim() || null,
+            source_urls: normalizedSourceUrls,
+            image_urls: normalizedImageUrls,
         });
 
         setUpdateTitle("");
         setUpdateContent("");
         setVersionTag("");
+        setUpdateSourceUrls("");
+        setUpdateImageUrls("");
         setPostingUpdate(false);
     };
+
+    const handleSaveHeroImage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!project) return;
+
+        setSavingHeroImage(true);
+        setHeroImageMessage(null);
+
+        const normalizedHeroUrl = normalizeImageUrl(projectHeroUrl);
+        if (projectHeroUrl.trim() && !normalizedHeroUrl) {
+            setHeroImageMessage("Please paste a valid public image URL.");
+            setSavingHeroImage(false);
+            return;
+        }
+
+        const { error } = await supabase
+            .from("projects")
+            .update({ cover_image_url: normalizedHeroUrl || null })
+            .eq("id", id);
+
+        if (error) {
+            setHeroImageMessage(error.message);
+        } else {
+            setProject((current) => current ? { ...current, cover_image_url: normalizedHeroUrl || null } : current);
+            setHeroImageMessage(normalizedHeroUrl ? "Hero image updated." : "Hero image removed.");
+        }
+
+        setSavingHeroImage(false);
+    };
+
+    const heroPreviewUrl = useMemo(() => normalizeImageUrl(projectHeroUrl), [projectHeroUrl]);
 
     const handleTogglePause = async () => {
         if (!project) return;
@@ -227,7 +307,7 @@ export default function ProjectManagePage() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto px-4 py-8">
             {/* Back link */}
             <Link
                 href={`/projects/${id}`}
@@ -246,6 +326,85 @@ export default function ProjectManagePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(isLead || isFaculty) && (
+                    <div className="glass p-5 md:col-span-2">
+                        <h2 className="text-sm font-bold mb-4 flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-primary-light" />
+                            Project Hero Image
+                        </h2>
+
+                        <form onSubmit={handleSaveHeroImage} className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+                            <div className="rounded-[22px] border border-cyan-200/10 bg-white/[0.03] p-4 sm:rounded-[24px] sm:p-5">
+                                <div className="flex flex-col items-center text-center">
+                                    {heroPreviewUrl ? (
+                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
+                                            <img
+                                                src={heroPreviewUrl}
+                                                alt="Project hero preview"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 px-4 text-text-muted sm:h-40">
+                                            <ImageIcon className="mb-2 h-8 w-8" />
+                                            <span className="text-sm font-medium">Paste a hero image URL</span>
+                                        </div>
+                                    )}
+
+                                    <p className="mt-3 text-sm font-semibold text-foreground sm:mt-4 sm:text-base">Project Card Hero</p>
+                                    <p className="mt-1 text-[11px] leading-relaxed text-text-muted sm:text-xs">
+                                        This image appears at the top of the public project page and on the project card.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
+                                    <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-text-secondary">
+                                        <Link2 className="w-4 h-4" />
+                                        Hero image URL
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={projectHeroUrl}
+                                        onChange={(e) => {
+                                            setProjectHeroUrl(e.target.value);
+                                            setHeroImageMessage(null);
+                                        }}
+                                        placeholder="Paste image URL or Google Drive share link"
+                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    />
+                                    <p className="mt-2 text-xs text-text-muted">
+                                        Use a wide landscape image. Google Drive links work when the file is public.
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/8 bg-cyan-400/5 px-4 py-3 text-sm text-text-secondary">
+                                    <div className="flex items-start gap-2">
+                                        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" />
+                                        <p>Paste a URL to update the hero image, or clear the field and save to remove it.</p>
+                                    </div>
+                                </div>
+
+                                {heroImageMessage && (
+                                    <p className="text-xs text-text-muted">{heroImageMessage}</p>
+                                )}
+
+                                <div className="flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={savingHeroImage}
+                                        className="btn-primary text-sm disabled:opacity-50"
+                                    >
+                                        {savingHeroImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                                        Save Hero Image
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
                 {/* Team Management — only for leads */}
                 {(isLead || isFaculty) && (
                 <div className="glass p-5">
@@ -348,6 +507,34 @@ export default function ProjectManagePage() {
                                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-text-muted focus:outline-none"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-text-secondary">
+                                <Link2 className="w-4 h-4" />
+                                Source Links
+                            </label>
+                            <textarea
+                                value={updateSourceUrls}
+                                onChange={(e) => setUpdateSourceUrls(e.target.value)}
+                                placeholder={"One source URL per line\nhttps://github.com/...\nhttps://docs.google.com/..."}
+                                rows={3}
+                                className="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-text-secondary">
+                                <ImageIcon className="w-4 h-4" />
+                                Embedded Images
+                            </label>
+                            <textarea
+                                value={updateImageUrls}
+                                onChange={(e) => setUpdateImageUrls(e.target.value)}
+                                placeholder={"One public image URL per line\nhttps://...\nhttps://drive.google.com/..."}
+                                rows={4}
+                                className="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                            />
                         </div>
 
                         <button

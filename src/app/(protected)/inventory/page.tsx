@@ -292,7 +292,7 @@ function RequestModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4">
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
@@ -301,7 +301,7 @@ function RequestModal({
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong p-6 w-full max-w-md relative z-10"
+                className="glass-strong relative z-10 my-auto w-full max-w-md overflow-y-auto p-5 max-h-[calc(100dvh-max(1.5rem,env(safe-area-inset-top))-max(1.5rem,env(safe-area-inset-bottom)))] sm:p-6"
             >
                 {success ? (
                     <div className="text-center py-8">

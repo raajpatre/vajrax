@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Menu, X, Zap, LogIn, LogOut, User, Users, Package, FolderOpen, History, Mail, FlaskConical } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Menu, X, Zap, LogIn, LogOut, User, Users, Package, FolderOpen, Mail, FlaskConical, ClipboardList, Bell, CheckCheck, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
+import { createClient } from "@/lib/supabase/client";
+import { formatNotificationTime, getNotificationHref } from "@/lib/notifications";
+import { Tables } from "@/types/database";
 
 const publicLinks = [
     { href: "/", label: "Home" },
@@ -26,12 +29,21 @@ const roleLabels: Record<string, { label: string; class: string }> = {
     inventory_manager: { label: "Inventory Manager", class: "badge-member" },
 };
 
+type NotificationRow = Tables<"notifications">;
+
 export default function Navbar() {
     const pathname = usePathname();
+    const router = useRouter();
+    const supabase = useMemo(() => createClient(), []);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
-    const { user, profile, loading, isAuthenticated, signOut, isFaculty, isModerator } = useUser();
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [notifications, setNotifications] = useState<NotificationRow[]>([]);
+    const [notificationsLoading, setNotificationsLoading] = useState(false);
+    const { user, profile, loading, isAuthenticated, signOut, isFaculty, isModerator, isInventoryManager } = useUser();
     const canViewLabHistory = profile?.role === "faculty" || profile?.role === "president";
+    const notificationRef = useRef<HTMLDivElement>(null);
+    const unreadCount = notifications.filter((notification) => !notification.is_read).length;
 
     useEffect(() => {
         let frameId = 0;
@@ -55,14 +67,114 @@ export default function Navbar() {
         };
     }, []);
 
+    const closeMenu = () => setIsMobileOpen(false);
+
+    const fetchNotifications = useCallback(async () => {
+        if (!user) {
+            setNotifications([]);
+            return;
+        }
+
+        setNotificationsLoading(true);
+        const { data, error } = await supabase
+            .from("notifications")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+        if (!error && data) {
+            setNotifications(data);
+        }
+        setNotificationsLoading(false);
+    }, [supabase, user]);
+
     useEffect(() => {
-        setIsMobileOpen(false);
-    }, [pathname]);
+        const timeoutId = window.setTimeout(() => {
+            void fetchNotifications();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [fetchNotifications]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase
+            .channel(`notifications:${user.id}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "notifications",
+                    filter: `user_id=eq.${user.id}`,
+                },
+                () => {
+                    void fetchNotifications();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    }, [fetchNotifications, supabase, user]);
+
+    useEffect(() => {
+        const handlePointerDown = (event: MouseEvent) => {
+            if (!notificationRef.current?.contains(event.target as Node)) {
+                setIsNotificationsOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handlePointerDown);
+        return () => document.removeEventListener("mousedown", handlePointerDown);
+    }, []);
 
     const handleSignOut = async () => {
         await signOut();
         setIsMobileOpen(false);
         window.location.href = "/";
+    };
+
+    const markNotificationAsRead = async (notificationId: string) => {
+        setNotifications((current) =>
+            current.map((notification) =>
+                notification.id === notificationId ? { ...notification, is_read: true } : notification
+            )
+        );
+
+        const { error } = await supabase
+            .from("notifications")
+            .update({ is_read: true })
+            .eq("id", notificationId);
+
+        if (error) {
+            console.error("Failed to mark notification as read:", error.message);
+        }
+    };
+
+    const markAllNotificationsAsRead = async () => {
+        if (!user || unreadCount === 0) return;
+
+        setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
+        const { error } = await supabase
+            .from("notifications")
+            .update({ is_read: true })
+            .eq("user_id", user.id)
+            .eq("is_read", false);
+
+        if (error) {
+            console.error("Failed to mark all notifications as read:", error.message);
+            await fetchNotifications();
+        }
+    };
+
+    const handleNotificationClick = async (notification: NotificationRow) => {
+        await markNotificationAsRead(notification.id);
+        setIsNotificationsOpen(false);
+        router.push(getNotificationHref(notification.type));
     };
 
     return (
@@ -72,8 +184,8 @@ export default function Navbar() {
                 style={{ height: "var(--nav-height)" }}
             >
                 <div
-                    className={`pointer-events-auto mx-auto flex h-full w-full items-center px-6 transition-[max-width,margin-top,background-color,border-color,box-shadow,border-radius] duration-300 ease-out ${isScrolled
-                        ? "mt-2 max-w-5xl rounded-[22px] glass-strong border-cyan-200/20 shadow-[0_24px_62px_rgba(0,0,0,0.5)]"
+                    className={`pointer-events-auto mx-auto flex h-full w-full items-center px-4 sm:px-6 transition-[max-width,margin-top,background-color,border-color,box-shadow,border-radius] duration-300 ease-out ${isScrolled
+                        ? "mt-2 max-w-5xl rounded-[20px] glass-strong border-cyan-200/20 shadow-[0_24px_62px_rgba(0,0,0,0.5)] sm:rounded-[22px]"
                         : "mt-0 max-w-none border-b border-cyan-200/15 bg-[linear-gradient(180deg,rgba(8,22,40,0.74),rgba(6,16,30,0.58))] backdrop-blur-2xl"
                         }`}
                     style={{
@@ -85,11 +197,11 @@ export default function Navbar() {
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,rgba(123,97,255,0),rgba(123,97,255,0.72),rgba(76,201,240,0.72),rgba(31,232,216,0.35),rgba(31,232,216,0))] animate-[aurora-shift_7s_linear_infinite]" />
                     <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2.5 group">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/35 via-secondary/25 to-accent/20 border border-white/24 flex items-center justify-center group-hover:shadow-[0_0_28px_rgba(76,201,240,0.32)] transition-all duration-300">
-                            <Zap className="w-5 h-5 text-primary-light" />
+                    <Link href="/" className="group flex items-center gap-2 sm:gap-2.5" onClick={closeMenu}>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/24 bg-gradient-to-br from-primary/35 via-secondary/25 to-accent/20 transition-all duration-300 group-hover:shadow-[0_0_28px_rgba(76,201,240,0.32)] sm:h-9 sm:w-9">
+                            <Zap className="h-4 w-4 text-primary-light sm:h-5 sm:w-5" />
                         </div>
-                        <span className="text-xl font-black tracking-tight">
+                        <span className="text-lg font-black tracking-tight sm:text-xl">
                             <span className="text-gradient">Vajra</span>
                             <span className="text-foreground">X</span>
                         </span>
@@ -103,6 +215,7 @@ export default function Navbar() {
                                 <Link
                                     key={link.href}
                                     href={link.href}
+                                    onClick={closeMenu}
                                     className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
                                             ? "text-white bg-[linear-gradient(130deg,rgba(123,97,255,0.24),rgba(76,201,240,0.2))] border border-cyan-200/34 shadow-[0_0_0_1px_rgba(123,97,255,0.24),0_0_26px_rgba(76,201,240,0.2)]"
                                             : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
@@ -123,6 +236,7 @@ export default function Navbar() {
                         {isAuthenticated && (
                             <Link
                                 href="/inventory"
+                                onClick={closeMenu}
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${pathname.startsWith("/inventory")
                                         ? "text-white bg-[linear-gradient(130deg,rgba(123,97,255,0.24),rgba(76,201,240,0.2))] border border-cyan-200/34 shadow-[0_0_0_1px_rgba(123,97,255,0.24),0_0_26px_rgba(76,201,240,0.2)]"
                                         : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
@@ -141,6 +255,7 @@ export default function Navbar() {
                         {isAuthenticated && (
                             <Link
                                 href="/lab"
+                                onClick={closeMenu}
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${pathname.startsWith("/lab")
                                         ? "text-cyan-100 bg-[linear-gradient(130deg,rgba(15,112,132,0.42),rgba(76,201,240,0.2))] border border-cyan-300/35 shadow-[0_0_0_1px_rgba(86,237,255,0.3),0_0_24px_rgba(0,234,255,0.24)]"
                                         : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
@@ -163,13 +278,13 @@ export default function Navbar() {
                     </div>
 
                     {/* Auth section + Mobile toggle */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         {loading ? (
                             <div className="w-8 h-8 rounded-full bg-surface animate-pulse" />
                         ) : isAuthenticated && profile ? (
                             /* Logged in user chip */
                             <div className="flex items-center gap-1">
-                                <div className="group flex max-w-[min(38vw,15rem)] items-center gap-2.5 rounded-full border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06]">
+                                <div className="group flex max-w-[min(46vw,15rem)] items-center gap-2 rounded-full border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06] sm:max-w-[min(38vw,15rem)] sm:gap-2.5 sm:px-2.5">
                                     <div className="h-8 w-8 shrink-0 rounded-full border border-primary/30 bg-primary/20 flex items-center justify-center overflow-hidden">
                                         {profile.avatar_url ? (
                                             <img
@@ -198,28 +313,125 @@ export default function Navbar() {
                             </div>
                         ) : (
                             /* Not logged in — Sign In button */
-                            <Link href="/login" className="btn-primary text-sm !py-2 !px-5">
+                            <Link href="/login" className="btn-primary text-sm !px-4 !py-2 sm:!px-5" onClick={closeMenu}>
                                 <LogIn className="w-4 h-4" />
                                 <span className="hidden sm:inline">Sign In</span>
                             </Link>
                         )}
 
-                        {!isAuthenticated && (
-                            <button
-                                className="md:hidden btn-ghost !p-2"
-                                onClick={() => setIsMobileOpen(!isMobileOpen)}
-                                aria-label={isMobileOpen ? "Close menu" : "Toggle menu"}
-                            >
-                                {isMobileOpen ? (
-                                    <X className="w-5 h-5" />
-                                ) : (
-                                    <Menu className="w-5 h-5" />
-                                )}
-                            </button>
+                        {isAuthenticated && (
+                            <div className="relative pointer-events-auto" ref={notificationRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsNotificationsOpen((current) => !current)}
+                                    className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] text-text-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06] hover:text-foreground"
+                                    aria-label="Open notifications"
+                                >
+                                    <Bell className="h-4.5 w-4.5" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_0_2px_rgba(8,22,40,0.9)]" />
+                                    )}
+                                </button>
+
+                                <AnimatePresence>
+                                    {isNotificationsOpen && (
+                                        <>
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="fixed inset-0 z-[94] bg-[rgba(3,10,20,0.72)] backdrop-blur-[3px]"
+                                                onClick={() => setIsNotificationsOpen(false)}
+                                            />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                                                transition={{ duration: 0.16 }}
+                                                className="absolute right-0 top-[calc(100%+0.6rem)] z-[95] w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#081321] shadow-[0_28px_80px_rgba(0,0,0,0.72),0_0_0_1px_rgba(123,97,255,0.12),0_0_38px_rgba(76,201,240,0.12)]"
+                                            >
+                                                <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
+                                                    <div className="flex items-center justify-between px-4 py-3">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-foreground">Notifications</p>
+                                                            <p className="text-[11px] text-text-muted">
+                                                                {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => void markAllNotificationsAsRead()}
+                                                            disabled={unreadCount === 0}
+                                                            className="inline-flex items-center gap-1 rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-1.5 text-[11px] font-semibold text-text-secondary transition-all hover:text-foreground hover:bg-white/[0.06] disabled:opacity-40"
+                                                        >
+                                                            <CheckCheck className="h-3.5 w-3.5" />
+                                                            Mark all read
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="max-h-[24rem] overflow-y-auto bg-[#081321]">
+                                                    {notificationsLoading ? (
+                                                        <div className="flex items-center justify-center px-4 py-10">
+                                                            <Loader2 className="h-5 w-5 animate-spin text-primary-light" />
+                                                        </div>
+                                                ) : notifications.length === 0 ? (
+                                                    <div className="bg-[#081321] px-4 py-10 text-center">
+                                                        <Bell className="mx-auto mb-3 h-8 w-8 text-text-muted" />
+                                                        <p className="text-sm font-medium text-foreground">No notifications yet</p>
+                                                        <p className="mt-1 text-xs text-text-muted">
+                                                            Project invites and request decisions will show up here.
+                                                        </p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-2">
+                                                            {notifications.map((notification) => (
+                                                                <button
+                                                                    key={notification.id}
+                                                                    type="button"
+                                                                    onClick={() => void handleNotificationClick(notification)}
+                                                                    className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-all hover:bg-white/[0.04] ${notification.is_read ? "bg-transparent opacity-80" : "bg-white/[0.05]"}`}
+                                                                >
+                                                                    <div className="mt-1 flex h-2.5 w-2.5 shrink-0 items-center justify-center">
+                                                                        {!notification.is_read && (
+                                                                            <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="text-sm leading-relaxed text-foreground">
+                                                                            {notification.message}
+                                                                        </p>
+                                                                        <p className="mt-1 text-[11px] text-text-muted">
+                                                                            {formatNotificationTime(notification.created_at)}
+                                                                        </p>
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         )}
+
+                        <button
+                            className="btn-ghost !inline-flex !p-2 md:!hidden"
+                            onClick={() => setIsMobileOpen(!isMobileOpen)}
+                            aria-label={isMobileOpen ? "Close menu" : "Toggle menu"}
+                        >
+                            {isMobileOpen ? (
+                                <X className="w-5 h-5" />
+                            ) : (
+                                <Menu className="w-5 h-5" />
+                            )}
+                        </button>
+
                         {isAuthenticated && !isScrolled && (
                             <button
-                                className="btn-ghost !p-2"
+                                className="btn-ghost !hidden !p-2 md:!inline-flex"
                                 onClick={() => setIsMobileOpen(!isMobileOpen)}
                                 aria-label={isMobileOpen ? "Close menu" : "Toggle menu"}
                             >
@@ -235,7 +447,7 @@ export default function Navbar() {
                 </div>
                 {isAuthenticated && isScrolled && (
                     <button
-                        className="pointer-events-auto absolute right-6 top-[calc(50%+4px)] hidden -translate-y-1/2 rounded-xl border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-2.5 text-text-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06] hover:text-foreground md:inline-flex"
+                        className="pointer-events-auto absolute right-6 top-[calc(50%+4px)] !hidden -translate-y-1/2 rounded-xl border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-2.5 text-text-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06] hover:text-foreground md:!inline-flex"
                         onClick={() => setIsMobileOpen(!isMobileOpen)}
                         aria-label={isMobileOpen ? "Close menu" : "Toggle menu"}
                     >
@@ -267,7 +479,7 @@ export default function Navbar() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -10, scale: 0.98 }}
                             transition={{ duration: 0.2 }}
-                            className={`fixed top-[calc(var(--nav-height)+max(env(safe-area-inset-top),0px)+8px)] z-[90] overflow-y-auto rounded-2xl border border-cyan-200/30 bg-[linear-gradient(165deg,rgba(11,24,42,0.9),rgba(8,17,34,0.82))] p-4 shadow-[0_22px_62px_rgba(0,0,0,0.55),0_0_0_1px_rgba(123,97,255,0.16),0_0_38px_rgba(76,201,240,0.18)] backdrop-blur-2xl ${isAuthenticated ? "right-3 w-[min(24rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)]" : "right-3 left-3 max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] md:hidden"}`}
+                            className={`fixed top-[calc(var(--nav-height)+max(env(safe-area-inset-top),0px)+8px)] z-[90] overflow-y-auto rounded-2xl border border-cyan-200/30 bg-[linear-gradient(165deg,rgba(11,24,42,0.9),rgba(8,17,34,0.82))] p-3.5 shadow-[0_22px_62px_rgba(0,0,0,0.55),0_0_0_1px_rgba(123,97,255,0.16),0_0_38px_rgba(76,201,240,0.18)] backdrop-blur-2xl sm:p-4 ${isAuthenticated ? "left-3 right-3 max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] md:left-auto md:w-[min(24rem,calc(100vw-1.5rem))]" : "right-3 left-3 max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] md:hidden"}`}
                         >
                             <div className="flex flex-col gap-1">
                                 {isAuthenticated && profile && (
@@ -291,6 +503,7 @@ export default function Navbar() {
                                         </div>
                                         <Link
                                             href={`/profile/${user?.id}`}
+                                            onClick={closeMenu}
                                             className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                         >
                                             <User className="w-4 h-4" />
@@ -304,6 +517,7 @@ export default function Navbar() {
                                         <Link
                                             key={link.href}
                                             href={link.href}
+                                            onClick={closeMenu}
                                             className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
                                                     ? "text-white bg-white/[0.08] border border-white/18"
                                                     : "text-text-secondary hover:text-foreground hover:bg-white/[0.04]"
@@ -317,12 +531,22 @@ export default function Navbar() {
                                     <>
                                         <Link
                                             href="/inventory"
+                                            onClick={closeMenu}
                                             className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                         >
                                             Inventory
                                         </Link>
                                         <Link
+                                            href="/my-requests"
+                                            onClick={closeMenu}
+                                            className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                        >
+                                            <ClipboardList className="w-4 h-4" />
+                                            My Requests
+                                        </Link>
+                                        <Link
                                             href="/lab"
+                                            onClick={closeMenu}
                                             className="px-4 py-3 rounded-lg text-sm font-medium text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-500/10 transition-all flex items-center gap-2"
                                         >
                                             <FlaskConical className="w-4 h-4" />
@@ -333,46 +557,48 @@ export default function Navbar() {
                                         </Link>
                                         <Link
                                             href="/project-invites"
+                                            onClick={closeMenu}
                                             className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                         >
                                             <Mail className="w-4 h-4" />
                                             Project Invites
                                         </Link>
-                                        {(isFaculty || isModerator) && (
+                                        {(isFaculty || isModerator || isInventoryManager) && (
                                             <>
                                                 <div className="my-2 border-t border-border" />
                                                 <p className="px-4 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">Admin</p>
-                                                <Link
-                                                    href="/admin/members"
-                                                    className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
-                                                >
-                                                    <Users className="w-4 h-4" />
-                                                    Manage Members
-                                                </Link>
+                                                {(isFaculty || isModerator) && (
+                                                    <Link
+                                                        href="/admin/members"
+                                                        onClick={closeMenu}
+                                                        className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                                    >
+                                                        <Users className="w-4 h-4" />
+                                                        Manage Members
+                                                    </Link>
+                                                )}
                                                 <Link
                                                     href="/admin/requests"
+                                                    onClick={closeMenu}
                                                     className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                                 >
                                                     <Package className="w-4 h-4" />
-                                                    Equipment Requests
+                                                    Inventory Management
                                                 </Link>
-                                                <Link
-                                                    href="/admin/project-requests"
-                                                    className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
-                                                >
-                                                    <FolderOpen className="w-4 h-4" />
-                                                    Project Requests
-                                                </Link>
-                                                <Link
-                                                    href="/admin/inventory-history"
-                                                    className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
-                                                >
-                                                    <History className="w-4 h-4" />
-                                                    Inventory History
-                                                </Link>
+                                                {(isFaculty || isModerator) && (
+                                                    <Link
+                                                        href="/admin/project-requests"
+                                                        onClick={closeMenu}
+                                                        className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                                    >
+                                                        <FolderOpen className="w-4 h-4" />
+                                                        Project Requests
+                                                    </Link>
+                                                )}
                                                 {canViewLabHistory && (
                                                     <Link
                                                         href="/admin/lab-history"
+                                                        onClick={closeMenu}
                                                         className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                                     >
                                                         <FlaskConical className="w-4 h-4" />
