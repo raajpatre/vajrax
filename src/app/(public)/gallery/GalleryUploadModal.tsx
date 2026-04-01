@@ -151,7 +151,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 overflow-y-auto px-4 pb-4 pt-[calc(var(--nav-height)+1rem)] sm:px-6 sm:pb-6">
+                <div className="fixed inset-0 z-50 overflow-y-auto px-3 pb-3 pt-[calc(var(--nav-height)+0.5rem)] sm:px-6 sm:pb-6 sm:pt-[calc(var(--nav-height)+1rem)]">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -164,12 +164,12 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-[30px] shadow-2xl"
+                            className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-[24px] shadow-2xl sm:rounded-[30px]"
                         >
-                            <div className="flex items-center justify-between border-b border-white/8 px-5 py-4 sm:px-6">
+                            <div className="flex items-start justify-between gap-4 border-b border-white/8 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
                                 <div>
-                                    <h2 className="text-xl font-bold">Add to Gallery</h2>
-                                    <p className="mt-1 text-sm text-text-muted">
+                                    <h2 className="text-lg font-bold sm:text-xl">Add to Gallery</h2>
+                                    <p className="mt-1 max-w-[16rem] text-xs text-text-muted sm:max-w-none sm:text-sm">
                                         Upload a new moment with its image, tag, date, and location details.
                                     </p>
                                 </div>
@@ -182,8 +182,8 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                 </button>
                             </div>
 
-                            <div className="max-h-[calc(100dvh-var(--nav-height)-3.25rem)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
-                                <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+                            <div className="max-h-[calc(100dvh-var(--nav-height)-1.5rem)] overflow-y-auto px-4 py-4 sm:max-h-[calc(100dvh-var(--nav-height)-3.25rem)] sm:px-6 sm:py-6">
+                                <form onSubmit={handleSubmit} className="grid gap-4 sm:gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
                                 {error && (
                                     <div className="rounded-lg bg-red-400/10 border border-red-400/20 p-3 text-sm text-red-400 lg:col-span-2">
                                         {error}
@@ -196,7 +196,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                     </div>
                                 )}
 
-                                <div className="rounded-[24px] border border-cyan-200/10 bg-white/[0.03] p-5 lg:sticky lg:top-0">
+                                <div className="rounded-[22px] border border-cyan-200/10 bg-white/[0.03] p-4 sm:rounded-[24px] sm:p-5 lg:sticky lg:top-0">
                                     <div className="flex flex-col items-center text-center">
                                         <input
                                             type="file"
@@ -206,7 +206,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                             className="hidden"
                                         />
 
-                                        <div className="mb-4 grid w-full grid-cols-2 rounded-2xl border border-white/8 bg-black/10 p-1">
+                                        <div className="mb-3 grid w-full grid-cols-2 rounded-2xl border border-white/8 bg-black/10 p-1 sm:mb-4">
                                             <button
                                                 type="button"
                                                 onClick={() => setImageSource("upload")}
@@ -244,7 +244,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                                 className="group w-full"
                                             >
                                                 {imagePreview ? (
-                                                    <div className="relative mx-auto h-40 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)]">
+                                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
                                                         <img
                                                             src={imagePreview}
                                                             alt="Preview"
@@ -255,7 +255,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="mx-auto flex h-40 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 text-text-muted transition-all group-hover:border-primary/50 group-hover:bg-primary/5 group-hover:text-primary">
+                                                    <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 text-text-muted transition-all group-hover:border-primary/50 group-hover:bg-primary/5 group-hover:text-primary sm:h-40">
                                                         <ImageIcon className="mb-2 h-8 w-8" />
                                                         <span className="text-sm font-medium">Click to select an image</span>
                                                     </div>
@@ -279,7 +279,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                                 </div>
 
                                                 {imagePreview ? (
-                                                    <div className="relative mx-auto h-40 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)]">
+                                                    <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
                                                         <img
                                                             src={imagePreview}
                                                             alt="Preview"
@@ -291,7 +291,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                                         />
                                                     </div>
                                                 ) : (
-                                                    <div className="mx-auto flex h-40 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 px-4 text-text-muted">
+                                                    <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 px-4 text-text-muted sm:h-40">
                                                         <ImageIcon className="mb-2 h-8 w-8" />
                                                         <span className="text-sm font-medium">Paste a valid image URL to preview it</span>
                                                     </div>
@@ -299,23 +299,23 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                             </div>
                                         )}
 
-                                        <p className="mt-4 text-base font-semibold text-foreground">Gallery Image</p>
-                                        <p className="mt-1 text-xs leading-relaxed text-text-muted">
+                                        <p className="mt-3 text-sm font-semibold text-foreground sm:mt-4 sm:text-base">Gallery Image</p>
+                                        <p className="mt-1 text-[11px] leading-relaxed text-text-muted sm:text-xs">
                                             Upload a file or paste an image URL. Google Drive links work best when set to “Anyone with the link can view”.
                                         </p>
 
-                                        <div className="mt-5 w-full rounded-2xl border border-white/8 bg-black/10 px-4 py-3 text-left">
+                                        <div className="mt-4 w-full rounded-2xl border border-white/8 bg-black/10 px-3 py-2.5 text-left sm:mt-5 sm:px-4 sm:py-3">
                                             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                                                 Display
                                             </p>
-                                            <p className="mt-2 text-sm text-text-secondary">
+                                            <p className="mt-1.5 text-xs text-text-secondary sm:mt-2 sm:text-sm">
                                                 This image will appear in the gallery grid and expand inside the lightbox when selected.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
                                 {/* Title */}
                                 <div className="md:col-span-2">
                                     <label className="mb-1.5 block text-sm font-medium text-text-secondary">
@@ -406,7 +406,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                             <button
                                                 type="submit"
                                                 disabled={loading || !title.trim() || (!hasUploadImage && !hasEmbedUrl)}
-                                                className="btn-primary w-full md:w-auto md:min-w-[220px] !py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="btn-primary w-full md:w-auto md:min-w-[220px] !py-2.5 sm:!py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 {loading ? (
                                                     <Loader2 className="w-5 h-5 animate-spin" />

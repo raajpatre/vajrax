@@ -13,6 +13,7 @@ import {
     User,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { reviewProjectRequest } from "@/actions/project-requests";
 
 interface ProjectRequest {
     id: string;
@@ -61,43 +62,28 @@ export default function AdminProjectRequestsPage() {
         setLoading(false);
     }, [supabase]);
 
-    useEffect(() => { fetchRequests(); }, [fetchRequests]);
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            void fetchRequests();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [fetchRequests]);
 
     const handleAction = async (req: ProjectRequest, action: "approved" | "rejected") => {
         if (!user) return;
         setProcessingId(req.id);
+        const result = await reviewProjectRequest({
+            requestId: req.id,
+            action,
+        });
 
-        // Update request status
-        await supabase
-            .from("project_requests")
-            .update({ status: action, reviewed_by: user.id })
-            .eq("id", req.id);
-
-        // If approved, create the actual project and add requester as lead
-        if (action === "approved") {
-            const { data: project } = await supabase
-                .from("projects")
-                .insert({
-                    title: req.title,
-                    description: req.description || "",
-                    tech_stack: req.tech_stack || [],
-                    status: "ongoing",
-                    created_by: req.requester.id,
-                })
-                .select("id")
-                .single();
-
-            if (project) {
-                // Add requester as project lead
-                await supabase.from("project_members").insert({
-                    project_id: project.id,
-                    user_id: req.requester.id,
-                    role: "lead",
-                });
-            }
+        if (result.ok) {
+            setRequests((prev) => prev.filter((r) => r.id !== req.id));
+        } else {
+            console.error("Failed to review project request:", result.error);
         }
 
-        setRequests((prev) => prev.filter((r) => r.id !== req.id));
         setProcessingId(null);
     };
 

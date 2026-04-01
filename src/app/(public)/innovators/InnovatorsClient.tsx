@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
 import { Users, User as UserIcon, Mail, Github, Linkedin } from "lucide-react";
@@ -34,6 +35,7 @@ const MAPPED_ROLES: Record<string, { label: string; class: string }> = {
 
 export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) {
     const [filter, setFilter] = useState<FilterType>("all");
+    const router = useRouter();
 
     const filteredProfiles = profiles.filter((p) => {
         if (filter === "all") return true;
@@ -54,14 +56,14 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(0,242,255,0.1),transparent_30%),radial-gradient(circle_at_86%_16%,rgba(125,114,255,0.11),transparent_32%)]" />
 
-            <div className="relative z-10 mx-auto mb-12 max-w-7xl px-6">
-                <h1 className="section-title mb-4 text-3xl">Our Innovators</h1>
+            <div className="relative z-10 mx-auto mb-12 max-w-7xl px-4 sm:px-6">
+                <h1 className="section-title mb-4 text-2xl sm:text-3xl">Our Innovators</h1>
                 <p className="mb-8 max-w-2xl text-text-secondary">
                     Meet the brilliant minds behind VajraX. From dedicated faculty and leadership to our active builders shaping the future of robotics.
                 </p>
 
                 {/* Filters */}
-                <div className="glass mb-10 inline-flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2">
+                <div className="glass mb-10 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl px-3 py-2 sm:w-fit">
                     {filters.map((f) => (
                         <button
                             key={f.id}
@@ -109,7 +111,16 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.9 }}
                                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                            className="glass group flex flex-col items-center rounded-2xl p-6 text-center"
+                                            className="glass group flex cursor-pointer flex-col items-center rounded-2xl p-6 text-center"
+                                            onClick={() => router.push(`/profile/${profile.id}`)}
+                                            onKeyDown={(event) => {
+                                                if (event.key === "Enter" || event.key === " ") {
+                                                    event.preventDefault();
+                                                    router.push(`/profile/${profile.id}`);
+                                                }
+                                            }}
+                                            role="button"
+                                            tabIndex={0}
                                         >
                                             <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-primary/20 bg-primary/10 transition-all duration-300 group-hover:scale-105 group-hover:border-primary/40">
                                                 {profile.avatar_url ? (
@@ -152,6 +163,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                             {profile.contact_email && (
                                                 <a
                                                     href={`mailto:${profile.contact_email}`}
+                                                    onClick={(event) => event.stopPropagation()}
                                                     className="mt-3 flex items-center gap-1.5 text-[11px] text-text-muted transition-colors hover:text-primary-light"
                                                 >
                                                     <Mail className="h-3.5 w-3.5" />
@@ -166,6 +178,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                                             href={profile.github_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
+                                                            onClick={(event) => event.stopPropagation()}
                                                             className="text-text-muted transition-colors hover:text-white"
                                                             title="GitHub"
                                                         >
@@ -177,6 +190,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                                             href={profile.linkedin_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
+                                                            onClick={(event) => event.stopPropagation()}
                                                             className="text-text-muted transition-colors hover:text-[#0A66C2]"
                                                             title="LinkedIn"
                                                         >

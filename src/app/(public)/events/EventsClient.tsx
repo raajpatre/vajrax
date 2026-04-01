@@ -125,10 +125,10 @@ export default function EventsClient({ events }: { events: Event[] }) {
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(0,242,255,0.12),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(125,114,255,0.12),transparent_32%)]" />
 
-            <div className="relative z-10 mx-auto max-w-7xl px-6">
+            <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="mb-12 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
                     <div>
-                        <h1 className="section-title mb-3 text-3xl">Events</h1>
+                        <h1 className="section-title mb-3 text-2xl sm:text-3xl">Events</h1>
                         <p className="max-w-lg text-text-secondary">
                             Hackathons, workshops, and meetups that keep VajraX moving forward.
                         </p>
@@ -194,7 +194,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                         />
                                                     </div>
                                                 )}
-                                                <div className="p-6">
+                                                <div className="p-5 sm:p-6">
                                                     <div className="flex items-start gap-3 mb-4">
                                                         <div
                                                             className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${config.bg} ${config.border}`}
@@ -207,7 +207,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                             >
                                                                 {event.event_type}
                                                             </span>
-                                                            <h3 className="text-lg font-semibold leading-tight">
+                                                            <h3 className="text-base font-semibold leading-tight sm:text-lg">
                                                                 {event.title}
                                                             </h3>
                                                         </div>
@@ -215,7 +215,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                     <p className="text-sm text-text-secondary line-clamp-2 mb-4">
                                                         {event.description}
                                                     </p>
-                                                    <div className="flex flex-wrap gap-4 text-xs text-text-muted">
+                                                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-muted">
                                                         <div className="flex items-center gap-1.5">
                                                             <Calendar className="w-3.5 h-3.5" />
                                                             {formatDate(event.starts_at)}

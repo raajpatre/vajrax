@@ -58,12 +58,14 @@ export type Database = {
       }
       equipment_requests: {
         Row: {
+          approved_quantity: number | null
           approved_by: string | null
           created_at: string
           id: string
           item_id: string
           quantity: number
           reason: string
+          reviewed_at: string | null
           request_type: string
           requester_id: string
           status: Database["public"]["Enums"]["request_status"]
@@ -71,12 +73,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_quantity?: number | null
           approved_by?: string | null
           created_at?: string
           id?: string
           item_id: string
           quantity?: number
           reason?: string
+          reviewed_at?: string | null
           request_type?: string
           requester_id: string
           status?: Database["public"]["Enums"]["request_status"]
@@ -84,12 +88,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_quantity?: number | null
           approved_by?: string | null
           created_at?: string
           id?: string
           item_id?: string
           quantity?: number
           reason?: string
+          reviewed_at?: string | null
           request_type?: string
           requester_id?: string
           status?: Database["public"]["Enums"]["request_status"]
@@ -114,6 +120,67 @@ export type Database = {
           {
             foreignKeyName: "equipment_requests_requester_id_fkey"
             columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_request_return_units: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          lifecycle_status: "return_pending" | "returned"
+          request_id: string
+          return_condition: "perfect" | "moderate" | "poor" | "disposable" | null
+          returned_at: string | null
+          returned_by: string | null
+          unit_index: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          lifecycle_status?: "return_pending" | "returned"
+          request_id: string
+          return_condition?: "perfect" | "moderate" | "poor" | "disposable" | null
+          returned_at?: string | null
+          returned_by?: string | null
+          unit_index: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          lifecycle_status?: "return_pending" | "returned"
+          request_id?: string
+          return_condition?: "perfect" | "moderate" | "poor" | "disposable" | null
+          returned_at?: string | null
+          returned_by?: string | null
+          unit_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_request_return_units_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_request_return_units_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_request_return_units_returned_by_fkey"
+            columns: ["returned_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -718,7 +785,9 @@ export type Database = {
           content: string | null
           created_at: string | null
           id: string
+          image_urls: string[] | null
           project_id: string
+          source_urls: string[] | null
           title: string
           version_tag: string | null
         }
@@ -727,7 +796,9 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          image_urls?: string[] | null
           project_id: string
+          source_urls?: string[] | null
           title: string
           version_tag?: string | null
         }
@@ -736,7 +807,9 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          image_urls?: string[] | null
           project_id?: string
+          source_urls?: string[] | null
           title?: string
           version_tag?: string | null
         }

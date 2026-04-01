@@ -80,11 +80,11 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(77,168,255,0.12),transparent_30%),radial-gradient(circle_at_88%_16%,rgba(0,242,255,0.1),transparent_30%)]" />
 
-            <div className="relative z-10 mx-auto max-w-7xl px-6">
+            <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="mb-12">
                     <div className="mb-3 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <h1 className="section-title text-3xl">Gallery</h1>
+                            <h1 className="section-title text-2xl sm:text-3xl">Gallery</h1>
                         </div>
                         
                         {(isFaculty || isModerator) && (
@@ -145,7 +145,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
                         onClick={() => setSelected(null)}
                     >
                         <motion.div
@@ -153,7 +153,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             transition={{ type: "spring", damping: 25 }}
-                            className="glass relative w-full max-w-4xl overflow-hidden rounded-[24px]"
+                            className="glass relative w-full max-w-4xl overflow-hidden rounded-[22px] sm:rounded-[24px]"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
@@ -174,7 +174,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
-                            <div className="relative h-[70vh] w-full bg-black">
+                            <div className="relative h-[52vh] w-full bg-black sm:h-[70vh]">
                                 <Image
                                     src={selected.cover_image_url}
                                     alt={selected.title}
@@ -184,8 +184,8 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                                     className="object-contain"
                                 />
                             </div>
-                            <div className="p-6">
-                                <h2 className="text-xl font-bold mb-2">{selected.title}</h2>
+                            <div className="p-4 sm:p-6">
+                                <h2 className="mb-2 text-lg font-bold sm:text-xl">{selected.title}</h2>
                                 {selected.description && (
                                     <p className="text-text-secondary text-sm">
                                         {selected.description}

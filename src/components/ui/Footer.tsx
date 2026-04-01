@@ -32,11 +32,11 @@ export default function Footer() {
         <footer className="relative mt-auto overflow-hidden pt-8">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.03] via-white/[0.012] to-transparent" />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(93,240,221,0.08),transparent_36%),radial-gradient(circle_at_15%_0%,rgba(125,114,255,0.12),transparent_34%)]" />
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-16">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div className="relative z-10 mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
+                <div className="grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-12">
                     {/* Brand */}
-                    <div className="md:col-span-2">
-                        <Link href="/" className="flex items-center gap-2.5 mb-4">
+                    <div className="text-center md:col-span-2 md:text-left">
+                        <Link href="/" className="mb-4 inline-flex items-center gap-2.5">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 border border-white/20 flex items-center justify-center shadow-[0_0_20px_rgba(114,120,255,0.2)]">
                                 <Zap className="w-5 h-5 text-primary-light" />
                             </div>
@@ -45,11 +45,11 @@ export default function Footer() {
                                 <span className="text-foreground">X</span>
                             </span>
                         </Link>
-                        <p className="text-text-secondary text-sm leading-relaxed max-w-sm mb-6">
+                        <p className="mb-6 max-w-sm text-sm leading-relaxed text-text-secondary md:mx-0 mx-auto">
                             The ultimate power in robotics innovation. Building cutting-edge
                             autonomous systems, one circuit at a time.
                         </p>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center gap-3 md:justify-start">
                             {socialLinks.map((social) => (
                                 <a
                                     key={social.label}
@@ -65,7 +65,7 @@ export default function Footer() {
 
                     {/* Link columns */}
                     {footerLinks.map((col) => (
-                        <div key={col.title}>
+                        <div key={col.title} className="text-center md:text-left">
                             <h3 className="text-sm font-semibold uppercase tracking-wider text-text-muted mb-4">
                                 {col.title}
                             </h3>
@@ -87,7 +87,7 @@ export default function Footer() {
                 </div>
 
                 {/* Bottom bar */}
-                <div className="mt-16 pt-8 border-t border-cyan-200/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="mt-14 flex flex-col items-center justify-between gap-2 border-t border-cyan-200/10 pt-8 text-center sm:flex-row sm:gap-4 sm:text-left">
                     <p className="text-xs text-text-muted">
                         &copy; {new Date().getFullYear()} VajraX Robotics Club. All rights reserved.
                     </p>

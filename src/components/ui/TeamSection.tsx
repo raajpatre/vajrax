@@ -1,5 +1,7 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Github, Linkedin, Mail, User as UserIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Tables } from "@/types/database";
@@ -19,6 +21,8 @@ export function TeamSection({
   profiles: Profile[];
   roleMap: Record<string, RoleAppearance>;
 }) {
+  const router = useRouter();
+
   return (
     <div className="hidden gap-6 pb-24 lg:grid lg:grid-cols-3 xl:grid-cols-4">
       {profiles.map((profile, index) => {
@@ -34,6 +38,15 @@ export function TeamSection({
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ type: "spring", stiffness: 260, damping: 24, delay: index * 0.02 }}
             className="h-full"
+            onClick={() => router.push(`/profile/${profile.id}`)}
+            onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                router.push(`/profile/${profile.id}`);
+              }
+            }}
+            role="button"
+            tabIndex={0}
           >
             <GlowCard
               glowColor={glowColor}
@@ -69,6 +82,7 @@ export function TeamSection({
                   {profile.contact_email ? (
                     <a
                       href={`mailto:${profile.contact_email}`}
+                      onClick={(event) => event.stopPropagation()}
                       className="inline-flex max-w-full items-center gap-2 text-xs text-slate-400 transition-colors hover:text-cyan-100"
                     >
                       <Mail className="h-3.5 w-3.5 flex-shrink-0" />
@@ -88,6 +102,7 @@ export function TeamSection({
                       href={profile.github_url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(event) => event.stopPropagation()}
                       className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
                       title="GitHub"
                     >
@@ -100,6 +115,7 @@ export function TeamSection({
                       href={profile.linkedin_url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(event) => event.stopPropagation()}
                       className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:border-[#0A66C2]/35 hover:bg-[#0A66C2]/10 hover:text-[#7ab8ff]"
                       title="LinkedIn"
                     >

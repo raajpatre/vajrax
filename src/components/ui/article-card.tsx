@@ -59,8 +59,8 @@ const ArticleCard = React.forwardRef<HTMLDivElement, ArticleCardProps>(
           className
         )}
       >
-        <div className="border-b border-white/6 p-6">
-          <header className="mb-4 flex items-center justify-between gap-3">
+        <div className="border-b border-white/6 p-5 sm:p-6">
+          <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <span className="rounded-full border border-cyan-300/15 bg-cyan-300/8 px-3 py-1 text-xs font-medium text-cyan-100">
               {tag}
             </span>
@@ -75,7 +75,7 @@ const ArticleCard = React.forwardRef<HTMLDivElement, ArticleCardProps>(
           </header>
 
           <main className="space-y-2">
-            <h3 className="text-2xl font-bold tracking-tight text-slate-50">{title}</h3>
+            <h3 className="text-xl font-bold tracking-tight text-slate-50 sm:text-2xl">{title}</h3>
             <p className="text-sm leading-relaxed text-slate-400">{description}</p>
           </main>
         </div>

@@ -6,7 +6,6 @@ import {
     ShieldCheck,
     Users,
     Package,
-    ClipboardList,
     History,
     Loader2,
     ChevronRight,
@@ -26,18 +25,11 @@ export default function AdminDashboard() {
             color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
         },
         {
-            href: "/admin/inventory",
+            href: "/admin/requests",
             label: "Inventory Management",
-            desc: "Add, edit, or remove equipment",
+            desc: "Review inventory requests and history",
             icon: <Package className="w-5 h-5" />,
             color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-        },
-        {
-            href: "/admin/requests",
-            label: "Equipment Requests",
-            desc: "Approve or reject pending requests",
-            icon: <ClipboardList className="w-5 h-5" />,
-            color: "text-amber-400 bg-amber-400/10 border-amber-400/20",
         },
         ...(canViewLabHistory
             ? [
