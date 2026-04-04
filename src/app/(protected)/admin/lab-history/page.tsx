@@ -70,7 +70,7 @@ export default async function LabHistoryPage() {
                     {error.message}
                 </div>
             ) : entries.length === 0 ? (
-                <div className="glass p-16 text-center">
+                <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                     <FlaskConical className="w-12 h-12 text-text-muted mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No bookings yet</h3>
                     <p className="text-text-muted text-sm">

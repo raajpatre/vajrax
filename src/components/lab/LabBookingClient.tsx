@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlaskConical, Loader2, CalendarDays, Clock, XCircle } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import { LAB_RESOURCES } from "@/lib/lab-resources";
 import type { Tables } from "@/types/database";
 import {
@@ -171,11 +172,7 @@ export default function LabBookingClient() {
     };
 
     if (userLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[50vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!user) {
@@ -195,12 +192,12 @@ export default function LabBookingClient() {
             </div>
 
             {error && (
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                     {error}
                 </div>
             )}
 
-            <section className="glass p-5 md:p-6 space-y-5">
+            <section className="glass p-4 md:p-5 md:p-4 md:p-6 space-y-5">
                 <div className="flex flex-col md:flex-row md:items-end gap-4">
                     <div className="flex-1">
                         <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
@@ -209,7 +206,7 @@ export default function LabBookingClient() {
                         <select
                             value={resourceName}
                             onChange={(e) => setResourceName(e.target.value)}
-                            className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20"
+                            className="w-full bg-surface border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20"
                         >
                             {LAB_RESOURCES.map((r) => (
                                 <option key={r} value={r}>
@@ -241,7 +238,7 @@ export default function LabBookingClient() {
                                     type="date"
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-cyan-400/50"
+                                    className="w-full bg-surface border border-border rounded-lg pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-cyan-400/50"
                                 />
                             </div>
                             <button
@@ -264,7 +261,7 @@ export default function LabBookingClient() {
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
                         Timeline ({LAB_OPEN_HOUR}:00–{LAB_CLOSE_HOUR}:00)
                     </p>
-                    <div className="relative h-14 rounded-xl bg-[#050B14]/80 border border-border/70 overflow-hidden">
+                    <div className="relative h-14 rounded-lg bg-[#050B14]/80 border border-border/70 overflow-hidden">
                         <div className="absolute inset-0 flex">
                             {Array.from({ length: LAB_CLOSE_HOUR - LAB_OPEN_HOUR }).map((_, i) => (
                                 <div
@@ -315,7 +312,7 @@ export default function LabBookingClient() {
                                 type="datetime-local"
                                 value={startLocal}
                                 onChange={(e) => setStartLocal(e.target.value)}
-                                className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-400/50"
+                                className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-400/50"
                                 required
                             />
                         </div>
@@ -325,7 +322,7 @@ export default function LabBookingClient() {
                                 type="datetime-local"
                                 value={endLocal}
                                 onChange={(e) => setEndLocal(e.target.value)}
-                                className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-400/50"
+                                className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-400/50"
                                 required
                             />
                         </div>
@@ -342,7 +339,7 @@ export default function LabBookingClient() {
                 </div>
             </section>
 
-            <section className="glass p-5 md:p-6">
+            <section className="glass p-4 md:p-5 md:p-4 md:p-6">
                 <h2 className="text-sm font-semibold mb-4 text-text-secondary uppercase tracking-wide">
                     Your upcoming bookings
                 </h2>
@@ -357,7 +354,7 @@ export default function LabBookingClient() {
                         {myBookings.map((b) => (
                             <li
                                 key={b.id}
-                                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-border/60 bg-surface/40 px-4 py-3"
+                                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-border/60 bg-surface/40 px-4 py-3"
                             >
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-foreground">{b.resource_name}</p>

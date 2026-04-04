@@ -27,7 +27,7 @@ export function TeamSection({
     <div className="hidden gap-6 pb-24 lg:grid lg:grid-cols-3 xl:grid-cols-4">
       {profiles.map((profile, index) => {
         const role = roleMap[profile.role] ?? roleMap.member;
-        const glowColor = profile.role === "faculty" || profile.role === "vice_president" ? "purple" : "blue";
+        const glowColor = "cyan";
 
         return (
           <motion.div
@@ -51,12 +51,12 @@ export function TeamSection({
             <GlowCard
               glowColor={glowColor}
               customSize
-              className="h-full min-h-[380px] w-full overflow-hidden rounded-[28px] bg-[#0a0f1c]/95 p-[1px] shadow-[0_24px_70px_rgba(0,0,0,0.45)]"
+              className="h-full min-h-[380px] w-full overflow-hidden rounded-lg bg-[#0a0f1c]/95 p-[1px] shadow-[0_24px_70px_rgba(0,0,0,0.45)]"
             >
-              <div className="relative flex h-full flex-col items-center rounded-[26px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(40,72,132,0.24),rgba(10,15,28,0.98)_42%,rgba(7,10,18,1))] px-6 py-7 text-center">
-                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent" />
+              <div className="relative flex h-full flex-col items-center rounded-lg bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.08),rgba(10,15,28,0.98)_42%,rgba(7,10,18,1))] px-6 py-7 text-center">
+                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent" />
 
-                <div className="mb-5 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-cyan-200/20 bg-primary/10 shadow-[0_0_36px_rgba(76,201,240,0.12)]">
+                <div className="mb-5 flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-full border-[3px] border-slate-500/40 shadow-xl">
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}

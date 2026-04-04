@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import {
     Package,
     ShieldCheck,
@@ -121,7 +122,7 @@ function ItemModal({
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto"
+                className="glass-strong p-4 md:p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto"
             >
                 {success ? (
                     <div className="text-center py-8">
@@ -335,11 +336,7 @@ export default function InventoryManagement() {
     };
 
     if (authLoading || loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!canManageInventory) {
@@ -371,7 +368,7 @@ export default function InventoryManagement() {
 
             {/* Table */}
             {items.length === 0 ? (
-                <div className="glass p-16 text-center">
+                <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                     <Package className="w-12 h-12 text-text-muted mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No items</h3>
                     <p className="text-text-muted text-sm">

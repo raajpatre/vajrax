@@ -20,7 +20,7 @@ function parseTag(raw: string): TagObject {
         const parsed = JSON.parse(raw);
         if (parsed.name && parsed.color) return parsed;
     } catch { }
-    return { name: raw, color: "#6366f1" };
+    return { name: raw, color: "#00e5ff" };
 }
 
 const MAPPED_ROLES: Record<string, { label: string; class: string }> = {
@@ -54,7 +54,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
 
     return (
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(0,242,255,0.1),transparent_30%),radial-gradient(circle_at_86%_16%,rgba(125,114,255,0.11),transparent_32%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(0,229,255,0.10),transparent_30%),radial-gradient(circle_at_86%_16%,rgba(0,218,243,0.08),transparent_32%)]" />
 
             <div className="relative z-10 mx-auto mb-12 max-w-7xl px-4 sm:px-6">
                 <h1 className="section-title mb-4 text-2xl sm:text-3xl">Our Innovators</h1>
@@ -63,12 +63,12 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                 </p>
 
                 {/* Filters */}
-                <div className="glass mb-10 inline-flex w-full flex-wrap items-center gap-2 rounded-2xl px-3 py-2 sm:w-fit">
+                <div className="glass mb-10 inline-flex w-full flex-wrap items-center gap-2 rounded-lg px-3 py-2 sm:w-fit">
                     {filters.map((f) => (
                         <button
                             key={f.id}
                             onClick={() => setFilter(f.id)}
-                            className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${
+                            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-all ${
                                 filter === f.id
                                     ? "border-cyan-300/35 bg-cyan-300/14 text-cyan-100 shadow-[0_0_20px_rgba(0,242,255,0.15)]"
                                     : "border-transparent text-text-secondary hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground"
@@ -84,7 +84,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="glass col-span-full rounded-2xl py-20 text-center"
+                            className="glass col-span-full rounded-lg py-20 text-center"
                         >
                             <Users className="w-12 h-12 text-text-muted mx-auto mb-4" />
                             <h3 className="text-lg font-semibold mb-2">No innovators found</h3>
@@ -111,7 +111,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.9 }}
                                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                            className="glass group flex cursor-pointer flex-col items-center rounded-2xl p-6 text-center"
+                                            className="glass group flex cursor-pointer flex-col items-center rounded-lg p-4 md:p-6 text-center"
                                             onClick={() => router.push(`/profile/${profile.id}`)}
                                             onKeyDown={(event) => {
                                                 if (event.key === "Enter" || event.key === " ") {
@@ -122,7 +122,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                                             role="button"
                                             tabIndex={0}
                                         >
-                                            <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-primary/20 bg-primary/10 transition-all duration-300 group-hover:scale-105 group-hover:border-primary/40">
+                                            <div className="mb-4 flex shrink-0 h-40 w-40 items-center justify-center overflow-hidden rounded-full border-[3px] border-slate-500/40 shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-slate-400/60">
                                                 {profile.avatar_url ? (
                                                     <img
                                                         src={profile.avatar_url}

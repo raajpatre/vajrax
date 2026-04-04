@@ -34,7 +34,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
 
     return (
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(125,114,255,0.12),transparent_30%),radial-gradient(circle_at_88%_14%,rgba(0,242,255,0.12),transparent_28%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(0,229,255,0.10),transparent_30%),radial-gradient(circle_at_88%_14%,rgba(0,218,243,0.08),transparent_28%)]" />
 
             <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="mb-11 flex flex-col gap-6">
@@ -56,7 +56,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
                         )}
                     </div>
 
-                    <div className="glass inline-flex w-full flex-wrap items-center gap-2 rounded-2xl px-3 py-2 sm:w-fit">
+                    <div className="glass inline-flex w-full flex-wrap items-center gap-2 rounded-lg px-3 py-2 sm:w-fit">
                         <Filter className="h-4 w-4 text-text-muted" />
                         {["all", "in_progress", "completed", "archived"].map((s) => {
                             const isActive = filter === s;
@@ -78,7 +78,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
                 </div>
 
                 {filtered.length === 0 ? (
-                    <div className="glass p-16 text-center">
+                    <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                         <Cpu className="mx-auto mb-4 h-12 w-12 text-text-muted" />
                         <h3 className="mb-2 text-lg font-semibold">No projects yet</h3>
                         <p className="text-text-muted text-sm">
@@ -94,7 +94,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
                                     initial="hidden"
                                     animate="visible"
                                     variants={fadeUp}
-                                    className="glass energy-card group relative overflow-hidden rounded-[22px] border-white/14 transition-all duration-500 hover:border-cyan-300/32"
+                                    className="glass energy-card group relative overflow-hidden rounded-lg border-[var(--ghost-border)] transition-all duration-500 hover:border-cyan-300/32"
                                 >
                                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                                         <div className="absolute -left-10 top-0 h-24 w-24 rounded-full bg-cyan-300/20 blur-2xl" />

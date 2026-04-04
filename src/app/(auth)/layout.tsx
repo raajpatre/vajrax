@@ -12,7 +12,7 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="relative min-h-screen flex flex-col items-center justify-center overflow-x-hidden bg-[#050B14] px-6 py-12">
+        <div className="relative min-h-screen flex flex-col items-center justify-center overflow-x-hidden bg-[#0b0e14] px-6 py-12">
             <PublicAmbientBackground />
             <div className="absolute inset-0 bg-grid opacity-60" />
             <div className="absolute inset-0 bg-radial opacity-55" />
@@ -24,7 +24,7 @@ export default function AuthLayout({
                 href="/"
                 className="flex items-center gap-2.5 mb-8 relative z-10 group"
             >
-                <div className="hidden h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/20 transition-all group-hover:bg-primary/30 sm:flex">
+                <div className="hidden h-10 w-10 items-center justify-center rounded-[4px] border border-[rgba(0,229,255,0.24)] bg-[rgba(0,229,255,0.1)] transition-all group-hover:bg-[rgba(0,229,255,0.18)] sm:flex">
                     <Zap className="w-5 h-5 text-primary-light" />
                 </div>
                 <span className="text-2xl font-bold tracking-tight">

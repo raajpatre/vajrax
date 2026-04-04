@@ -39,23 +39,27 @@ export function useUser() {
         const fetchProfile = async (userId: string) => {
             try {
                 const result = await withTimeout(
-                    Promise.resolve(
+                    (async () =>
                         supabase
                             .from("profiles")
                             .select("*")
                             .eq("id", userId)
-                            .single()
-                    ),
-                    4000
+                            .single())(),
+                    10000
                 );
                 const { data, error } = result;
                 
                 if (error) {
+                    if (error.message?.includes("Lock broken")) {
+                        // Harmless error from concurrent Supabase auth storage lock acquisitions
+                        return null;
+                    }
                     console.error("Error fetching profile:", error.message);
                     return null;
                 }
                 return data;
-            } catch (err) {
+            } catch (err: any) {
+                if (err?.message?.includes("Lock broken")) return null;
                 console.error("fetchProfile exception:", err);
                 return null;
             }
@@ -90,6 +94,7 @@ export function useUser() {
                     supabase.auth.getUser().then(({ data, error }) => {
                         if (!mounted.current) return;
                         if (error) {
+                            if (error.message?.includes("Lock broken")) return;
                             // Network error or token expired — don't sign out,
                             // the onAuthStateChange listener will handle real sign-outs
                             console.warn("Background getUser check failed:", error.message);
@@ -105,8 +110,10 @@ export function useUser() {
                 } else {
                     setState({ user: null, profile: null, loading: false });
                 }
-            } catch (err) {
-                console.error("getInitialSession exception:", err);
+            } catch (err: any) {
+                if (!err?.message?.includes("Lock broken")) {
+                    console.error("getInitialSession exception:", err);
+                }
                 if (mounted.current) setState({ user: null, profile: null, loading: false });
             }
         };
@@ -134,8 +141,10 @@ export function useUser() {
                 } else {
                     setState({ user: null, profile: null, loading: false });
                 }
-            } catch (err) {
-                console.error("onAuthStateChange error:", err);
+            } catch (err: any) {
+                if (!err?.message?.includes("Lock broken")) {
+                    console.error("onAuthStateChange error:", err);
+                }
                 if (mounted.current) setState({ user: session?.user || null, profile: null, loading: false });
             }
         });

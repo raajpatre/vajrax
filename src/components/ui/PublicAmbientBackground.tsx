@@ -39,20 +39,20 @@ export default function PublicAmbientBackground() {
     if (reduceMotion || !useDynamicBackground) {
         return (
             <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-                <div className="absolute inset-0 bg-[#050B14]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,242,255,0.10),_transparent_35%),radial-gradient(circle_at_80%_18%,_rgba(212,175,55,0.08),_transparent_24%)]" />
+                <div className="absolute inset-0 bg-[#0b0e14]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),_transparent_35%),radial-gradient(circle_at_80%_18%,_rgba(0,218,243,0.06),_transparent_24%)]" />
                 <div className="absolute inset-0 bg-grid opacity-25" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#050B14]/78" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#0b0e14]/78" />
             </div>
         );
     }
 
     return (
         <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-            <div className="absolute inset-0 bg-[#050B14]" />
+            <div className="absolute inset-0 bg-[#0b0e14]" />
             <div className="absolute inset-0 opacity-45 md:opacity-55">
                 <FloatingLines
-                    linesGradient={["#00f2ff", "#e0e6ed", "#ffc400"]}
+                    linesGradient={["#00e5ff", "#c3f5ff", "#00daf3"]}
                     lineCount={isCompact || isLowPowerDevice ? [3, 4, 3] : [4, 5, 4]}
                     lineDistance={isCompact || isLowPowerDevice ? [4.4, 5.2, 4.6] : [5.2, 6.0, 5.4]}
                     topWavePosition={{ x: 10, y: 0.55, rotate: -0.42 }}
@@ -69,9 +69,9 @@ export default function PublicAmbientBackground() {
                 />
             </div>
             <div className="animate-ambient-drift absolute inset-0 bg-grid opacity-[0.2]" />
-            <div className="animate-ambient-drift absolute inset-0 bg-[radial-gradient(circle_at_20%_28%,rgba(123,97,255,0.18),transparent_16%),radial-gradient(circle_at_74%_35%,rgba(76,201,240,0.14),transparent_18%),radial-gradient(circle_at_50%_80%,rgba(31,232,216,0.1),transparent_20%)] [animation-delay:2.8s]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,242,255,0.08),_transparent_32%),radial-gradient(circle_at_80%_20%,_rgba(212,175,55,0.08),_transparent_26%)]" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#050B14]/74" />
+            <div className="animate-ambient-drift absolute inset-0 bg-[radial-gradient(circle_at_20%_28%,rgba(0,229,255,0.12),transparent_16%),radial-gradient(circle_at_74%_35%,rgba(0,218,243,0.1),transparent_18%),radial-gradient(circle_at_50%_80%,rgba(0,229,255,0.06),transparent_20%)] [animation-delay:2.8s]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.06),_transparent_32%),radial-gradient(circle_at_80%_20%,_rgba(0,218,243,0.05),_transparent_26%)]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#0b0e14]/74" />
         </div>
     );
 }

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Github, Linkedin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import { Tables } from "@/types/database";
 import {
     User,
@@ -39,7 +40,7 @@ type ProjectMembership = {
 const ProfileLanyard = dynamic(() => import("@/components/profile/ProfileLanyard"), {
     ssr: false,
     loading: () => (
-        <div className="flex min-h-[420px] w-full items-center justify-center rounded-[30px] border border-cyan-200/16 bg-[radial-gradient(circle_at_top,rgba(123,97,255,0.16),rgba(8,20,34,0.58)_42%,rgba(5,14,28,0.84))]">
+        <div className="flex min-h-[420px] w-full items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.16),rgba(8,20,34,0.58)_42%,rgba(5,14,28,0.84))]">
             <div className="flex flex-col items-center gap-3 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-cyan-200" />
                 <p className="text-sm font-medium text-cyan-100/85">Loading lanyard...</p>
@@ -82,7 +83,7 @@ function StatCard({
             {!empty && (
                 <>
                     <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/18 bg-cyan-300/8 text-cyan-100 shadow-[0_0_24px_rgba(76,201,240,0.12)]">
+                        <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-cyan-300/8 text-cyan-100 shadow-[0_0_24px_rgba(76,201,240,0.12)]">
                             {icon}
                         </div>
                         {href && <ArrowUpRight className="h-4 w-4 text-text-muted" />}
@@ -237,7 +238,7 @@ function EditProfileModal({
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-[30px]"
+                    className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-lg"
                 >
                     <div className="flex items-center justify-between border-b border-white/8 px-5 py-4 sm:px-6">
                         <div>
@@ -261,10 +262,10 @@ function EditProfileModal({
                         </div>
                     )}
 
-                    <div className="rounded-[24px] border border-cyan-200/10 bg-white/[0.03] p-5 lg:sticky lg:top-0">
+                    <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-5 lg:sticky lg:top-0">
                         <div className="flex flex-col items-center text-center">
                             <label className="group relative cursor-pointer">
-                                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-primary/30 bg-primary/20 shadow-[0_0_40px_rgba(123,97,255,0.15)]">
+                                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-primary/30 bg-primary/20 shadow-[0_0_40px_rgba(0,229,255,0.15)]">
                                     {avatarPreview ? (
                                         <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
                                     ) : (
@@ -280,7 +281,7 @@ function EditProfileModal({
                             <p className="mt-1 text-xs leading-relaxed text-text-muted">
                                 Upload a square image for the cleanest avatar crop. Max size 2MB.
                             </p>
-                            <div className="mt-5 w-full rounded-2xl border border-white/8 bg-black/10 px-4 py-3 text-left">
+                            <div className="mt-5 w-full rounded-lg border border-white/8 bg-black/10 px-4 py-3 text-left">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                                     Visibility
                                 </p>
@@ -299,7 +300,7 @@ function EditProfileModal({
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
                                 required
-                                className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                             />
                         </div>
 
@@ -311,7 +312,7 @@ function EditProfileModal({
                                 rows={4}
                                 maxLength={200}
                                 placeholder="Tell us about yourself..."
-                                className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                className="w-full resize-none rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                             />
                             <p className="mt-1 text-right text-[10px] text-text-muted">{bio.length}/200</p>
                         </div>
@@ -325,7 +326,7 @@ function EditProfileModal({
                                 value={contactEmail}
                                 onChange={(e) => setContactEmail(e.target.value)}
                                 placeholder="yourname@example.com"
-                                className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                             />
                         </div>
 
@@ -336,7 +337,7 @@ function EditProfileModal({
                                     value={currentSemester}
                                     onChange={(e) => setCurrentSemester(e.target.value)}
                                     disabled={semesterUnavailable}
-                                    className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                                 >
                                     <option value="">Select semester</option>
                                     {semesterOptions.map((semester) => (
@@ -359,7 +360,7 @@ function EditProfileModal({
                                     value={githubUrl}
                                     onChange={(e) => setGithubUrl(e.target.value)}
                                     placeholder="https://github.com/username"
-                                    className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    className="w-full rounded-lg border border-border bg-surface py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                                 />
                             </div>
                         </div>
@@ -373,7 +374,7 @@ function EditProfileModal({
                                     value={linkedinUrl}
                                     onChange={(e) => setLinkedinUrl(e.target.value)}
                                     placeholder="https://linkedin.com/in/username"
-                                    className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    className="w-full rounded-lg border border-border bg-surface py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                                 />
                             </div>
                         </div>
@@ -445,11 +446,7 @@ export default function ProfilePage() {
     }, [fetchProfile]);
 
     if (authLoading || loading) {
-        return (
-            <div className="flex min-h-[60vh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!profile) {
@@ -482,7 +479,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="glass md:col-span-2 xl:col-span-3 p-6">
+                    <div className="glass md:col-span-2 xl:col-span-3 p-4 md:p-6">
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                             <div>
                                 <div className="flex flex-wrap items-center gap-3">
@@ -576,9 +573,9 @@ export default function ProfilePage() {
                         hint="Projects the member is part of that have reached completed status."
                     />
 
-                    <div className="glass p-5 md:col-span-2 xl:col-span-3">
+                    <div className="glass p-4 md:p-5 md:col-span-2 xl:col-span-3">
                         <div className="mb-4 flex items-center gap-3">
-                            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/18 bg-cyan-300/8 text-cyan-100 shadow-[0_0_24px_rgba(76,201,240,0.12)]">
+                            <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-cyan-300/8 text-cyan-100 shadow-[0_0_24px_rgba(76,201,240,0.12)]">
                                 <User className="h-5 w-5" />
                             </div>
                             <div>
@@ -587,17 +584,17 @@ export default function ProfilePage() {
                             </div>
                         </div>
                         <div className="grid gap-3 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                            <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-4">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Contact Email</p>
                                 <p className="mt-2 break-all text-sm leading-relaxed text-foreground/90">
                                     {profile.contact_email || "Not added"}
                                 </p>
                             </div>
-                            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                            <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-4">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Username</p>
                                 <p className="mt-2 text-sm text-foreground">{profile.username || "Not set"}</p>
                             </div>
-                            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                            <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-4">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Profile Updated</p>
                                 <p className="mt-2 text-sm text-foreground">
                                     {new Date(profile.updated_at).toLocaleDateString("en-US", {

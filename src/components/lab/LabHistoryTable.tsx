@@ -69,7 +69,7 @@ export default function LabHistoryTable({ entries, resources }: LabHistoryTableP
     );
 
     return (
-        <section className="glass p-5 md:p-6 space-y-5">
+        <section className="glass p-4 md:p-5 md:p-4 md:p-6 space-y-5">
             <div className="flex flex-col md:flex-row md:items-end gap-4">
                 <div className="flex-1">
                     <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">

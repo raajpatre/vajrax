@@ -22,7 +22,7 @@ const footerLinks = [
 ];
 
 const socialLinks = [
-    { icon: Github, href: "#", label: "GitHub" },
+    { icon: Github, href: "https://github.com/VajraX-NST-BLR", label: "GitHub" },
     { icon: Twitter, href: "#", label: "Twitter" },
     { icon: Mail, href: "mailto:vajrax@college.edu", label: "Email" },
 ];
@@ -31,13 +31,13 @@ export default function Footer() {
     return (
         <footer className="relative mt-auto overflow-hidden pt-8">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.03] via-white/[0.012] to-transparent" />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(93,240,221,0.08),transparent_36%),radial-gradient(circle_at_15%_0%,rgba(125,114,255,0.12),transparent_34%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(0,229,255,0.07),transparent_36%),radial-gradient(circle_at_15%_0%,rgba(0,218,243,0.05),transparent_34%)]" />
             <div className="relative z-10 mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
                 <div className="grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-12">
                     {/* Brand */}
                     <div className="text-center md:col-span-2 md:text-left">
                         <Link href="/" className="mb-4 inline-flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 border border-white/20 flex items-center justify-center shadow-[0_0_20px_rgba(114,120,255,0.2)]">
+                            <div className="w-10 h-10 rounded-[4px] bg-[rgba(0,229,255,0.12)] border border-[rgba(0,229,255,0.24)] flex items-center justify-center shadow-[0_0_20px_rgba(0,229,255,0.14)]">
                                 <Zap className="w-5 h-5 text-primary-light" />
                             </div>
                             <span className="text-xl font-black tracking-tight">
@@ -54,8 +54,10 @@ export default function Footer() {
                                 <a
                                     key={social.label}
                                     href={social.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     aria-label={social.label}
-                                    className="w-10 h-10 rounded-xl border border-border/90 bg-[#0b1b30]/45 backdrop-blur-sm flex items-center justify-center text-text-muted hover:text-primary-light hover:border-cyan-300/40 hover:bg-cyan-400/10 transition-all duration-200"
+                                    className="w-10 h-10 rounded-[4px] border border-[rgba(59,73,76,0.22)] bg-[rgba(25,28,34,0.52)] backdrop-blur-sm flex items-center justify-center text-text-muted hover:text-primary-light hover:border-[rgba(0,229,255,0.28)] hover:bg-[rgba(0,229,255,0.08)] transition-all duration-200"
                                 >
                                     <social.icon className="w-4 h-4" />
                                 </a>
@@ -87,7 +89,7 @@ export default function Footer() {
                 </div>
 
                 {/* Bottom bar */}
-                <div className="mt-14 flex flex-col items-center justify-between gap-2 border-t border-cyan-200/10 pt-8 text-center sm:flex-row sm:gap-4 sm:text-left">
+                <div className="mt-14 flex flex-col items-center justify-between gap-2 border-t border-[rgba(59,73,76,0.18)] pt-8 text-center sm:flex-row sm:gap-4 sm:text-left">
                     <p className="text-xs text-text-muted">
                         &copy; {new Date().getFullYear()} VajraX Robotics Club. All rights reserved.
                     </p>
