@@ -26,7 +26,7 @@ const roleLabels: Record<string, { label: string; class: string }> = {
     faculty: { label: "Faculty", class: "badge-faculty" },
     website_manager: { label: "Website Manager", class: "badge-website-manager" },
     printing_head: { label: "3D Printing Head", class: "badge-printing-head" },
-    inventory_manager: { label: "Inventory Manager", class: "badge-member" },
+    inventory_manager: { label: "Inventory Manager", class: "badge-inventory-manager" },
 };
 
 type NotificationRow = Tables<"notifications">;
@@ -185,8 +185,8 @@ export default function Navbar() {
             >
                 <div
                     className={`pointer-events-auto mx-auto flex h-full w-full items-center px-4 sm:px-6 transition-[max-width,margin-top,background-color,border-color,box-shadow,border-radius] duration-300 ease-out ${isScrolled
-                        ? "mt-2 max-w-5xl rounded-[20px] glass-strong border-cyan-200/20 shadow-[0_24px_62px_rgba(0,0,0,0.5)] sm:rounded-[22px]"
-                        : "mt-0 max-w-none border-b border-cyan-200/15 bg-[linear-gradient(180deg,rgba(8,22,40,0.74),rgba(6,16,30,0.58))] backdrop-blur-2xl"
+                        ? "mt-2 max-w-5xl rounded-[4px] glass-strong border-[rgba(59,73,76,0.28)] shadow-[0_24px_62px_rgba(0,0,0,0.5)]"
+                        : "mt-0 max-w-none border-b border-[rgba(59,73,76,0.18)] bg-[linear-gradient(180deg,rgba(16,19,26,0.82),rgba(11,14,20,0.68))] backdrop-blur-2xl"
                         }`}
                     style={{
                         transform: "translateZ(0)",
@@ -194,11 +194,11 @@ export default function Navbar() {
                         willChange: "max-width, margin-top, border-radius",
                     }}
                 >
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,rgba(123,97,255,0),rgba(123,97,255,0.72),rgba(76,201,240,0.72),rgba(31,232,216,0.35),rgba(31,232,216,0))] animate-[aurora-shift_7s_linear_infinite]" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,rgba(0,229,255,0),rgba(0,229,255,0.5),rgba(0,218,243,0.3),rgba(0,229,255,0))] animate-[aurora-shift_7s_linear_infinite]" />
                     <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between">
                     {/* Logo */}
                     <Link href="/" className="group flex items-center gap-2 sm:gap-2.5" onClick={closeMenu}>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/24 bg-gradient-to-br from-primary/35 via-secondary/25 to-accent/20 transition-all duration-300 group-hover:shadow-[0_0_28px_rgba(76,201,240,0.32)] sm:h-9 sm:w-9">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-[4px] border border-[rgba(0,229,255,0.3)] bg-[rgba(0,229,255,0.12)] transition-all duration-300 group-hover:shadow-[0_0_28px_rgba(0,229,255,0.24)] sm:h-9 sm:w-9">
                             <Zap className="h-4 w-4 text-primary-light sm:h-5 sm:w-5" />
                         </div>
                         <span className="text-lg font-black tracking-tight sm:text-xl">
@@ -217,7 +217,7 @@ export default function Navbar() {
                                     href={link.href}
                                     onClick={closeMenu}
                                     className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-                                            ? "text-white bg-[linear-gradient(130deg,rgba(123,97,255,0.24),rgba(76,201,240,0.2))] border border-cyan-200/34 shadow-[0_0_0_1px_rgba(123,97,255,0.24),0_0_26px_rgba(76,201,240,0.2)]"
+                                            ? "text-[#c3f5ff] bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.24)] shadow-[0_0_0_1px_rgba(0,229,255,0.12),0_0_20px_rgba(0,229,255,0.1)]"
                                             : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                         }`}
                                 >
@@ -225,7 +225,7 @@ export default function Navbar() {
                                     {isActive && (
                                         <motion.div
                                             layoutId="navbar-indicator"
-                                            className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
+                                            className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-[#00e5ff]"
                                             transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                         />
                                     )}
@@ -238,7 +238,7 @@ export default function Navbar() {
                                 href="/inventory"
                                 onClick={closeMenu}
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${pathname.startsWith("/inventory")
-                                        ? "text-white bg-[linear-gradient(130deg,rgba(123,97,255,0.24),rgba(76,201,240,0.2))] border border-cyan-200/34 shadow-[0_0_0_1px_rgba(123,97,255,0.24),0_0_26px_rgba(76,201,240,0.2)]"
+                                        ? "text-[#c3f5ff] bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.24)] shadow-[0_0_0_1px_rgba(0,229,255,0.12),0_0_20px_rgba(0,229,255,0.1)]"
                                         : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                     }`}
                             >
@@ -246,7 +246,7 @@ export default function Navbar() {
                                 {pathname.startsWith("/inventory") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
+                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-[#00e5ff]"
                                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                     />
                                 )}
@@ -257,7 +257,7 @@ export default function Navbar() {
                                 href="/lab"
                                 onClick={closeMenu}
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${pathname.startsWith("/lab")
-                                        ? "text-cyan-100 bg-[linear-gradient(130deg,rgba(15,112,132,0.42),rgba(76,201,240,0.2))] border border-cyan-300/35 shadow-[0_0_0_1px_rgba(86,237,255,0.3),0_0_24px_rgba(0,234,255,0.24)]"
+                                        ? "text-[#c3f5ff] bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.24)] shadow-[0_0_0_1px_rgba(0,229,255,0.12),0_0_20px_rgba(0,229,255,0.1)]"
                                         : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                     }`}
                             >
@@ -269,7 +269,7 @@ export default function Navbar() {
                                 {pathname.startsWith("/lab") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-cyan-400 to-accent"
+                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-[#00e5ff]"
                                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                     />
                                 )}
@@ -284,8 +284,8 @@ export default function Navbar() {
                         ) : isAuthenticated && profile ? (
                             /* Logged in user chip */
                             <div className="flex items-center gap-1">
-                                <div className="group flex max-w-[min(46vw,15rem)] items-center gap-2 rounded-full border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06] sm:max-w-[min(38vw,15rem)] sm:gap-2.5 sm:px-2.5">
-                                    <div className="h-8 w-8 shrink-0 rounded-full border border-primary/30 bg-primary/20 flex items-center justify-center overflow-hidden">
+                                <div className="group flex max-w-[min(46vw,15rem)] items-center gap-2 rounded-[4px] border border-[rgba(59,73,76,0.22)] bg-[rgba(25,28,34,0.62)] px-2 py-1.5 backdrop-blur-xl transition-all hover:border-[rgba(0,229,255,0.2)] hover:bg-[rgba(29,32,38,0.72)] sm:max-w-[min(38vw,15rem)] sm:gap-2.5 sm:px-2.5">
+                                    <div className="h-8 w-8 shrink-0 rounded-[4px] border border-[rgba(0,229,255,0.24)] bg-[rgba(0,229,255,0.1)] flex items-center justify-center overflow-hidden">
                                         {profile.avatar_url ? (
                                             <img
                                                 src={profile.avatar_url}
@@ -324,12 +324,12 @@ export default function Navbar() {
                                 <button
                                     type="button"
                                     onClick={() => setIsNotificationsOpen((current) => !current)}
-                                    className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] text-text-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06] hover:text-foreground"
+                                    className="relative inline-flex h-10 w-10 items-center justify-center rounded-[4px] border border-[rgba(59,73,76,0.22)] bg-[rgba(25,28,34,0.62)] text-text-secondary backdrop-blur-xl transition-all hover:border-[rgba(0,229,255,0.2)] hover:bg-[rgba(29,32,38,0.72)] hover:text-foreground"
                                     aria-label="Open notifications"
                                 >
                                     <Bell className="h-4.5 w-4.5" />
                                     {unreadCount > 0 && (
-                                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_0_2px_rgba(8,22,40,0.9)]" />
+                                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ffb4ab] shadow-[0_0_0_2px_rgba(16,19,26,0.9)]" />
                                     )}
                                 </button>
 
@@ -340,7 +340,7 @@ export default function Navbar() {
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 exit={{ opacity: 0 }}
-                                                className="fixed inset-0 z-[94] bg-[rgba(3,10,20,0.72)] backdrop-blur-[3px]"
+                                                className="fixed inset-0 z-[94] bg-[rgba(11,14,20,0.72)] backdrop-blur-[3px]"
                                                 onClick={() => setIsNotificationsOpen(false)}
                                             />
                                             <motion.div
@@ -348,7 +348,7 @@ export default function Navbar() {
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                                                 transition={{ duration: 0.16 }}
-                                                className="absolute right-0 top-[calc(100%+0.6rem)] z-[95] w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#081321] shadow-[0_28px_80px_rgba(0,0,0,0.72),0_0_0_1px_rgba(123,97,255,0.12),0_0_38px_rgba(76,201,240,0.12)]"
+                                                className="absolute right-0 top-[calc(100%+0.6rem)] z-[95] w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-[4px] border border-[rgba(59,73,76,0.28)] bg-[#10131a] shadow-[0_28px_80px_rgba(0,0,0,0.65),0_0_40px_rgba(0,229,255,0.06)]"
                                             >
                                                 <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
                                                     <div className="flex items-center justify-between px-4 py-3">
@@ -370,13 +370,13 @@ export default function Navbar() {
                                                     </div>
                                                 </div>
 
-                                                <div className="max-h-[24rem] overflow-y-auto bg-[#081321]">
+                                                <div className="max-h-[24rem] overflow-y-auto bg-[#10131a]">
                                                     {notificationsLoading ? (
                                                         <div className="flex items-center justify-center px-4 py-10">
                                                             <Loader2 className="h-5 w-5 animate-spin text-primary-light" />
                                                         </div>
                                                 ) : notifications.length === 0 ? (
-                                                    <div className="bg-[#081321] px-4 py-10 text-center">
+                                                    <div className="bg-[#10131a] px-4 py-10 text-center">
                                                         <Bell className="mx-auto mb-3 h-8 w-8 text-text-muted" />
                                                         <p className="text-sm font-medium text-foreground">No notifications yet</p>
                                                         <p className="mt-1 text-xs text-text-muted">
@@ -447,7 +447,7 @@ export default function Navbar() {
                 </div>
                 {isAuthenticated && isScrolled && (
                     <button
-                        className="pointer-events-auto absolute right-6 top-[calc(50%+4px)] !hidden -translate-y-1/2 rounded-xl border border-cyan-200/14 bg-[linear-gradient(140deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-2.5 text-text-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all hover:border-cyan-200/28 hover:bg-white/[0.06] hover:text-foreground md:!inline-flex"
+                        className="pointer-events-auto absolute right-6 top-[calc(50%+4px)] !hidden -translate-y-1/2 rounded-[4px] border border-[rgba(59,73,76,0.22)] bg-[rgba(25,28,34,0.62)] p-2.5 text-text-secondary backdrop-blur-xl transition-all hover:border-[rgba(0,229,255,0.2)] hover:bg-[rgba(29,32,38,0.72)] hover:text-foreground md:!inline-flex"
                         onClick={() => setIsMobileOpen(!isMobileOpen)}
                         aria-label={isMobileOpen ? "Close menu" : "Toggle menu"}
                     >
@@ -472,20 +472,20 @@ export default function Navbar() {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.16 }}
                             onClick={() => setIsMobileOpen(false)}
-                            className="fixed inset-0 z-[85] bg-[radial-gradient(circle_at_top,rgba(8,20,34,0.24),rgba(3,8,18,0.62))] backdrop-blur-[2px]"
+                            className="fixed inset-0 z-[85] bg-[radial-gradient(circle_at_top,rgba(16,19,26,0.24),rgba(11,14,20,0.62))] backdrop-blur-[2px]"
                         />
                         <motion.div
                             initial={{ opacity: 0, y: -10, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -10, scale: 0.98 }}
                             transition={{ duration: 0.2 }}
-                            className={`fixed top-[calc(var(--nav-height)+max(env(safe-area-inset-top),0px)+8px)] z-[90] overflow-y-auto rounded-2xl border border-cyan-200/30 bg-[linear-gradient(165deg,rgba(11,24,42,0.9),rgba(8,17,34,0.82))] p-3.5 shadow-[0_22px_62px_rgba(0,0,0,0.55),0_0_0_1px_rgba(123,97,255,0.16),0_0_38px_rgba(76,201,240,0.18)] backdrop-blur-2xl sm:p-4 ${isAuthenticated ? "left-3 right-3 max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] md:left-auto md:w-[min(24rem,calc(100vw-1.5rem))]" : "right-3 left-3 max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] md:hidden"}`}
+                            className={`fixed top-[calc(var(--nav-height)+max(env(safe-area-inset-top),0px)+8px)] z-[90] overflow-y-auto rounded-[4px] border border-[rgba(59,73,76,0.28)] bg-[linear-gradient(165deg,rgba(16,19,26,0.94),rgba(11,14,20,0.88))] p-3.5 shadow-[0_22px_62px_rgba(0,0,0,0.55),0_0_40px_rgba(0,229,255,0.06)] backdrop-blur-2xl sm:p-4 ${isAuthenticated ? "left-3 right-3 max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] md:left-auto md:w-[min(24rem,calc(100vw-1.5rem))]" : "right-3 left-3 max-h-[calc(100dvh-var(--nav-height)-max(env(safe-area-inset-top),0px)-16px)] md:hidden"}`}
                         >
                             <div className="flex flex-col gap-1">
                                 {isAuthenticated && profile && (
                                     <>
                                         <div className="mb-2 flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
-                                            <div className="h-10 w-10 shrink-0 rounded-full border border-primary/30 bg-primary/20 flex items-center justify-center overflow-hidden">
+                                            <div className="h-10 w-10 shrink-0 rounded-[4px] border border-[rgba(0,229,255,0.24)] bg-[rgba(0,229,255,0.1)] flex items-center justify-center overflow-hidden">
                                                 {profile.avatar_url ? (
                                                     <img
                                                         src={profile.avatar_url}

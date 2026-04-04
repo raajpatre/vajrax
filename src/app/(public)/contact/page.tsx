@@ -61,7 +61,7 @@ const socialLinks = [
 export default function ContactPage() {
     return (
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(0,242,255,0.1),transparent_28%),radial-gradient(circle_at_86%_12%,rgba(125,114,255,0.12),transparent_30%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(0,229,255,0.10),transparent_28%),radial-gradient(circle_at_86%_12%,rgba(0,218,243,0.08),transparent_30%)]" />
 
             <div className="relative z-10 mx-auto max-w-4xl px-6">
                 <div className="mb-12">
@@ -80,7 +80,7 @@ export default function ContactPage() {
                         {contactInfo.map((item) => (
                             <div
                                 key={item.label}
-                                className="glass flex items-start gap-4 p-5 transition-all hover:border-cyan-300/30"
+                                className="glass flex items-start gap-4 p-4 md:p-5 transition-all hover:border-cyan-300/30"
                             >
                                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
                                     <item.icon className="h-5 w-5 text-primary-light" />
@@ -109,7 +109,7 @@ export default function ContactPage() {
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-text-muted mb-4">
                             Follow Us
                         </h2>
-                        <div className="glass p-6">
+                        <div className="glass p-4 md:p-6">
                             <div className="grid grid-cols-1 gap-3">
                                 {socialLinks.map((social) => (
                                     <a
@@ -129,7 +129,7 @@ export default function ContactPage() {
                         </div>
 
                         {/* Quick CTA */}
-                        <div className="glass p-6 mt-4 relative overflow-hidden">
+                        <div className="glass p-4 md:p-6 mt-4 relative overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
                             <div className="relative">
                                 <h3 className="text-lg font-semibold mb-2">Want to join?</h3>

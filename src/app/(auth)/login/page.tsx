@@ -38,7 +38,7 @@ function LoginForm() {
     };
 
     return (
-        <div className="glass-strong p-8">
+        <div className="glass-strong p-4 md:p-5 md:p-8">
             <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold mb-2">Welcome back</h1>
                 <p className="text-text-secondary text-sm">
@@ -110,11 +110,27 @@ function LoginForm() {
                 </button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-right">
+                <span
+                    className="text-xs text-text-muted hover:text-primary-light transition-colors cursor-help"
+                    title="Coming soon — password reset is not yet available"
+                >
+                    Forget Credentials?
+                </span>
+            </div>
+
+            <div className="mt-6 text-center border-t border-[rgba(59,73,76,0.18)] pt-5">
                 <p className="text-sm text-text-muted">
-                    Need an account? Contact your faculty advisor to get registered.
+                    New Operator?{" "}
+                    <Link href="/signup" className="text-primary-light hover:text-[#c3f5ff] font-semibold transition-colors">
+                        Sign Up
+                    </Link>
                 </p>
             </div>
+
+            <p className="mt-4 text-center text-[10px] text-text-muted tracking-wider uppercase font-heading">
+                © {new Date().getFullYear()} VAJRAX ROBOTICS. ENGINEERED FOR PRECISION.
+            </p>
         </div>
     );
 }
@@ -123,7 +139,7 @@ export default function LoginPage() {
     return (
         <Suspense
             fallback={
-                <div className="glass-strong p-8 text-center">
+                <div className="glass-strong p-4 md:p-5 md:p-8 text-center">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary-light" />
                 </div>
             }

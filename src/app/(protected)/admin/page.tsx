@@ -7,10 +7,10 @@ import {
     Users,
     Package,
     History,
-    Loader2,
     ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import VajraLoader from "@/components/ui/VajraLoader";
 
 export default function AdminDashboard() {
     const { isModerator, isFaculty, loading, role } = useUser();
@@ -45,11 +45,7 @@ export default function AdminDashboard() {
     ];
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!isModerator && !isFaculty) {
@@ -87,7 +83,7 @@ export default function AdminDashboard() {
                     >
                         <Link
                             href={link.href}
-                            className="glass p-5 flex items-center gap-4 group hover:border-primary/30 transition-all"
+                            className="glass p-4 md:p-5 flex items-center gap-4 group hover:border-primary/30 transition-all"
                         >
                             <div
                                 className={`w-10 h-10 rounded-xl border flex items-center justify-center ${link.color}`}

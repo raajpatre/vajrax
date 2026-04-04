@@ -48,15 +48,15 @@ const eventTypeConfig: Record<
     },
     competition: {
         icon: Sparkles,
-        color: "text-purple-400",
-        bg: "bg-purple-400/10",
-        border: "border-purple-400/20",
+        color: "text-cyan-300",
+        bg: "bg-cyan-300/10",
+        border: "border-cyan-300/20",
     },
     other: {
         icon: Zap,
-        color: "text-indigo-400",
-        bg: "bg-indigo-400/10",
-        border: "border-indigo-400/20",
+        color: "text-sky-400",
+        bg: "bg-sky-400/10",
+        border: "border-sky-400/20",
     },
 };
 
@@ -123,7 +123,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
 
     return (
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(0,242,255,0.12),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(125,114,255,0.12),transparent_32%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(0,229,255,0.10),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(0,218,243,0.08),transparent_32%)]" />
 
             <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="mb-12 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
@@ -145,7 +145,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                 </div>
 
                 {events.length === 0 ? (
-                    <div className="glass p-16 text-center">
+                    <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                         <Calendar className="mx-auto mb-4 h-12 w-12 text-text-muted" />
                         <h3 className="mb-2 text-lg font-semibold">No events yet</h3>
                         <p className="text-text-muted text-sm">
@@ -158,7 +158,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                         {upcoming.length > 0 && (
                             <div>
                                 <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold">
-                                    <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
+                                    <div className="h-2 w-2 animate-pulse rounded-sm bg-cyan-300" />
                                     Upcoming
                                 </h2>
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -173,7 +173,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                 initial="hidden"
                                                 animate="visible"
                                                 variants={fadeUp}
-                                                className="glass energy-card group relative overflow-hidden rounded-[22px] border-white/14 transition-all duration-500 hover:border-cyan-300/30"
+                                                className="glass energy-card group relative overflow-hidden rounded-lg border-[var(--ghost-border)] transition-all duration-500 hover:border-cyan-300/30"
                                             >
                                                 {(isFaculty || isModerator) && (
                                                     <button
@@ -263,7 +263,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                         {past.length > 0 && (
                             <div>
                                 <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 text-text-muted">
-                                    <div className="h-2 w-2 rounded-full bg-text-muted" />
+                                    <div className="h-2 w-2 rounded-sm bg-text-muted" />
                                     Past Events
                                 </h2>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -279,7 +279,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                 whileInView="visible"
                                                 viewport={{ once: true }}
                                                 variants={fadeUp}
-                                                className="glass energy-card rounded-2xl p-5 opacity-75 transition-all duration-500 hover:border-cyan-300/20 hover:opacity-100"
+                                                className="glass energy-card rounded-lg p-4 md:p-5 opacity-75 transition-all duration-500 hover:border-cyan-300/20 hover:opacity-100"
                                             >
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <Icon className={`w-4 h-4 ${config.color}`} />

@@ -25,6 +25,21 @@
   --vajra-accent-green: #10b981;
   --vajra-accent-amber: #d4af37;
   --vajra-accent-rose: #f43f5e;
+  /* Synthetic overrides to support the UI classes that were added */
+  --vajra-surface-high: #1a2a47;
+  --vajra-surface-highest: #233554;
+  --vajra-surface-bright: #2d4265;
+  --vajra-ghost-border: rgba(128, 170, 255, 0.12);
+  --vajra-primary-dim: #6a4df0;
+  --vajra-primary-fixed: #8b75ff;
+  --vajra-secondary-container: rgba(76, 201, 240, 0.15);
+  --vajra-tertiary: #1fe8d8;
+  --vajra-tertiary-container: rgba(31, 232, 216, 0.15);
+  --vajra-error: #f43f5e;
+  --vajra-error-container: #9f1239;
+  
+  --sidebar-width: 260px;
+
 
   /* Text */
   --vajra-text: #e8f1ff;
@@ -84,6 +99,10 @@
   --color-accent: var(--vajra-accent);
   --color-surface: var(--vajra-surface);
   --color-surface-light: var(--vajra-surface-light);
+  --color-surface-high: var(--vajra-surface-high);
+  --color-surface-highest: var(--vajra-surface-highest);
+  --color-surface-bright: var(--vajra-surface-bright);
+
   --color-border: var(--vajra-border);
   --color-text: var(--vajra-text);
   --color-text-secondary: var(--vajra-text-secondary);
@@ -240,6 +259,30 @@ body {
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
+}
+
+/* ============================================
+   Glass Card Responsive Mobile Fix
+   ============================================ */
+@media (max-width: 640px) {
+  .glass.p-16, .glass-strong.p-16,
+  .glass.p-12, .glass-strong.p-12,
+  .glass.p-10, .glass-strong.p-10 {
+    padding: 1.5rem !important; /* Scale down to p-6 */
+  }
+  
+  .glass.p-8, .glass-strong.p-8 {
+    padding: 1.25rem !important; /* Scale down to p-5 */
+  }
+  
+  .glass.p-6, .glass-strong.p-6,
+  .glass.p-5, .glass-strong.p-5 {
+    padding: 1rem !important; /* Scale down to p-4 */
+  }
+
+  .glass, .glass-strong {
+    border-radius: 16px !important;
+  }
 }
 
 .energy-card {
@@ -626,4 +669,152 @@ body {
   html {
     @apply font-sans;
   }
+}
+
+
+/* ============================================
+   Sidebar Styles (Protected Pages)
+   ============================================ */
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--vajra-dark);
+  border-right: 1px solid var(--vajra-ghost-border);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  padding-top: 1rem;
+  overflow-y: auto;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--vajra-text-muted);
+  border-radius: 0;
+  text-decoration: none;
+  transition: color 200ms ease, background 200ms ease;
+  border-left: 2px solid transparent;
+}
+
+.sidebar-link:hover {
+  color: var(--vajra-text);
+  background: var(--vajra-surface);
+}
+
+.sidebar-link.active {
+  color: var(--vajra-primary);
+  background: rgba(123, 97, 255, 0.1);
+  border-left-color: var(--vajra-primary);
+}
+
+.sidebar-section-label {
+  padding: 8px 20px;
+  font-family: var(--font-geist-mono, "Geist Mono", monospace);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--vajra-text-muted);
+  margin-top: 16px;
+}
+
+
+/* ============================================
+   GlowCard Spotlight Effect (spotlight-card.tsx)
+   ============================================ */
+
+[data-glow]::before,
+[data-glow]::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: calc(var(--border-size) * -1);
+  border: var(--border-size) solid transparent;
+  border-radius: calc(var(--radius) * 1px);
+  background-attachment: fixed;
+  background-size: calc(100% + (2 * var(--border-size))) calc(100% + (2 * var(--border-size)));
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+  mask-clip: padding-box, border-box;
+  mask-composite: intersect;
+}
+
+[data-glow]::before {
+  background-image: radial-gradient(
+    calc(var(--spotlight-size) * 0.75) calc(var(--spotlight-size) * 0.75) at
+    calc(var(--x, 0) * 1px)
+    calc(var(--y, 0) * 1px),
+    hsl(var(--hue, 210) calc(var(--saturation, 100) * 1%) calc(var(--lightness, 50) * 1%) / var(--border-spot-opacity, 1)), transparent 100%
+  );
+  filter: brightness(2.35) saturate(1.2);
+}
+
+[data-glow]::after {
+  background-image: radial-gradient(
+    calc(var(--spotlight-size) * 0.5) calc(var(--spotlight-size) * 0.5) at
+    calc(var(--x, 0) * 1px)
+    calc(var(--y, 0) * 1px),
+    hsl(0 100% 100% / var(--border-light-opacity, 1)), transparent 100%
+  );
+}
+
+[data-glow] [data-glow] {
+  position: absolute;
+  inset: 0;
+  will-change: filter;
+  opacity: var(--outer, 1);
+  border-radius: calc(var(--radius) * 1px);
+  border-width: calc(var(--border-size) * 20);
+  filter: blur(calc(var(--border-size) * 10));
+  background: none;
+  pointer-events: none;
+  border: none;
+}
+
+[data-glow] > [data-glow]::before {
+  inset: -10px;
+  border-width: 10px;
+}
+
+[data-glow] > [data-glow] {
+  opacity: 1.15;
+}
+
+/* ============================================
+   Hover Shine Utility (for edgy buttons)
+   ============================================ */
+
+.hover-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hover-shine::before {
+  content: "";
+  position: absolute;
+  top: -180%;
+  left: -80%;
+  width: 58%;
+  height: 360%;
+  pointer-events: none;
+  opacity: 0.6;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  transform: translateX(-180%) rotate(20deg);
+  transition: transform 600ms ease;
+  z-index: 10;
+}
+
+.hover-shine:hover::before,
+.hover-shine:focus-visible::before {
+  transform: translateX(360%) rotate(20deg);
 }

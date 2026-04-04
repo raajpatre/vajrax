@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import {
     grantSafetyCertification,
     revokeSafetyCertification,
@@ -123,7 +124,7 @@ function AddMemberModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong p-6 w-full max-w-md relative z-10"
+                className="glass-strong p-4 md:p-6 w-full max-w-md relative z-10"
             >
                 <div className="flex items-center justify-between mb-5">
                     <h3 className="text-lg font-bold flex items-center gap-2">
@@ -499,11 +500,7 @@ export default function MemberManagement() {
     }, []);
 
     if (authLoading || loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!isModerator && !isFaculty) {

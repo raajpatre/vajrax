@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import {
     Loader2,
     Send,
@@ -60,11 +61,7 @@ export default function ProjectRequestPage() {
     };
 
     if (userLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!user) {
@@ -91,7 +88,7 @@ export default function ProjectRequestPage() {
             </div>
 
             {success ? (
-                <div className="glass p-12 text-center">
+                <div className="glass p-4 md:p-6 md:p-12 text-center">
                     <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
                     <h3 className="text-xl font-bold mb-2">Request Submitted!</h3>
                     <p className="text-text-muted text-sm">
@@ -99,7 +96,7 @@ export default function ProjectRequestPage() {
                     </p>
                 </div>
             ) : (
-                <form onSubmit={handleSubmit} className="glass p-6 space-y-5">
+                <form onSubmit={handleSubmit} className="glass p-4 md:p-6 space-y-5">
                     {error && (
                         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
                             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />

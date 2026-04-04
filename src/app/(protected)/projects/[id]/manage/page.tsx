@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import { useParams, useRouter } from "next/navigation";
 import {
     Settings,
@@ -289,11 +290,7 @@ export default function ProjectManagePage() {
     };
 
     if (userLoading || loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!isMember && !isLead && !isFaculty) {
@@ -327,17 +324,17 @@ export default function ProjectManagePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(isLead || isFaculty) && (
-                    <div className="glass p-5 md:col-span-2">
+                    <div className="glass p-4 md:p-5 md:col-span-2">
                         <h2 className="text-sm font-bold mb-4 flex items-center gap-1.5">
                             <ImageIcon className="w-4 h-4 text-primary-light" />
                             Project Hero Image
                         </h2>
 
                         <form onSubmit={handleSaveHeroImage} className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-                            <div className="rounded-[22px] border border-cyan-200/10 bg-white/[0.03] p-4 sm:rounded-[24px] sm:p-5">
+                            <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-4 sm:p-5">
                                 <div className="flex flex-col items-center text-center">
                                     {heroPreviewUrl ? (
-                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
+                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
                                             <img
                                                 src={heroPreviewUrl}
                                                 alt="Project hero preview"
@@ -345,7 +342,7 @@ export default function ProjectManagePage() {
                                             />
                                         </div>
                                     ) : (
-                                        <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 px-4 text-text-muted sm:h-40">
+                                        <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/70 px-4 text-text-muted sm:h-40">
                                             <ImageIcon className="mb-2 h-8 w-8" />
                                             <span className="text-sm font-medium">Paste a hero image URL</span>
                                         </div>
@@ -359,7 +356,7 @@ export default function ProjectManagePage() {
                             </div>
 
                             <div className="space-y-3">
-                                <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
+                                <div className="rounded-lg border border-white/8 bg-black/10 px-4 py-3">
                                     <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-text-secondary">
                                         <Link2 className="w-4 h-4" />
                                         Hero image URL
@@ -372,14 +369,14 @@ export default function ProjectManagePage() {
                                             setHeroImageMessage(null);
                                         }}
                                         placeholder="Paste image URL or Google Drive share link"
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                        className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                                     />
                                     <p className="mt-2 text-xs text-text-muted">
                                         Use a wide landscape image. Google Drive links work when the file is public.
                                     </p>
                                 </div>
 
-                                <div className="rounded-2xl border border-white/8 bg-cyan-400/5 px-4 py-3 text-sm text-text-secondary">
+                                <div className="rounded-lg border border-white/8 bg-cyan-400/5 px-4 py-3 text-sm text-text-secondary">
                                     <div className="flex items-start gap-2">
                                         <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" />
                                         <p>Paste a URL to update the hero image, or clear the field and save to remove it.</p>
@@ -407,7 +404,7 @@ export default function ProjectManagePage() {
 
                 {/* Team Management — only for leads */}
                 {(isLead || isFaculty) && (
-                <div className="glass p-5">
+                <div className="glass p-4 md:p-5">
                     <h2 className="text-sm font-bold mb-4 flex items-center gap-1.5">
                         <Users className="w-4 h-4 text-primary-light" />
                         Team Members
@@ -420,12 +417,12 @@ export default function ProjectManagePage() {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="Enter username"
-                            className="flex-1 bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                            className="flex-1 bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                         />
                         <button
                             type="submit"
                             disabled={addingMember || !username.trim()}
-                            className="px-3 py-2.5 rounded-xl bg-primary/15 text-primary-light border border-primary/20 hover:bg-primary/25 transition-all disabled:opacity-40"
+                            className="px-3 py-2.5 rounded-lg bg-primary/15 text-primary-light border border-primary/20 hover:bg-primary/25 transition-all disabled:opacity-40"
                         >
                             {addingMember ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                         </button>
@@ -472,7 +469,7 @@ export default function ProjectManagePage() {
                 )}
 
                 {/* Post Progress Update */}
-                <div className="glass p-5">
+                <div className="glass p-4 md:p-5">
                     <h2 className="text-sm font-bold mb-4 flex items-center gap-1.5">
                         <GitBranch className="w-4 h-4 text-primary-light" />
                         Post Progress Update
@@ -485,7 +482,7 @@ export default function ProjectManagePage() {
                             onChange={(e) => setUpdateTitle(e.target.value)}
                             placeholder="Update title (e.g. 'Circuit Board Assembled')"
                             required
-                            className="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                            className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                         />
 
                         <textarea
@@ -493,11 +490,11 @@ export default function ProjectManagePage() {
                             onChange={(e) => setUpdateContent(e.target.value)}
                             placeholder="Details about what was done..."
                             rows={3}
-                            className="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                            className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
                         />
 
                         <div className="flex gap-2">
-                            <div className="flex items-center gap-1.5 flex-1 bg-surface border border-border rounded-xl px-3 py-2.5">
+                            <div className="flex items-center gap-1.5 flex-1 bg-surface border border-border rounded-lg px-3 py-2.5">
                                 <Tag className="w-3.5 h-3.5 text-text-muted" />
                                 <input
                                     type="text"
@@ -519,7 +516,7 @@ export default function ProjectManagePage() {
                                 onChange={(e) => setUpdateSourceUrls(e.target.value)}
                                 placeholder={"One source URL per line\nhttps://github.com/...\nhttps://docs.google.com/..."}
                                 rows={3}
-                                className="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
                             />
                         </div>
 
@@ -533,7 +530,7 @@ export default function ProjectManagePage() {
                                 onChange={(e) => setUpdateImageUrls(e.target.value)}
                                 placeholder={"One public image URL per line\nhttps://...\nhttps://drive.google.com/..."}
                                 rows={4}
-                                className="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
                             />
                         </div>
 
@@ -555,7 +552,7 @@ export default function ProjectManagePage() {
 
             {/* Project Actions — Only for leads/faculty */}
             {(isLead || isFaculty) && project && (
-                <div className="mt-4 glass p-5 border-red-500/20">
+                <div className="mt-4 glass p-4 md:p-5 border-red-500/20">
                     <h2 className="text-sm font-bold mb-4 flex items-center gap-1.5 text-red-400">
                         <Settings className="w-4 h-4" />
                         Project Actions
@@ -566,7 +563,7 @@ export default function ProjectManagePage() {
                             <button
                                 onClick={handleComplete}
                                 disabled={actionLoading !== null}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold hover:bg-emerald-500/20 transition-all disabled:opacity-50"
                             >
                                 {actionLoading === "complete" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                 Mark as Completed
@@ -577,7 +574,7 @@ export default function ProjectManagePage() {
                             <button
                                 onClick={handleTogglePause}
                                 disabled={actionLoading !== null}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold hover:bg-amber-500/20 transition-all disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold hover:bg-amber-500/20 transition-all disabled:opacity-50"
                             >
                                 {actionLoading === "pause" ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -593,7 +590,7 @@ export default function ProjectManagePage() {
                         <button
                             onClick={handleDelete}
                             disabled={actionLoading !== null}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-all disabled:opacity-50 ml-auto"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-all disabled:opacity-50 ml-auto"
                         >
                             {actionLoading === "delete" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             Delete Project

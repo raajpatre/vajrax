@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import {
     ShieldCheck,
     Loader2,
@@ -88,11 +89,7 @@ export default function AdminProjectRequestsPage() {
     };
 
     if (userLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     if (!isModerator && !isFaculty) {
@@ -118,10 +115,10 @@ export default function AdminProjectRequestsPage() {
 
             {loading ? (
                 <div className="flex items-center justify-center py-16">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
+                    <VajraLoader />
                 </div>
             ) : requests.length === 0 ? (
-                <div className="glass p-16 text-center">
+                <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                     <FolderOpen className="w-12 h-12 text-text-muted mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">All clear!</h3>
                     <p className="text-text-muted text-sm">No pending project proposals to review.</p>
@@ -136,7 +133,7 @@ export default function AdminProjectRequestsPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
                                 layout
-                                className="glass p-5"
+                                className="glass p-4 md:p-5"
                             >
                                 {/* Requester */}
                                 <div className="flex items-center gap-2.5 mb-3">

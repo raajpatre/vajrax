@@ -63,7 +63,7 @@ const statusStyles: Record<string, string> = {
     in_progress: "text-amber-400 bg-amber-400/10 border-amber-400/20",
     completed: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
     on_hold: "text-slate-400 bg-slate-400/10 border-slate-400/20",
-    planning: "text-violet-400 bg-violet-400/10 border-violet-400/20",
+    planning: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
     archived: "text-slate-400 bg-slate-400/10 border-slate-400/20",
 };
 
@@ -297,7 +297,7 @@ export default function ProjectDetailClient({
 
     return (
         <div className="relative min-h-screen overflow-hidden pb-20 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(0,242,255,0.1),transparent_30%),radial-gradient(circle_at_86%_12%,rgba(125,114,255,0.11),transparent_34%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(0,229,255,0.10),transparent_30%),radial-gradient(circle_at_86%_12%,rgba(0,218,243,0.08),transparent_34%)]" />
 
             <div className="relative z-10 mx-auto max-w-4xl px-4">
                 <Link
@@ -309,7 +309,7 @@ export default function ProjectDetailClient({
                 </Link>
 
                 {project.cover_image_url && (
-                    <div className="mb-6 aspect-[3/1] overflow-hidden rounded-2xl border border-white/14">
+                    <div className="mb-6 aspect-[3/1] overflow-hidden rounded-lg border border-[var(--ghost-border)]">
                         <img
                             src={project.cover_image_url}
                             alt={project.title}
@@ -358,7 +358,7 @@ export default function ProjectDetailClient({
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 {/* Team */}
-                <div className="glass rounded-2xl p-5">
+                <div className="glass rounded-lg p-4 md:p-5">
                     <h2 className="text-sm font-bold mb-3 flex items-center gap-1.5">
                         <Users className="w-4 h-4 text-primary-light" />
                         Team ({members.length})
@@ -440,7 +440,7 @@ export default function ProjectDetailClient({
                 </div>
 
                 {/* Progress Updates */}
-                <div className="glass rounded-2xl p-5 md:col-span-2">
+                <div className="glass rounded-lg p-4 md:p-5 md:col-span-2">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-sm font-bold flex items-center gap-1.5">
                             <GitBranch className="w-4 h-4 text-primary-light" />
@@ -587,7 +587,7 @@ export default function ProjectDetailClient({
                                                                 href={imageUrl}
                                                                 target="_blank"
                                                                 rel="noreferrer"
-                                                                className="overflow-hidden rounded-xl border border-white/10 bg-surface/60"
+                                                                className="overflow-hidden rounded-lg border border-white/10 bg-surface/60"
                                                             >
                                                                 <img
                                                                     src={imageUrl}

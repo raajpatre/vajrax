@@ -78,7 +78,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
 
     return (
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(77,168,255,0.12),transparent_30%),radial-gradient(circle_at_88%_16%,rgba(0,242,255,0.1),transparent_30%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(0,229,255,0.10),transparent_30%),radial-gradient(circle_at_88%_16%,rgba(0,218,243,0.08),transparent_30%)]" />
 
             <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="mb-12">
@@ -103,7 +103,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                 </div>
 
                 {items.length === 0 ? (
-                    <div className="glass p-16 text-center">
+                    <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                         <ImageIcon className="mx-auto mb-4 h-12 w-12 text-text-muted" />
                         <h3 className="mb-2 text-lg font-semibold">Gallery is empty</h3>
                         <p className="text-text-muted text-sm">
@@ -153,7 +153,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             transition={{ type: "spring", damping: 25 }}
-                            className="glass relative w-full max-w-4xl overflow-hidden rounded-[22px] sm:rounded-[24px]"
+                            className="glass relative w-full max-w-4xl overflow-hidden rounded-lg"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">

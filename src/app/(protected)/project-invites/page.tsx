@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import {
     Mail,
     Loader2,
@@ -86,11 +87,7 @@ export default function ProjectInvitesPage() {
     };
 
     if (userLoading || loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     const pending = invites.filter((inv) => inv.status === "pending");
@@ -110,7 +107,7 @@ export default function ProjectInvitesPage() {
 
             {/* Pending Invites */}
             {pending.length === 0 && past.length === 0 ? (
-                <div className="glass p-16 text-center">
+                <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                     <Mail className="w-12 h-12 text-text-muted mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No invites yet</h3>
                     <p className="text-text-muted text-sm">
@@ -134,7 +131,7 @@ export default function ProjectInvitesPage() {
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, x: -20 }}
                                             layout
-                                            className="glass p-5"
+                                            className="glass p-4 md:p-5"
                                         >
                                             <div className="flex items-start gap-4">
                                                 {/* Project info */}

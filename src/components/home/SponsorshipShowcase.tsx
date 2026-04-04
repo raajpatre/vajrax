@@ -28,11 +28,11 @@ function SponsorTile({ sponsor }: { sponsor: Sponsor }) {
 
     const content = (
         <div
-            className={`group energy-card relative flex ${tileHeight} items-center justify-center rounded-[24px] border border-white/10 bg-white/[0.045] px-8 backdrop-blur-2xl transition-all duration-300 ${glow}`}
+            className={`group energy-card relative flex ${tileHeight} items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-white/[0.045] px-8 backdrop-blur-2xl transition-all duration-300 ${glow}`}
         >
-            <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-white/[0.08] via-transparent to-transparent" />
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/[0.08] via-transparent to-transparent" />
             <div
-                className={`absolute inset-0 rounded-[24px] ${
+                className={`absolute inset-0 rounded-lg ${
                     isPremium
                         ? "bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.16),_transparent_60%)]"
                         : "bg-[radial-gradient(circle_at_top,_rgba(0,242,255,0.12),_transparent_60%)]"
@@ -111,7 +111,7 @@ function SponsorMarquee({ sponsors }: { sponsors: Sponsor[] }) {
 
     if (sortedSponsors.length === 0) {
         return (
-            <div className="glass-strong rounded-[30px] border-white/16 px-6 py-10 text-center text-sm text-slate-300">
+            <div className="glass-strong rounded-lg border-[var(--ghost-border)] px-6 py-10 text-center text-sm text-slate-300">
                 Sponsor logos will appear here once faculty or the club president adds them in Supabase.
             </div>
         );
@@ -119,11 +119,11 @@ function SponsorMarquee({ sponsors }: { sponsors: Sponsor[] }) {
 
     return (
         <div
-            className="glass-strong relative overflow-hidden rounded-[32px] border-white/15 py-6 shadow-[0_20px_54px_rgba(0,0,0,0.35)]"
+            className="glass-strong relative overflow-hidden rounded-lg border-[var(--ghost-border)] py-6 shadow-[0_20px_54px_rgba(0,0,0,0.35)]"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,rgba(123,97,255,0.08),rgba(76,201,240,0.05),rgba(31,232,216,0.06))] animate-[aurora-shift_10s_linear_infinite]" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,rgba(0,229,255,0.08),rgba(76,201,240,0.05),rgba(31,232,216,0.06))] animate-[aurora-shift_10s_linear_infinite]" />
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#050B14] to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#050B14] to-transparent" />
             <motion.div ref={trackRef} className="flex w-max items-center gap-5 px-5" style={{ x }}>

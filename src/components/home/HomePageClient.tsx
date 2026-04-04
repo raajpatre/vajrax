@@ -19,9 +19,9 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
             <section className="relative min-h-[94vh] overflow-hidden pb-16 pt-[calc(var(--nav-height)+2.75rem)] sm:pb-20 sm:pt-[calc(var(--nav-height)+4.2rem)]">
                 <div className="absolute inset-0 bg-grid opacity-75" />
                 <div className="absolute inset-0 bg-radial opacity-65" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_10%,rgba(125,114,255,0.12),transparent_34%),radial-gradient(circle_at_80%_16%,rgba(0,242,255,0.11),transparent_34%),radial-gradient(circle_at_58%_62%,rgba(212,175,55,0.08),transparent_32%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_10%,rgba(0,229,255,0.1),transparent_34%),radial-gradient(circle_at_80%_16%,rgba(0,218,243,0.08),transparent_34%),radial-gradient(circle_at_58%_62%,rgba(0,229,255,0.04),transparent_32%)]" />
                 <div className="absolute left-1/2 top-20 h-[640px] w-[640px] -translate-x-1/2 rounded-full bg-primary/10 blur-[120px]" />
-                <div className="pointer-events-none absolute left-[-10%] top-[45%] h-[96px] w-[124%] -rotate-6 bg-[linear-gradient(90deg,rgba(123,97,255,0),rgba(123,97,255,0.12),rgba(76,201,240,0.2),rgba(212,175,55,0.16),rgba(123,97,255,0))] blur-3xl" />
+                <div className="pointer-events-none absolute left-[-10%] top-[45%] h-[96px] w-[124%] -rotate-6 bg-[linear-gradient(90deg,rgba(0,229,255,0),rgba(0,229,255,0.1),rgba(0,218,243,0.14),rgba(0,229,255,0.08),rgba(0,229,255,0))] blur-3xl" />
 
                 <div className="relative z-10 mx-auto flex min-h-[calc(88vh-var(--nav-height))] max-w-6xl items-center px-4 sm:px-6">
                     <div className="mx-auto w-full max-w-4xl px-2 py-8 text-center sm:p-12">
@@ -29,7 +29,7 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.5 }}
-                            className="mb-6 inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-cyan-300/22 bg-cyan-300/10 px-3 py-1.5 text-center text-xs font-semibold tracking-wide text-cyan-100 shadow-[0_0_24px_rgba(0,242,255,0.12)] sm:mb-8 sm:px-4 sm:text-sm"
+                            className="mb-6 inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-lg border border-[rgba(0,229,255,0.18)] bg-[rgba(0,229,255,0.08)] px-3 py-1.5 text-center text-xs font-semibold tracking-wide text-[#c3f5ff] shadow-[0_0_24px_rgba(0,229,255,0.08)] sm:mb-8 sm:px-4 sm:text-sm"
                         >
                             <Zap className="w-3.5 h-3.5" />
                             Robotics Club @ Newton School of Technology - Bengaluru
@@ -71,13 +71,13 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
                         </motion.div>
                     </div>
 
-                    <div className="absolute top-20 right-10 w-3 h-3 rounded-full bg-primary/40 animate-float" />
+                    <div className="absolute top-20 right-10 w-3 h-3 rounded-lg bg-primary/40 animate-float" />
                     <div
-                        className="absolute top-40 left-16 w-2 h-2 rounded-full bg-secondary/40 animate-float"
+                        className="absolute top-40 left-16 w-2 h-2 rounded-lg bg-[rgba(0,229,255,0.3)] animate-float"
                         style={{ animationDelay: "2s" }}
                     />
                     <div
-                        className="absolute bottom-40 right-20 w-4 h-4 rounded-full bg-accent/30 animate-float"
+                        className="absolute bottom-40 right-20 w-4 h-4 rounded-lg bg-[rgba(0,218,243,0.2)] animate-float"
                         style={{ animationDelay: "4s" }}
                     />
                 </div>

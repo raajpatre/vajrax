@@ -174,9 +174,9 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-[24px] shadow-2xl sm:rounded-[30px]"
+                            className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-lg shadow-2xl"
                         >
-                            <div className="flex items-start justify-between gap-4 border-b border-white/8 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
+                            <div className="flex items-start justify-between gap-4 border-b border-[var(--ghost-border)] px-4 py-3 sm:items-center sm:px-6 sm:py-4">
                                 <div>
                                     <h2 className="text-lg font-bold sm:text-xl">Add Event</h2>
                                     <p className="mt-1 max-w-[18rem] text-xs text-text-muted sm:max-w-none sm:text-sm">
@@ -206,7 +206,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                         </div>
                                     )}
 
-                                    <div className="rounded-[22px] border border-cyan-200/10 bg-white/[0.03] p-4 sm:rounded-[24px] sm:p-5 lg:sticky lg:top-0">
+                                    <div className="rounded-lg border border-cyan-200/10 bg-white/[0.03] p-4 sm:p-5 lg:sticky lg:top-0">
                                         <div className="flex flex-col items-center text-center">
                                             <input
                                                 type="file"
@@ -216,7 +216,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                 className="hidden"
                                             />
 
-                                            <div className="mb-3 grid w-full grid-cols-2 rounded-2xl border border-white/8 bg-black/10 p-1 sm:mb-4">
+                                            <div className="mb-3 grid w-full grid-cols-2 rounded-lg border border-[var(--ghost-border)] bg-black/10 p-1 sm:mb-4">
                                                 <button
                                                     type="button"
                                                     onClick={() => setImageSource("upload")}
@@ -254,7 +254,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                     className="group w-full"
                                                 >
                                                     {imagePreview ? (
-                                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
+                                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[0_0_30px_rgba(0,229,255,0.08)] sm:h-40">
                                                             <img
                                                                 src={imagePreview}
                                                                 alt="Event cover preview"
@@ -265,7 +265,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 text-text-muted transition-all group-hover:border-primary/50 group-hover:bg-primary/5 group-hover:text-primary sm:h-40">
+                                                        <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/70 text-text-muted transition-all group-hover:border-primary/50 group-hover:bg-primary/5 group-hover:text-primary sm:h-40">
                                                             <ImageIcon className="mb-2 h-8 w-8" />
                                                             <span className="text-sm font-medium">Click to select an image</span>
                                                         </div>
@@ -289,7 +289,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                     </div>
 
                                                     {imagePreview ? (
-                                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
+                                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[0_0_30px_rgba(0,229,255,0.08)] sm:h-40">
                                                             <img
                                                                 src={imagePreview}
                                                                 alt="Event cover preview"
@@ -301,7 +301,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                             />
                                                         </div>
                                                     ) : (
-                                                        <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 px-4 text-text-muted sm:h-40">
+                                                        <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/70 px-4 text-text-muted sm:h-40">
                                                             <ImageIcon className="mb-2 h-8 w-8" />
                                                             <span className="text-sm font-medium">Paste a valid image URL to preview it</span>
                                                         </div>
@@ -314,7 +314,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                 Upload a file or paste an image URL for a strong event card preview.
                                             </p>
 
-                                            <div className="mt-4 w-full rounded-2xl border border-white/8 bg-black/10 px-3 py-2.5 text-left sm:mt-5 sm:px-4 sm:py-3">
+                                            <div className="mt-4 w-full rounded-lg border border-[var(--ghost-border)] bg-black/10 px-3 py-2.5 text-left sm:mt-5 sm:px-4 sm:py-3">
                                                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                                                     Display
                                                 </p>
@@ -323,7 +323,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                 </p>
                                             </div>
 
-                                            <div className="mt-3 flex w-full items-center gap-2 rounded-2xl border border-white/8 bg-cyan-400/5 px-3 py-2.5 text-left sm:px-4">
+                                            <div className="mt-3 flex w-full items-center gap-2 rounded-lg border border-[var(--ghost-border)] bg-cyan-400/5 px-3 py-2.5 text-left sm:px-4">
                                                 <Sparkles className="h-4 w-4 shrink-0 text-cyan-200" />
                                                 <p className="text-[11px] leading-relaxed text-text-secondary sm:text-xs">
                                                     Optional, but highly recommended for workshops, launches, and flagship events.
@@ -381,7 +381,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                             <label className="mb-1.5 block text-sm font-medium text-text-secondary">
                                                 Visibility
                                             </label>
-                                            <div className="grid grid-cols-2 rounded-2xl border border-white/8 bg-black/10 p-1">
+                                            <div className="grid grid-cols-2 rounded-lg border border-[var(--ghost-border)] bg-black/10 p-1">
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsExclusive(false)}

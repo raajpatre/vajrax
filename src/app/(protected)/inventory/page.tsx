@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import VajraLoader from "@/components/ui/VajraLoader";
 import {
     Package,
     Search,
@@ -143,7 +144,7 @@ function ItemModal({
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto"
+                className="glass-strong p-4 md:p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto"
             >
                 {success ? (
                     <div className="text-center py-8">
@@ -301,7 +302,7 @@ function RequestModal({
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong relative z-10 my-auto w-full max-w-md overflow-y-auto p-5 max-h-[calc(100dvh-max(1.5rem,env(safe-area-inset-top))-max(1.5rem,env(safe-area-inset-bottom)))] sm:p-6"
+                className="glass-strong relative z-10 my-auto w-full max-w-md overflow-y-auto p-4 md:p-5 max-h-[calc(100dvh-max(1.5rem,env(safe-area-inset-top))-max(1.5rem,env(safe-area-inset-bottom)))] sm:p-4 md:p-6"
             >
                 {success ? (
                     <div className="text-center py-8">
@@ -418,12 +419,12 @@ function RequestModal({
                             <button
                                 type="submit"
                                 disabled={loading || !reason.trim() || quantity < 1}
-                                className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="hover-shine bg-[#00e5ff] hover:bg-[#00cce6] text-black font-bold uppercase tracking-widest flex items-center justify-center gap-2 w-full py-3 rounded-none shadow-[0_0_20px_rgba(0,229,255,0.2)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                             >
                                 {loading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <Loader2 className="w-4 h-4 animate-spin text-black" />
                                 ) : (
-                                    <Send className="w-4 h-4" />
+                                    <Send className="w-4 h-4 text-black" />
                                 )}
                                 Submit Request
                             </button>
@@ -477,11 +478,7 @@ export default function InventoryPage() {
     });
 
     if (userLoading || loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
-            </div>
-        );
+        return <VajraLoader fullPage />;
     }
 
     return (
@@ -546,7 +543,7 @@ export default function InventoryPage() {
 
             {/* Grid */}
             {filtered.length === 0 ? (
-                <div className="glass p-16 text-center">
+                <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
                     <Package className="w-12 h-12 text-text-muted mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">
                         {items.length === 0 ? "Inventory is empty" : "No matches"}
@@ -647,7 +644,7 @@ export default function InventoryPage() {
                                         {isAuthenticated && isAvailable && (
                                             <button
                                                 onClick={() => setRequestItem(item)}
-                                                className="btn-primary text-[11px] !py-1.5 !px-3 !rounded-lg"
+                                                className="hover-shine bg-[#00e5ff] hover:bg-[#00cce6] text-black font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-none shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:shadow-[0_0_20px_rgba(0,229,255,0.5)] transition-all"
                                             >
                                                 Request
                                             </button>
