@@ -419,7 +419,7 @@ function RequestModal({
                             <button
                                 type="submit"
                                 disabled={loading || !reason.trim() || quantity < 1}
-                                className="hover-shine bg-[#00e5ff] hover:bg-[#00cce6] text-black font-bold uppercase tracking-widest flex items-center justify-center gap-2 w-full py-3 rounded-none shadow-[0_0_20px_rgba(0,229,255,0.2)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin text-black" />
@@ -644,7 +644,7 @@ export default function InventoryPage() {
                                         {isAuthenticated && isAvailable && (
                                             <button
                                                 onClick={() => setRequestItem(item)}
-                                                className="hover-shine bg-[#00e5ff] hover:bg-[#00cce6] text-black font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-none shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:shadow-[0_0_20px_rgba(0,229,255,0.5)] transition-all"
+                                                className="btn-primary !px-4 !py-2 text-[11px]"
                                             >
                                                 Request
                                             </button>
