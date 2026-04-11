@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { KeyboardEvent, useState } from "react";
 import { motion } from "framer-motion";
 import { Tables } from "@/types/database";
 import {
@@ -15,7 +15,8 @@ import {
     Zap,
     Plus,
     Trash2,
-    Loader2
+    Loader2,
+    Pencil
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
@@ -88,8 +89,12 @@ const fadeUp = {
 export default function EventsClient({ events }: { events: Event[] }) {
     const { isFaculty, isModerator, isAuthenticated } = useUser();
     const router = useRouter();
+    const supabase = createClient();
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
+    const [failedImageIds, setFailedImageIds] = useState<string[]>([]);
+    const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
     const now = new Date();
     const upcoming = events.filter((e) => new Date(e.starts_at) >= now);
@@ -99,8 +104,6 @@ export default function EventsClient({ events }: { events: Event[] }) {
         if (!window.confirm("Are you sure you want to delete this event?")) return;
         setDeletingId(id);
         try {
-            const supabase = createClient();
-            
             if (imageUrl) {
                 const urlParts = imageUrl.split('/event-images/');
                 const filename = urlParts.length > 1 ? urlParts[1] : null;
@@ -120,6 +123,73 @@ export default function EventsClient({ events }: { events: Event[] }) {
             setDeletingId(null);
         }
     };
+
+    const isTouchCardInteraction = () =>
+        typeof window !== "undefined" &&
+        window.matchMedia("(hover: none), (pointer: coarse)").matches;
+
+    const toggleCardFlip = (id: string) => {
+        if (!isTouchCardInteraction()) return;
+        setFlippedCardId((current) => (current === id ? null : id));
+    };
+
+    const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>, id: string) => {
+        if (!isTouchCardInteraction()) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        toggleCardFlip(id);
+    };
+
+    const getCoverImageUrl = (event: Event) => {
+        if (!event.cover_image_url) return null;
+        if (event.cover_image_url.startsWith("http://") || event.cover_image_url.startsWith("https://")) {
+            return event.cover_image_url;
+        }
+
+        const normalizedPath = event.cover_image_url
+            .replace(/^\/+/, "")
+            .replace(/^event-images\//, "");
+
+        return supabase.storage.from("event-images").getPublicUrl(normalizedPath).data.publicUrl;
+    };
+
+    const renderDeleteButton = (
+        eventId: string,
+        imageUrl: string | null,
+        className?: string
+    ) => (
+        <button
+            onClick={(clickEvent) => {
+                clickEvent.stopPropagation();
+                handleDelete(eventId, imageUrl);
+            }}
+            disabled={deletingId === eventId}
+            className={`event-poster-card__delete ${className ?? ""}`}
+            title="Delete Event"
+            aria-label="Delete event"
+        >
+            {deletingId === eventId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+                <Trash2 className="h-4 w-4" />
+            )}
+        </button>
+    );
+
+    const renderEditButton = (event: Event, className?: string) => (
+        <button
+            onClick={(clickEvent) => {
+                clickEvent.stopPropagation();
+                setEditingEvent(event);
+                setIsEventModalOpen(true);
+            }}
+            className={`event-poster-card__edit ${className ?? ""}`}
+            title="Edit Event"
+            aria-label="Edit event"
+        >
+            <Pencil className="h-4 w-4" />
+        </button>
+    );
 
     return (
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
@@ -161,7 +231,7 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                     <div className="h-2 w-2 animate-pulse rounded-sm bg-cyan-300" />
                                     Upcoming
                                 </h2>
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div className="grid grid-cols-1 justify-items-center gap-6 md:grid-cols-2 xl:grid-cols-3">
                                     {upcoming.map((event, i) => {
                                         const config =
                                             eventTypeConfig[event.event_type] ?? eventTypeConfig.other;
@@ -173,85 +243,114 @@ export default function EventsClient({ events }: { events: Event[] }) {
                                                 initial="hidden"
                                                 animate="visible"
                                                 variants={fadeUp}
-                                                className="glass energy-card group relative overflow-hidden rounded-lg border-[var(--ghost-border)] transition-all duration-500 hover:border-cyan-300/30"
+                                                className="group relative w-full max-w-[290px]"
                                             >
-                                                {(isFaculty || isModerator) && (
-                                                    <button
-                                                        onClick={() => handleDelete(event.id, event.cover_image_url)}
-                                                        disabled={deletingId === event.id}
-                                                        className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-red-500/80 flex items-center justify-center text-white hover:bg-red-600 transition-colors disabled:opacity-50"
-                                                        title="Delete Event"
-                                                    >
-                                                        {deletingId === event.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                                    </button>
-                                                )}
-                                                {event.cover_image_url && (
-                                                    <div className="aspect-[2.5/1] overflow-hidden">
-                                                        <img
-                                                            src={event.cover_image_url}
-                                                            alt={event.title}
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div className="p-5 sm:p-6">
-                                                    <div className="flex items-start gap-3 mb-4">
-                                                        <div
-                                                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${config.bg} ${config.border}`}
-                                                        >
-                                                            <Icon className={`h-5 w-5 ${config.color}`} />
+                                                <article
+                                                    className={`event-poster-card ${flippedCardId === event.id ? "is-flipped" : ""}`}
+                                                    onClick={(clickEvent) => {
+                                                        const target = clickEvent.target as HTMLElement;
+                                                        if (target.closest("a, button")) return;
+                                                        toggleCardFlip(event.id);
+                                                    }}
+                                                    onKeyDown={(keyEvent) => handleCardKeyDown(keyEvent, event.id)}
+                                                    tabIndex={0}
+                                                    aria-label={`${event.title} event card`}
+                                                >
+                                                    <div className="event-poster-card__inner">
+                                                        <div className="event-poster-card__face event-poster-card__face--front">
+                                                            {event.cover_image_url && !failedImageIds.includes(event.id) ? (
+                                                                <img
+                                                                    src={getCoverImageUrl(event) ?? undefined}
+                                                                    alt={event.title}
+                                                                    className="event-poster-card__image"
+                                                                    onError={() =>
+                                                                        setFailedImageIds((current) =>
+                                                                            current.includes(event.id) ? current : [...current, event.id]
+                                                                        )
+                                                                    }
+                                                                />
+                                                            ) : (
+                                                                <div className="event-poster-card__image event-poster-card__image--fallback">
+                                                                    <span>{event.title}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div className="min-w-0">
-                                                            <span
-                                                                className={`badge text-[10px] ${config.bg} ${config.color} border ${config.border} mb-2`}
-                                                            >
-                                                                {event.event_type}
-                                                            </span>
-                                                            <h3 className="text-base font-semibold leading-tight sm:text-lg">
-                                                                {event.title}
-                                                            </h3>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-sm text-text-secondary line-clamp-2 mb-4">
-                                                        {event.description}
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-muted">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <Calendar className="w-3.5 h-3.5" />
-                                                            {formatDate(event.starts_at)}
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <Clock className="w-3.5 h-3.5" />
-                                                            {formatTime(event.starts_at)}
-                                                        </div>
-                                                        {event.location && (
-                                                            <div className="flex items-center gap-1.5">
-                                                                <MapPin className="w-3.5 h-3.5" />
-                                                                {event.location}
+
+                                                        <div className="event-poster-card__face event-poster-card__face--back">
+                                                            {(isFaculty || isModerator) && (
+                                                                <>
+                                                                    {renderEditButton(event)}
+                                                                    {renderDeleteButton(
+                                                                        event.id,
+                                                                        event.cover_image_url,
+                                                                        "event-poster-card__delete--stacked"
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                            <div className="event-poster-card__glow" />
+                                                            <div className="event-poster-card__content">
+                                                                <div className="flex items-start justify-between gap-3">
+                                                                    <span
+                                                                        className={`event-poster-card__badge ${config.bg} ${config.color} border ${config.border}`}
+                                                                    >
+                                                                        <Icon className="h-3.5 w-3.5" />
+                                                                        {event.event_type}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="space-y-3">
+                                                                    <h3 className="text-lg font-semibold leading-tight text-text">
+                                                                        {event.title}
+                                                                    </h3>
+                                                                    <p className="line-clamp-3 text-sm leading-6 text-text-secondary">
+                                                                        {event.description}
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className="space-y-3 text-sm">
+                                                                    <div className="event-poster-card__meta event-poster-card__meta--accent">
+                                                                        <Calendar className="h-4 w-4" />
+                                                                        <span>{formatDate(event.starts_at)}</span>
+                                                                    </div>
+                                                                    <div className="event-poster-card__meta event-poster-card__meta--accent">
+                                                                        <Clock className="h-4 w-4" />
+                                                                        <span>{formatTime(event.starts_at)}</span>
+                                                                    </div>
+                                                                    {event.location && (
+                                                                        <div className="event-poster-card__meta text-text-secondary">
+                                                                            <MapPin className="h-4 w-4 text-text-muted" />
+                                                                            <span>{event.location}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="mt-auto pt-2">
+                                                                    {event.registration_url ? (
+                                                                        event.is_exclusive && !isAuthenticated ? (
+                                                                            <div className="border border-amber-400/20 bg-amber-400/8 px-3 py-3 text-xs font-medium text-amber-300">
+                                                                                Club exclusive event. Login to register.
+                                                                            </div>
+                                                                        ) : (
+                                                                            <a
+                                                                                href={event.registration_url}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="btn-primary inline-flex w-full justify-center text-xs !px-4 !py-2.5"
+                                                                            >
+                                                                                Register
+                                                                                <ExternalLink className="ml-1 h-3 w-3" />
+                                                                            </a>
+                                                                        )
+                                                                    ) : (
+                                                                        <div className="border border-[rgba(140,188,255,0.16)] bg-[rgba(255,255,255,0.03)] px-3 py-3 text-center text-xs text-text-muted">
+                                                                            Registration details coming soon
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        )}
+                                                        </div>
                                                     </div>
-                                                    {event.registration_url && (
-                                                        event.is_exclusive && !isAuthenticated ? (
-                                                            <div className="mt-4 pt-4 border-t border-border/50">
-                                                                <p className="text-xs text-amber-400 font-medium flex items-center gap-1.5">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                                                    Club Exclusive Event. Login to register.
-                                                                </p>
-                                                            </div>
-                                                        ) : (
-                                                            <a
-                                                                href={event.registration_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="btn-primary text-xs !py-2 !px-4 mt-4 inline-flex"
-                                                            >
-                                                                Register
-                                                                <ExternalLink className="w-3 h-3 ml-1" />
-                                                            </a>
-                                                        )
-                                                    )}
-                                                </div>
+                                                </article>
                                             </motion.div>
                                         );
                                     })}
@@ -302,8 +401,12 @@ export default function EventsClient({ events }: { events: Event[] }) {
 
             <EventModal
                 isOpen={isEventModalOpen}
-                onClose={() => setIsEventModalOpen(false)}
+                onClose={() => {
+                    setIsEventModalOpen(false);
+                    setEditingEvent(null);
+                }}
                 onSuccess={() => router.refresh()}
+                event={editingEvent}
             />
         </div>
     );

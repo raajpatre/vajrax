@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -39,10 +40,16 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.7, delay: 0.1 }}
-                            className="mb-5 text-4xl font-black leading-[0.92] tracking-[-0.045em] sm:mb-6 sm:text-6xl md:text-7xl lg:text-8xl"
+                            className="mb-5 flex justify-center sm:mb-6"
                         >
-                            <span className="text-gradient">Vajra</span>
-                            <span className="text-foreground">X</span>
+                            <Image
+                                src="/vajrax-wordmark.png"
+                                alt="VajraX"
+                                width={720}
+                                height={172}
+                                className="h-auto w-full max-w-[280px] object-contain sm:max-w-[420px] md:max-w-[560px] lg:max-w-[640px]"
+                                priority
+                            />
                         </motion.h1>
 
                         <motion.p
