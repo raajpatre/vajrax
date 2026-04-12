@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      applicants: {
+        Row: {
+          created_at: string
+          current_semester: number
+          email: string
+          encrypted_password: string
+          first_name: string
+          id: string
+          last_name: string
+          purpose: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["applicant_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_semester: number
+          email: string
+          encrypted_password: string
+          first_name: string
+          id?: string
+          last_name: string
+          purpose: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["applicant_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_semester?: number
+          email?: string
+          encrypted_password?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          purpose?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["applicant_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicants_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_id: string
@@ -894,6 +950,7 @@ export type Database = {
       }
     }
     Enums: {
+      applicant_status: "pending" | "approved" | "rejected"
       request_status:
         | "pending"
         | "approved"
@@ -1035,6 +1092,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      applicant_status: ["pending", "approved", "rejected"],
       request_status: [
         "pending",
         "approved",

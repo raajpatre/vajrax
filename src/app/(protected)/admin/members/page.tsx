@@ -9,19 +9,13 @@ import {
     revokeSafetyCertification,
 } from "@/actions/safety-certifications";
 import {
-    Users,
+    AlertCircle,
     ShieldCheck,
-    Loader2,
     User,
     Search,
     ChevronDown,
-    Plus,
     X,
-    UserPlus,
-    Mail,
-    Lock,
-    CheckCircle2,
-    AlertCircle,
+    Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -77,145 +71,6 @@ const roleBadge: Record<string, string> = {
     faculty: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
 };
 
-// ─── Add Member Modal ────────────────────────────────
-function AddMemberModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
-
-        const res = await fetch("/api/admin/register-member", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: email.trim(),
-                password,
-                displayName: fullName.trim(),
-            }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            setError(data.error || "Failed to register member");
-            setLoading(false);
-            return;
-        }
-
-        setSuccess(true);
-        setLoading(false);
-        setTimeout(() => {
-            onSuccess();
-            onClose();
-        }, 1500);
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong p-4 md:p-6 w-full max-w-md relative z-10"
-            >
-                <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <UserPlus className="w-5 h-5 text-primary-light" />
-                        Register New Member
-                    </h3>
-                    <button onClick={onClose} className="text-text-muted hover:text-foreground transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {success ? (
-                    <div className="text-center py-6">
-                        <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                        <p className="text-lg font-semibold text-emerald-400">Member Registered!</p>
-                        <p className="text-sm text-text-muted mt-1">They can now log in immediately.</p>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-                                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                                {error}
-                            </div>
-                        )}
-
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1.5">Full Name</label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                                <input
-                                    type="text"
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
-                                    required
-                                    placeholder="John Doe"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1.5">Email</label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    placeholder="member@college.edu"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1.5">Password</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    minLength={6}
-                                    placeholder="Min 6 characters"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading || !fullName.trim() || !email.trim()}
-                            className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                            {loading ? "Registering..." : "Register Member"}
-                        </button>
-
-                        <p className="text-[10px] text-text-muted text-center">
-                            No verification email will be sent. The member can log in immediately.
-                        </p>
-                    </form>
-                )}
-            </motion.div>
-        </div>
-    );
-}
-
 // ─── Member Row ──────────────────────────────────────
 function MemberRow({
     member,
@@ -224,6 +79,9 @@ function MemberRow({
     onTagsChange,
     onSafetyCertsChange,
     updatingId,
+    deletingId,
+    currentUserId,
+    onDeleteMember,
 }: any) {
     const [tagInput, setTagInput] = useState("");
     const [certInput, setCertInput] = useState("");
@@ -231,6 +89,8 @@ function MemberRow({
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [isUpdatingTag, setIsUpdatingTag] = useState(false);
     const [isUpdatingCert, setIsUpdatingCert] = useState(false);
+    const isDeleting = deletingId === member.id;
+    const isSelf = currentUserId === member.id;
 
     const parsedTags: TagObject[] = (member.custom_tags || []).map(parseTag);
 
@@ -424,20 +284,33 @@ function MemberRow({
                 </div>
             </div>
 
-            {/* Role selector */}
-            <div className="relative flex-shrink-0 self-start sm:self-center">
-                <select
-                    value={member.role}
-                    onChange={(e) => onRoleChange(member.id, e.target.value)}
-                    disabled={updatingId === member.id}
-                    className={`appearance-none pl-3 pr-8 py-1.5 rounded-lg text-[11px] font-semibold border cursor-pointer focus:outline-none transition-all ${roleBadge[member.role] || roleBadge.member
-                        } ${updatingId === member.id ? "opacity-50" : ""}`}
+            {/* Actions */}
+            <div className="flex flex-shrink-0 self-start sm:self-center items-center gap-2">
+                <div className="relative">
+                    <select
+                        value={member.role}
+                        onChange={(e) => onRoleChange(member.id, e.target.value)}
+                        disabled={updatingId === member.id || isDeleting}
+                        className={`appearance-none pl-3 pr-8 py-1.5 rounded-lg text-[11px] font-semibold border cursor-pointer focus:outline-none transition-all ${roleBadge[member.role] || roleBadge.member
+                            } ${updatingId === member.id || isDeleting ? "opacity-50" : ""}`}
+                    >
+                        {roles.map((r) => (
+                            <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => onDeleteMember(member)}
+                    disabled={isDeleting || isSelf}
+                    title={isSelf ? "You cannot delete your own account" : "Remove member"}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 transition-all hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                    {roles.map((r) => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                    {isDeleting ? <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    Remove
+                </button>
             </div>
         </motion.div>
     );
@@ -445,13 +318,14 @@ function MemberRow({
 
 // ─── Main Page ───────────────────────────────────────
 export default function MemberManagement() {
-    const { isModerator, isFaculty, loading: authLoading } = useUser();
+    const { user, isModerator, isFaculty, loading: authLoading } = useUser();
     const supabase = createClient();
     const [members, setMembers] = useState<MemberProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [updatingId, setUpdatingId] = useState<string | null>(null);
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchMembers = useCallback(async () => {
         const { data } = await supabase
@@ -499,6 +373,37 @@ export default function MemberManagement() {
         );
     }, []);
 
+    const handleDeleteMember = useCallback(async (member: MemberProfile) => {
+        if (member.id === user?.id) {
+            setError("You cannot delete your own account from this page.");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Delete ${member.display_name} permanently? This will remove their account and prevent future sign-in.`
+        );
+
+        if (!confirmed) return;
+
+        setDeletingId(member.id);
+        setError(null);
+
+        const response = await fetch(`/api/admin/members/${member.id}`, {
+            method: "DELETE",
+        });
+
+        const data = await response.json().catch(() => ({ error: "Failed to delete member." }));
+
+        if (!response.ok) {
+            setError(data.error || "Failed to delete member.");
+            setDeletingId(null);
+            return;
+        }
+
+        setMembers((prev) => prev.filter((entry) => entry.id !== member.id));
+        setDeletingId(null);
+    }, [user?.id]);
+
     if (authLoading || loading) {
         return <VajraLoader fullPage />;
     }
@@ -531,14 +436,6 @@ export default function MemberManagement() {
                         </p>
                     </div>
                 </div>
-
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="btn-primary flex items-center gap-2 text-sm"
-                >
-                    <UserPlus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Add Member</span>
-                </button>
             </div>
 
             {/* Search */}
@@ -553,6 +450,13 @@ export default function MemberManagement() {
                 />
             </div>
 
+            {error && (
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {error}
+                </div>
+            )}
+
             {/* List */}
             <div className="space-y-2">
                 {filtered.map((member) => (
@@ -564,19 +468,12 @@ export default function MemberManagement() {
                         onTagsChange={handleTagsChange}
                         onSafetyCertsChange={handleSafetyCertsChange}
                         updatingId={updatingId}
+                        deletingId={deletingId}
+                        currentUserId={user?.id ?? null}
+                        onDeleteMember={handleDeleteMember}
                     />
                 ))}
             </div>
-
-            {/* Add Member Modal */}
-            <AnimatePresence>
-                {showAddModal && (
-                    <AddMemberModal
-                        onClose={() => setShowAddModal(false)}
-                        onSuccess={() => fetchMembers()}
-                    />
-                )}
-            </AnimatePresence>
         </div>
     );
 }

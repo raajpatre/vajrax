@@ -40,6 +40,7 @@ const links: SidebarLink[] = [
     // Admin
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, section: "ADMIN", adminOnly: true },
     { href: "/admin/members", label: "Members", icon: Users, section: "ADMIN", adminOnly: true },
+    { href: "/admin/applicants", label: "New Applicants", icon: Mail, section: "ADMIN", adminOnly: true },
     { href: "/admin/requests", label: "Equipment Requests", icon: Package, section: "ADMIN", inventoryOnly: true },
     { href: "/admin/inventory", label: "Manage Inventory", icon: Package, section: "ADMIN", inventoryOnly: true },
     { href: "/admin/inventory-history", label: "Inventory History", icon: History, section: "ADMIN", inventoryOnly: true },

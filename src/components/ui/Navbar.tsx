@@ -587,6 +587,16 @@ export default function Navbar() {
                                                         Manage Members
                                                     </Link>
                                                 )}
+                                                {(isFaculty || isModerator) && (
+                                                    <Link
+                                                        href="/admin/applicants"
+                                                        onClick={closeMenu}
+                                                        className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                                    >
+                                                        <Mail className="w-4 h-4" />
+                                                        New Applicants
+                                                    </Link>
+                                                )}
                                                 <Link
                                                     href="/admin/requests"
                                                     onClick={closeMenu}
