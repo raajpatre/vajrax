@@ -1,28 +1,28 @@
-# VajraX Inventory History Google Sheets Sync
+# VajraX Inventory Google Sheets Sync
 
-VajraX can push the request decision history into a Google Sheet and keep borrowing rows updated as items are returned.
+VajraX can sync both inventory request history and the live stock snapshot into the same Google Sheets file.
 
 ## 1. Create the Google Sheet
 
-Create a Google Sheet named something like `VajraX Inventory History`.
+Create a Google Sheet named something like `VajraX Inventory Sync`.
 
-Recommended columns in the first row:
+The Apps Script will automatically manage two worksheet tabs:
 
-1. `Date`
-2. `Time (24h)`
-3. `Requester Username`
-4. `Requester Email`
-5. `Item Requested`
-6. `Approved/Rejected`
-7. `Reviewed By`
-8. `Reviewer Email`
-9. `Lifecycle Status`
+1. `Inventory History`
+2. `Inventory Stocks`
 
-VajraX also uses one hidden helper column named `Sync Key` so the script can update existing borrowing rows in place.
+`Inventory History` keeps the existing history columns plus a hidden helper column named `Sync Key`.
+
+`Inventory Stocks` uses these columns:
+
+1. `Component Category`
+2. `Component name`
+3. `available quantity`
+4. `total quantity`
 
 ## 2. Add an Apps Script webhook
 
-Open `Extensions -> Apps Script` in the sheet and replace the default code with the contents of [docs/google-apps-script-inventory-history.js](/Users/raaj.dev/Documents/AntiGravity/My Projects /VajraX/vajrax/docs/google-apps-script-inventory-history.js), or paste this:
+Open `Extensions -> Apps Script` in the sheet and replace the default code with the contents of [docs/google-apps-script-inventory-history.js](/Users/raaj.dev/Documents/AntiGravity/My Projects /VajraX/vajrax/docs/google-apps-script-inventory-history.js).
 
 ```javascript
 const HEADER_ROW = [
@@ -113,14 +113,17 @@ NEXT_PUBLIC_GOOGLE_SHEET_URL=https://docs.google.com/spreadsheets/d/your-sheet-i
 
 ## 4. How it works
 
-- Every rejected request creates one row.
-- Every permanent approval creates one row.
-- Every approved borrowing unit creates one row with `Return pending`.
-- When a borrowed unit is returned, the same row is updated to `Returned in X condition`.
-- The `Sync to Sheet` button in the admin inventory history page sends a full backfill using `replace` mode in chronological order.
+- The `Inventory History` tab keeps the existing request decision and borrow-return history behavior.
+- Every rejected request creates one history row.
+- Every permanent approval creates one history row.
+- Every approved borrowing unit creates one history row with `Return pending`.
+- When a borrowed unit is returned, the same history row is updated to `Returned in X condition`.
+- The `Inventory Stocks` tab is always a full snapshot of current `inventory_items`.
+- Inventory stock sync runs automatically after item create/edit/delete, request approvals that change stock, and returns that change stock.
+- The `Sync to Sheet` button in the admin history page backfills both tabs.
 - VajraX remains the source of truth; the sheet is a reporting and operations view.
 
 ## Notes
 
-- This integration syncs rejected requests, permanent approvals, and borrowing units.
+- This integration syncs both history rows and the current stock table.
 - The in-app admin log is intentionally slimmer than the sheet and shows only date, requester, item, decision, and reviewer.

@@ -1,4 +1,5 @@
 export type InventoryHistorySyncMode = "append" | "replace" | "upsert";
+export type GoogleSheetTarget = "history" | "stocks";
 
 export type InventoryHistorySyncRow = {
     syncKey: string;
@@ -13,6 +14,13 @@ export type InventoryHistorySyncRow = {
     lifecycleStatus: string;
 };
 
+export type InventoryStockSyncRow = {
+    category: string;
+    name: string;
+    availableQuantity: number;
+    totalQuantity: number;
+};
+
 function getWebhookUrl() {
     return process.env.GOOGLE_SHEETS_WEBHOOK_URL?.trim() || null;
 }
@@ -21,19 +29,20 @@ export function isInventoryHistorySheetSyncConfigured() {
     return Boolean(getWebhookUrl());
 }
 
-export async function syncInventoryHistoryRowsToGoogleSheets(input: {
+async function postGoogleSheetsPayload(payload: {
+    sheet: GoogleSheetTarget;
     mode: InventoryHistorySyncMode;
-    rows: InventoryHistorySyncRow[];
+    rows: InventoryHistorySyncRow[] | InventoryStockSyncRow[];
 }) {
     const webhookUrl = getWebhookUrl();
 
-    if (!webhookUrl || input.rows.length === 0) {
+    if (!webhookUrl || payload.rows.length === 0) {
         return {
             ok: false as const,
             skipped: true as const,
             message: !webhookUrl
                 ? "Google Sheets webhook URL is not configured."
-                : "No inventory history rows were provided for sync.",
+                : `No ${payload.sheet} rows were provided for sync.`,
         };
     }
 
@@ -46,10 +55,11 @@ export async function syncInventoryHistoryRowsToGoogleSheets(input: {
         },
         body: JSON.stringify({
             source: "vajrax",
-            mode: input.mode,
+            sheet: payload.sheet,
+            mode: payload.mode,
             sentAt: new Date().toISOString(),
             secret: secret || null,
-            rows: input.rows,
+            rows: payload.rows,
         }),
         cache: "no-store",
     });
@@ -63,4 +73,26 @@ export async function syncInventoryHistoryRowsToGoogleSheets(input: {
         ok: true as const,
         skipped: false as const,
     };
+}
+
+export async function syncInventoryHistoryRowsToGoogleSheets(input: {
+    mode: InventoryHistorySyncMode;
+    rows: InventoryHistorySyncRow[];
+}) {
+    return postGoogleSheetsPayload({
+        sheet: "history",
+        mode: input.mode,
+        rows: input.rows,
+    });
+}
+
+export async function syncInventoryStockRowsToGoogleSheets(input: {
+    mode: InventoryHistorySyncMode;
+    rows: InventoryStockSyncRow[];
+}) {
+    return postGoogleSheetsPayload({
+        sheet: "stocks",
+        mode: input.mode,
+        rows: input.rows,
+    });
 }

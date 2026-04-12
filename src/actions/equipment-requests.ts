@@ -12,7 +12,11 @@ import {
     getReturnedLifecycleLabel,
     type ReturnCondition,
 } from "@/lib/inventory-requests";
-import { syncInventoryHistoryRowsToGoogleSheets } from "@/lib/inventory-history-sync";
+import {
+    syncInventoryHistoryRowsToGoogleSheets,
+    syncInventoryStockRowsToGoogleSheets,
+} from "@/lib/inventory-history-sync";
+import { getInventoryStockRows } from "@/actions/inventory-history";
 import type { Database } from "@/types/database";
 
 const MODERATOR_ROLES = new Set<Database["public"]["Enums"]["user_role"]>([
@@ -315,6 +319,18 @@ async function revalidateInventoryPaths() {
     revalidatePath("/inventory");
 }
 
+async function syncInventoryStocksSnapshot() {
+    try {
+        const rows = await getInventoryStockRows();
+        await syncInventoryStockRowsToGoogleSheets({
+            mode: "replace",
+            rows,
+        });
+    } catch (syncError) {
+        console.error("Failed to sync inventory stocks to Google Sheets:", syncError);
+    }
+}
+
 export async function reviewEquipmentRequest(
     input: ReviewRequestInput
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -454,6 +470,8 @@ export async function reviewEquipmentRequest(
                 return { ok: false, error: returnUnitError.message };
             }
 
+            await syncInventoryStocksSnapshot();
+
             try {
                 const emailMap = await getUserEmails([req.requester.id, user.id]);
                 await syncInventoryHistoryRowsToGoogleSheets({
@@ -471,6 +489,9 @@ export async function reviewEquipmentRequest(
             } catch (syncError) {
                 console.error("Failed to sync borrow approval rows to Google Sheets:", syncError);
             }
+        }
+        if (req.request_type === "permanent") {
+            await syncInventoryStocksSnapshot();
         }
     }
 
@@ -670,6 +691,8 @@ export async function logBorrowedEquipmentReturns(
     if (historyError) {
         return { ok: false, error: historyError.message };
     }
+
+    await syncInventoryStocksSnapshot();
 
     try {
         const emailMap = await getUserEmails([req.requester.id, req.approved_by || ""]);

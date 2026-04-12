@@ -26,7 +26,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { logBorrowedEquipmentReturns, reviewEquipmentRequest } from "@/actions/equipment-requests";
-import { syncInventoryHistoryToGoogleSheets } from "@/actions/inventory-history";
+import { syncInventorySheetsToGoogleSheets } from "@/actions/inventory-history";
 import {
     RETURN_CONDITIONS,
     getReturnConditionLabel,
@@ -594,13 +594,15 @@ export default function AdminRequestsPage() {
     const handleSheetSync = () => {
         setSyncMessage(null);
         startSyncTransition(async () => {
-            const result = await syncInventoryHistoryToGoogleSheets();
+            const result = await syncInventorySheetsToGoogleSheets();
             if (!result.ok) {
                 setSyncMessage(result.error);
                 return;
             }
 
-            setSyncMessage(`Synced ${result.count} history entr${result.count === 1 ? "y" : "ies"} to Google Sheets in chronological order.`);
+            setSyncMessage(
+                `Synced ${result.historyCount} history entr${result.historyCount === 1 ? "y" : "ies"} and ${result.stockCount} stock row${result.stockCount === 1 ? "" : "s"} to Google Sheets.`
+            );
         });
     };
 
@@ -849,7 +851,7 @@ export default function AdminRequestsPage() {
                                 <p className="text-sm font-medium">Google Sheets Sync</p>
                                 <p className="text-xs text-text-muted mt-1">
                                     {isGoogleSheetConfigured
-                                        ? "Exports requester and approver details to the linked sheet in oldest-to-newest order."
+                                        ? "Backfills both the inventory history tab and the Inventory Stocks tab in the linked sheet."
                                         : "Set NEXT_PUBLIC_GOOGLE_SHEET_URL and GOOGLE_SHEETS_WEBHOOK_URL to link Google Sheets."}
                                 </p>
                             </div>

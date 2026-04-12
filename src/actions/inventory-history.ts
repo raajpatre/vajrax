@@ -14,7 +14,9 @@ import {
 import {
     isInventoryHistorySheetSyncConfigured,
     syncInventoryHistoryRowsToGoogleSheets,
+    syncInventoryStockRowsToGoogleSheets,
     type InventoryHistorySyncRow,
+    type InventoryStockSyncRow,
 } from "@/lib/inventory-history-sync";
 import type { Database } from "@/types/database";
 
@@ -159,6 +161,99 @@ function mapBorrowUnitRows(rows: BorrowUnitRow[], emailMap: EmailMap) {
             };
         })
         .filter((row): row is InventoryHistorySyncRow => Boolean(row));
+}
+
+export async function getInventoryStockRows() {
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase
+        .from("inventory_items")
+        .select("category, name, available_quantity, total_quantity")
+        .order("category", { ascending: true })
+        .order("name", { ascending: true });
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    return (data || []).map(
+        (item): InventoryStockSyncRow => ({
+            category: item.category,
+            name: item.name,
+            availableQuantity: item.available_quantity,
+            totalQuantity: item.total_quantity,
+        })
+    );
+}
+
+export async function syncInventoryStocksToGoogleSheets(): Promise<
+    { ok: true; count: number; sheetUrl: string | null } | { ok: false; error: string }
+> {
+    if (!isInventoryHistorySheetSyncConfigured()) {
+        return { ok: false, error: "Google Sheets sync is not configured on the server." };
+    }
+
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { ok: false, error: "Not authenticated" };
+    }
+
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+    if (profileError || !profile || !INVENTORY_SYNC_ROLES.has(profile.role)) {
+        return { ok: false, error: "Not authorized" };
+    }
+
+    try {
+        const rows = await getInventoryStockRows();
+        await syncInventoryStockRowsToGoogleSheets({
+            mode: "replace",
+            rows,
+        });
+
+        return {
+            ok: true,
+            count: rows.length,
+            sheetUrl: process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL?.trim() || null,
+        };
+    } catch (syncError) {
+        return {
+            ok: false,
+            error:
+                syncError instanceof Error
+                    ? syncError.message
+                    : "Failed to sync inventory stocks to Google Sheets.",
+        };
+    }
+}
+
+export async function syncInventorySheetsToGoogleSheets(): Promise<
+    | { ok: true; historyCount: number; stockCount: number; sheetUrl: string | null }
+    | { ok: false; error: string }
+> {
+    const historyResult = await syncInventoryHistoryToGoogleSheets();
+    if (!historyResult.ok) {
+        return historyResult;
+    }
+
+    const stockResult = await syncInventoryStocksToGoogleSheets();
+    if (!stockResult.ok) {
+        return stockResult;
+    }
+
+    return {
+        ok: true,
+        historyCount: historyResult.count,
+        stockCount: stockResult.count,
+        sheetUrl: historyResult.sheetUrl,
+    };
 }
 
 export async function syncInventoryHistoryToGoogleSheets(): Promise<
