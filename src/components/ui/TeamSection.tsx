@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Github, Linkedin, Mail, User as UserIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Tables } from "@/types/database";
-import { GlowCard } from "@/components/ui/spotlight-card";
 
 type Profile = Tables<"profiles">;
 
@@ -27,7 +26,6 @@ export function TeamSection({
     <div className="hidden gap-6 pb-24 lg:grid lg:grid-cols-3 xl:grid-cols-4">
       {profiles.map((profile, index) => {
         const role = roleMap[profile.role] ?? roleMap.member;
-        const glowColor = "cyan";
 
         return (
           <motion.div
@@ -48,11 +46,7 @@ export function TeamSection({
             role="button"
             tabIndex={0}
           >
-            <GlowCard
-              glowColor={glowColor}
-              customSize
-              className="h-full min-h-[380px] w-full overflow-hidden rounded-lg bg-[#0a0f1c]/95 p-[1px] shadow-[0_24px_70px_rgba(0,0,0,0.45)]"
-            >
+            <div className="h-full min-h-[380px] w-full overflow-hidden rounded-lg border border-white/10 bg-[#0a0f1c]/95 p-[1px] shadow-[0_24px_70px_rgba(0,0,0,0.45)]">
               <div className="relative flex h-full flex-col items-center rounded-lg bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.08),rgba(10,15,28,0.98)_42%,rgba(7,10,18,1))] px-6 py-7 text-center">
                 <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent" />
 
@@ -130,7 +124,7 @@ export function TeamSection({
                   ) : null}
                 </div>
               </div>
-            </GlowCard>
+            </div>
           </motion.div>
         );
       })}
