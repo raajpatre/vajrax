@@ -112,7 +112,7 @@ function SponsorMarquee({ sponsors }: { sponsors: Sponsor[] }) {
     if (sortedSponsors.length === 0) {
         return (
             <div className="glass-strong rounded-lg border-[var(--ghost-border)] px-6 py-10 text-center text-sm text-slate-300">
-                Sponsor logos will appear here once faculty or the club president adds them in Supabase.
+                Sponsor logos will appear here once faculty or the club president adds them.
             </div>
         );
     }

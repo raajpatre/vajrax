@@ -7,6 +7,7 @@ import {
     Users,
     Package,
     History,
+    Mail,
     ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,6 +24,13 @@ export default function AdminDashboard() {
             desc: "View all members, change roles",
             icon: <Users className="w-5 h-5" />,
             color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
+        },
+        {
+            href: "/admin/applicants",
+            label: "New Applicants",
+            desc: "Review pending signups and approve access",
+            icon: <Mail className="w-5 h-5" />,
+            color: "text-amber-300 bg-amber-400/10 border-amber-400/20",
         },
         {
             href: "/admin/requests",

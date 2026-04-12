@@ -1,15 +1,19 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X, Loader2, Image as ImageIcon, Calendar, MapPin, Link2, Upload, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
+import { Tables } from "@/types/database";
+
+type Event = Tables<"events">;
 
 interface EventModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    event?: Event | null;
 }
 
 function normalizeImageUrl(raw: string) {
@@ -32,7 +36,16 @@ function normalizeImageUrl(raw: string) {
     }
 }
 
-export default function EventModal({ isOpen, onClose, onSuccess }: EventModalProps) {
+function toDateTimeLocal(value: string | null) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60_000);
+    return localDate.toISOString().slice(0, 16);
+}
+
+export default function EventModal({ isOpen, onClose, onSuccess, event }: EventModalProps) {
     const { user } = useUser();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -52,6 +65,50 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
     const fileInputRef = useRef<HTMLInputElement>(null);
     const normalizedImageUrl = useMemo(() => normalizeImageUrl(imageUrlInput), [imageUrlInput]);
     const hasEmbedUrl = imageSource === "url" && !!normalizedImageUrl;
+    const isEditing = !!event;
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (event) {
+            setTitle(event.title ?? "");
+            setDescription(event.description ?? "");
+            setEventType(event.event_type ?? "hackathon");
+            setIsExclusive(!!event.is_exclusive);
+            setStartsAt(toDateTimeLocal(event.starts_at));
+            setEndsAt(toDateTimeLocal(event.ends_at));
+            setLocation(event.location ?? "");
+            setRegistrationUrl(event.registration_url ?? "");
+            if (event.cover_image_url) {
+                setImageSource("url");
+                setImageUrlInput(event.cover_image_url);
+                setImagePreview(normalizeImageUrl(event.cover_image_url) || event.cover_image_url);
+                setImageFile(null);
+            } else {
+                setImageSource("upload");
+                setImageFile(null);
+                setImageUrlInput("");
+                setImagePreview(null);
+            }
+        } else {
+            setTitle("");
+            setDescription("");
+            setEventType("hackathon");
+            setIsExclusive(false);
+            setStartsAt("");
+            setEndsAt("");
+            setLocation("");
+            setRegistrationUrl("");
+            setImageSource("upload");
+            setImageFile(null);
+            setImageUrlInput("");
+            setImagePreview(null);
+        }
+
+        setError(null);
+        setLoading(false);
+        setLoadingMessage("");
+    }, [event, isOpen]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -116,7 +173,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
             const startDate = new Date(startsAt).toISOString();
             const endDate = endsAt ? new Date(endsAt).toISOString() : null;
 
-            const { error: insertError } = await supabase.from("events").insert({
+            const payload = {
                 title: title.trim(),
                 description: description.trim(),
                 event_type: eventType,
@@ -126,24 +183,18 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                 location: location.trim() || null,
                 registration_url: registrationUrl.trim() || null,
                 cover_image_url: imageUrl,
-                created_by: user?.id || null,
-            });
+            };
 
-            if (insertError) throw insertError;
-
-            // Reset form
-            setTitle("");
-            setDescription("");
-            setEventType("hackathon");
-            setIsExclusive(false);
-            setStartsAt("");
-            setEndsAt("");
-            setLocation("");
-            setRegistrationUrl("");
-            setImageSource("upload");
-            setImageFile(null);
-            setImageUrlInput("");
-            setImagePreview(null);
+            if (event) {
+                const { error: updateError } = await supabase.from("events").update(payload).eq("id", event.id);
+                if (updateError) throw updateError;
+            } else {
+                const { error: insertError } = await supabase.from("events").insert({
+                    ...payload,
+                    created_by: user?.id || null,
+                });
+                if (insertError) throw insertError;
+            }
             
             onSuccess();
             onClose();
@@ -151,7 +202,7 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
             console.error("Upload error:", err);
             setError(err instanceof Error
                 ? err.message
-                : "An error occurred while creating the event. Ensure SQL policies are applied.");
+                : `An error occurred while ${isEditing ? "updating" : "creating"} the event. Ensure SQL policies are applied.`);
         } finally {
             setLoading(false);
             setLoadingMessage("");
@@ -178,9 +229,11 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                         >
                             <div className="flex items-start justify-between gap-4 border-b border-[var(--ghost-border)] px-4 py-3 sm:items-center sm:px-6 sm:py-4">
                                 <div>
-                                    <h2 className="text-lg font-bold sm:text-xl">Add Event</h2>
+                                    <h2 className="text-lg font-bold sm:text-xl">{isEditing ? "Edit Event" : "Add Event"}</h2>
                                     <p className="mt-1 max-w-[18rem] text-xs text-text-muted sm:max-w-none sm:text-sm">
-                                        Publish a new event with its timing, visibility, and a strong cover visual.
+                                        {isEditing
+                                            ? "Update the event timing, visibility, and poster without leaving the page."
+                                            : "Publish a new event with its timing, visibility, and a strong cover visual."}
                                     </p>
                                 </div>
                                 <button
@@ -470,10 +523,10 @@ export default function EventModal({ isOpen, onClose, onSuccess }: EventModalPro
                                                 {loading ? (
                                                     <span className="inline-flex items-center gap-2">
                                                         <Loader2 className="w-5 h-5 animate-spin" />
-                                                        Saving Event...
+                                                        {isEditing ? "Updating Event..." : "Saving Event..."}
                                                     </span>
                                                 ) : (
-                                                    "Add Event"
+                                                    isEditing ? "Save Changes" : "Add Event"
                                                 )}
                                             </button>
                                         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
@@ -15,9 +15,13 @@ import {
     Save,
     AlertCircle,
     CheckCircle2,
+    RefreshCw,
+    Sheet,
+    ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
+import { syncInventoryStocksToGoogleSheets } from "@/actions/inventory-history";
 
 type InventoryItem = Tables<"inventory_items">;
 
@@ -98,6 +102,13 @@ function ItemModal({
                     setLoading(false);
                     return;
                 }
+            }
+
+            const syncResult = await syncInventoryStocksToGoogleSheets();
+            if (!syncResult.ok) {
+                setError(syncResult.error);
+                setLoading(false);
+                return;
             }
 
             setSuccess(true);
@@ -310,11 +321,16 @@ export default function InventoryManagement() {
     const { isModerator, isFaculty, isInventoryManager, loading: authLoading } = useUser();
     const canManageInventory = isModerator || isFaculty || isInventoryManager;
     const supabase = createClient();
+    const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL?.trim() || null;
+    const isGoogleSheetConfigured = Boolean(googleSheetUrl);
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [editItem, setEditItem] = useState<InventoryItem | null | undefined>(
         undefined
     );
+    const [actionError, setActionError] = useState<string | null>(null);
+    const [syncMessage, setSyncMessage] = useState<string | null>(null);
+    const [isSyncPending, startSyncTransition] = useTransition();
 
     const fetchItems = useCallback(async () => {
         const { data } = await supabase
@@ -331,8 +347,39 @@ export default function InventoryManagement() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this item? This cannot be undone.")) return;
-        await supabase.from("inventory_items").delete().eq("id", id);
+
+        setActionError(null);
+        setSyncMessage(null);
+        const { error } = await supabase.from("inventory_items").delete().eq("id", id);
+        if (error) {
+            setActionError(error.message);
+            return;
+        }
+
+        const syncResult = await syncInventoryStocksToGoogleSheets();
+        if (!syncResult.ok) {
+            setActionError(syncResult.error);
+            return;
+        }
+
         setItems((prev) => prev.filter((i) => i.id !== id));
+    };
+
+    const handleSheetSync = () => {
+        setActionError(null);
+        setSyncMessage(null);
+
+        startSyncTransition(async () => {
+            const result = await syncInventoryStocksToGoogleSheets();
+            if (!result.ok) {
+                setActionError(result.error);
+                return;
+            }
+
+            setSyncMessage(
+                `Synced ${result.count} stock row${result.count === 1 ? "" : "s"} to Google Sheets.`
+            );
+        });
     };
 
     if (authLoading || loading) {
@@ -357,14 +404,51 @@ export default function InventoryManagement() {
                     <h1 className="text-xl font-bold">Inventory Management</h1>
                     <p className="text-xs text-text-muted">{items.length} items</p>
                 </div>
-                <button
-                    onClick={() => setEditItem(null)}
-                    className="btn-primary text-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Item
-                </button>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                        onClick={handleSheetSync}
+                        disabled={isSyncPending || !isGoogleSheetConfigured}
+                        className="btn-primary text-sm disabled:opacity-50"
+                    >
+                        {isSyncPending ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <RefreshCw className="w-4 h-4" />
+                        )}
+                        Sync to Sheet
+                    </button>
+                    <a
+                        href={googleSheetUrl || "https://docs.google.com/spreadsheets/d/1NGiGWa8EceraGPMWFoxipQPOKS6YJbGXjczBaIEgc6k/edit?usp=sharing"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-ghost text-sm"
+                    >
+                        <Sheet className="w-4 h-4" />
+                        Open Sheet
+                        <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                        onClick={() => setEditItem(null)}
+                        className="btn-primary text-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Item
+                    </button>
+                </div>
             </div>
+
+            {actionError && (
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {actionError}
+                </div>
+            )}
+
+            {syncMessage && (
+                <div className="mb-4 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+                    {syncMessage}
+                </div>
+            )}
 
             {/* Table */}
             {items.length === 0 ? (

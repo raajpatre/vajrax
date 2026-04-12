@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Zap, Github, Twitter, Mail, ExternalLink } from "lucide-react";
+import { Github, Twitter, Mail, ExternalLink } from "lucide-react";
 
 const footerLinks = [
     {
@@ -37,13 +38,13 @@ export default function Footer() {
                     {/* Brand */}
                     <div className="text-center md:col-span-2 md:text-left">
                         <Link href="/" className="mb-4 inline-flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-[4px] bg-[rgba(0,229,255,0.12)] border border-[rgba(0,229,255,0.24)] flex items-center justify-center shadow-[0_0_20px_rgba(0,229,255,0.14)]">
-                                <Zap className="w-5 h-5 text-primary-light" />
-                            </div>
-                            <span className="text-xl font-black tracking-tight">
-                                <span className="text-gradient">Vajra</span>
-                                <span className="text-foreground">X</span>
-                            </span>
+                            <Image
+                                src="/vajrax-wordmark.png"
+                                alt="VajraX"
+                                width={184}
+                                height={44}
+                                className="h-7 w-auto object-contain"
+                            />
                         </Link>
                         <p className="mb-6 max-w-sm text-sm leading-relaxed text-text-secondary md:mx-0 mx-auto">
                             The ultimate power in robotics innovation. Building cutting-edge

@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Menu, X, Zap, LogIn, LogOut, User, Users, Package, FolderOpen, Mail, FlaskConical, ClipboardList, Bell, CheckCheck, Loader2 } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, Users, Package, FolderOpen, Mail, FlaskConical, ClipboardList, Bell, CheckCheck, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
@@ -197,14 +198,23 @@ export default function Navbar() {
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,rgba(0,229,255,0),rgba(0,229,255,0.5),rgba(0,218,243,0.3),rgba(0,229,255,0))] animate-[aurora-shift_7s_linear_infinite]" />
                     <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between">
                     {/* Logo */}
-                    <Link href="/" className="group flex items-center gap-2 sm:gap-2.5" onClick={closeMenu}>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-[4px] border border-[rgba(0,229,255,0.3)] bg-[rgba(0,229,255,0.12)] transition-all duration-300 group-hover:shadow-[0_0_28px_rgba(0,229,255,0.24)] sm:h-9 sm:w-9">
-                            <Zap className="h-4 w-4 text-primary-light sm:h-5 sm:w-5" />
-                        </div>
-                        <span className="text-lg font-black tracking-tight sm:text-xl">
-                            <span className="text-gradient">Vajra</span>
-                            <span className="text-foreground">X</span>
-                        </span>
+                    <Link href="/" className="group flex items-center gap-2 bg-transparent sm:gap-2.5" onClick={closeMenu}>
+                        {!isScrolled && (
+                            <Image
+                                src="/vajrax-logo.png"
+                                alt="VajraX logo"
+                                width={56}
+                                height={56}
+                                className="h-12 w-12 bg-transparent object-contain transition-transform duration-300 group-hover:scale-105 sm:h-[3.25rem] sm:w-[3.25rem]"
+                            />
+                        )}
+                        <Image
+                            src="/vajrax-wordmark.png"
+                            alt="VajraX"
+                            width={210}
+                            height={50}
+                            className="h-7 w-auto bg-transparent object-contain sm:h-8"
+                        />
                     </Link>
 
                     {/* Desktop nav links */}
@@ -575,6 +585,16 @@ export default function Navbar() {
                                                     >
                                                         <Users className="w-4 h-4" />
                                                         Manage Members
+                                                    </Link>
+                                                )}
+                                                {(isFaculty || isModerator) && (
+                                                    <Link
+                                                        href="/admin/applicants"
+                                                        onClick={closeMenu}
+                                                        className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                                    >
+                                                        <Mail className="w-4 h-4" />
+                                                        New Applicants
                                                     </Link>
                                                 )}
                                                 <Link

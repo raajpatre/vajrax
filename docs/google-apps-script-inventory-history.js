@@ -1,4 +1,7 @@
-const VISIBLE_HEADER_ROW = [
+const HISTORY_SHEET_NAME = "Inventory History";
+const STOCKS_SHEET_NAME = "Inventory Stocks";
+
+const VISIBLE_HISTORY_HEADER_ROW = [
   "Date",
   "Time (24h)",
   "Requester Username",
@@ -10,9 +13,16 @@ const VISIBLE_HEADER_ROW = [
   "Lifecycle Status",
 ];
 
-const INTERNAL_HEADER_ROW = [...VISIBLE_HEADER_ROW, "Sync Key"];
+const INTERNAL_HISTORY_HEADER_ROW = [...VISIBLE_HISTORY_HEADER_ROW, "Sync Key"];
+const STOCKS_HEADER_ROW = [
+  "Component Category",
+  "Component name",
+  "available quantity",
+  "total quantity",
+];
+
 const LIFECYCLE_COLUMN_INDEX = 9;
-const SYNC_KEY_COLUMN_INDEX = 10;
+const HISTORY_SYNC_KEY_COLUMN_INDEX = 10;
 
 function doPost(e) {
   const secret = PropertiesService.getScriptProperties().getProperty("VAJRAX_SYNC_SECRET");
@@ -26,51 +36,95 @@ function doPost(e) {
   }
 
   const rows = Array.isArray(payload.rows) ? payload.rows : [];
-  const mode = payload.mode === "replace" ? "replace" : payload.mode === "upsert" ? "upsert" : "append";
+  const mode =
+    payload.mode === "replace" ? "replace" : payload.mode === "upsert" ? "upsert" : "append";
+  const sheetTarget = payload.sheet === "stocks" ? "stocks" : "history";
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  ensureHeader(sheet);
+  if (sheetTarget === "stocks") {
+    syncStocksSheet(spreadsheet, rows, mode);
+  } else {
+    syncHistorySheet(spreadsheet, rows, mode);
+  }
+
+  return ContentService
+    .createTextOutput(
+      JSON.stringify({
+        ok: true,
+        count: rows.length,
+        sheet: sheetTarget,
+      })
+    )
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function syncHistorySheet(spreadsheet, rows, mode) {
+  const sheet = getOrCreateSheet(spreadsheet, HISTORY_SHEET_NAME);
+  ensureHistoryHeader(sheet);
 
   if (mode === "replace") {
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) {
-      sheet.getRange(2, 1, lastRow - 1, INTERNAL_HEADER_ROW.length).clearContent();
+      sheet.getRange(2, 1, lastRow - 1, INTERNAL_HISTORY_HEADER_ROW.length).clearContent();
       clearLifecycleFormatting(sheet, lastRow - 1);
     }
   }
 
   if (rows.length > 0) {
     if (mode === "append" || mode === "replace") {
-      appendRows(sheet, rows);
+      appendHistoryRows(sheet, rows);
     } else {
-      upsertRows(sheet, rows);
+      upsertHistoryRows(sheet, rows);
     }
   }
 
-  hideSyncKeyColumn(sheet);
-
-  return ContentService
-    .createTextOutput(JSON.stringify({ ok: true, count: rows.length }))
-    .setMimeType(ContentService.MimeType.JSON);
+  hideHistorySyncKeyColumn(sheet);
 }
 
-function appendRows(sheet, rows) {
-  const values = rows.map(toSheetRow);
+function syncStocksSheet(spreadsheet, rows, mode) {
+  const sheet = getOrCreateSheet(spreadsheet, STOCKS_SHEET_NAME);
+  ensureStocksHeader(sheet);
+
+  if (mode === "replace") {
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.getRange(2, 1, lastRow - 1, STOCKS_HEADER_ROW.length).clearContent();
+    }
+  }
+
+  if (rows.length > 0) {
+    const values = rows.map(toStocksSheetRow);
+    const startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, values.length, STOCKS_HEADER_ROW.length).setValues(values);
+  }
+}
+
+function getOrCreateSheet(spreadsheet, name) {
+  const existing = spreadsheet.getSheetByName(name);
+  if (existing) {
+    return existing;
+  }
+
+  return spreadsheet.insertSheet(name);
+}
+
+function appendHistoryRows(sheet, rows) {
+  const values = rows.map(toHistorySheetRow);
   const startRow = sheet.getLastRow() + 1;
-  sheet.getRange(startRow, 1, values.length, INTERNAL_HEADER_ROW.length).setValues(values);
+  sheet.getRange(startRow, 1, values.length, INTERNAL_HISTORY_HEADER_ROW.length).setValues(values);
   applyLifecycleFormatting(sheet, rows, startRow);
 }
 
-function upsertRows(sheet, rows) {
-  const syncKeyMap = getSyncKeyRowMap(sheet);
+function upsertHistoryRows(sheet, rows) {
+  const syncKeyMap = getHistorySyncKeyRowMap(sheet);
   const rowsToAppend = [];
 
   rows.forEach((row) => {
     const existingRowNumber = syncKeyMap[row.syncKey];
-    const values = [toSheetRow(row)];
+    const values = [toHistorySheetRow(row)];
 
     if (existingRowNumber) {
-      sheet.getRange(existingRowNumber, 1, 1, INTERNAL_HEADER_ROW.length).setValues(values);
+      sheet.getRange(existingRowNumber, 1, 1, INTERNAL_HISTORY_HEADER_ROW.length).setValues(values);
       applyLifecycleFormatting(sheet, [row], existingRowNumber);
     } else {
       rowsToAppend.push(row);
@@ -78,17 +132,17 @@ function upsertRows(sheet, rows) {
   });
 
   if (rowsToAppend.length > 0) {
-    appendRows(sheet, rowsToAppend);
+    appendHistoryRows(sheet, rowsToAppend);
   }
 }
 
-function getSyncKeyRowMap(sheet) {
+function getHistorySyncKeyRowMap(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) {
     return {};
   }
 
-  const values = sheet.getRange(2, SYNC_KEY_COLUMN_INDEX, lastRow - 1, 1).getValues();
+  const values = sheet.getRange(2, HISTORY_SYNC_KEY_COLUMN_INDEX, lastRow - 1, 1).getValues();
   const map = {};
 
   values.forEach(([syncKey], index) => {
@@ -100,7 +154,7 @@ function getSyncKeyRowMap(sheet) {
   return map;
 }
 
-function toSheetRow(row) {
+function toHistorySheetRow(row) {
   return [
     row.date || "",
     row.time24h || "",
@@ -115,18 +169,37 @@ function toSheetRow(row) {
   ];
 }
 
-function ensureHeader(sheet) {
-  const current = sheet.getRange(1, 1, 1, INTERNAL_HEADER_ROW.length).getValues()[0];
-  const needsHeader = INTERNAL_HEADER_ROW.some((value, index) => current[index] !== value);
+function toStocksSheetRow(row) {
+  return [
+    row.category || "",
+    row.name || "",
+    Number(row.availableQuantity || 0),
+    Number(row.totalQuantity || 0),
+  ];
+}
+
+function ensureHistoryHeader(sheet) {
+  const current = sheet.getRange(1, 1, 1, INTERNAL_HISTORY_HEADER_ROW.length).getValues()[0];
+  const needsHeader = INTERNAL_HISTORY_HEADER_ROW.some((value, index) => current[index] !== value);
 
   if (needsHeader) {
-    sheet.getRange(1, 1, 1, INTERNAL_HEADER_ROW.length).setValues([INTERNAL_HEADER_ROW]);
-    sheet.getRange(1, 1, 1, INTERNAL_HEADER_ROW.length).setFontWeight("bold");
+    sheet.getRange(1, 1, 1, INTERNAL_HISTORY_HEADER_ROW.length).setValues([INTERNAL_HISTORY_HEADER_ROW]);
+    sheet.getRange(1, 1, 1, INTERNAL_HISTORY_HEADER_ROW.length).setFontWeight("bold");
   }
 }
 
-function hideSyncKeyColumn(sheet) {
-  sheet.hideColumns(SYNC_KEY_COLUMN_INDEX);
+function ensureStocksHeader(sheet) {
+  const current = sheet.getRange(1, 1, 1, STOCKS_HEADER_ROW.length).getValues()[0];
+  const needsHeader = STOCKS_HEADER_ROW.some((value, index) => current[index] !== value);
+
+  if (needsHeader) {
+    sheet.getRange(1, 1, 1, STOCKS_HEADER_ROW.length).setValues([STOCKS_HEADER_ROW]);
+    sheet.getRange(1, 1, 1, STOCKS_HEADER_ROW.length).setFontWeight("bold");
+  }
+}
+
+function hideHistorySyncKeyColumn(sheet) {
+  sheet.hideColumns(HISTORY_SYNC_KEY_COLUMN_INDEX);
 }
 
 function clearLifecycleFormatting(sheet, rowCount) {

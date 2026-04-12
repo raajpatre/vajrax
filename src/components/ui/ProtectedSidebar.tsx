@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,7 +13,6 @@ import {
     LayoutDashboard,
     History,
     FileText,
-    Zap,
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
@@ -40,6 +40,7 @@ const links: SidebarLink[] = [
     // Admin
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard, section: "ADMIN", adminOnly: true },
     { href: "/admin/members", label: "Members", icon: Users, section: "ADMIN", adminOnly: true },
+    { href: "/admin/applicants", label: "New Applicants", icon: Mail, section: "ADMIN", adminOnly: true },
     { href: "/admin/requests", label: "Equipment Requests", icon: Package, section: "ADMIN", inventoryOnly: true },
     { href: "/admin/inventory", label: "Manage Inventory", icon: Package, section: "ADMIN", inventoryOnly: true },
     { href: "/admin/inventory-history", label: "Inventory History", icon: History, section: "ADMIN", inventoryOnly: true },
@@ -73,14 +74,21 @@ export default function ProtectedSidebar() {
         >
             {/* Logo */}
             <div className="flex items-center gap-2.5 px-5 py-5 border-b border-[rgba(59,73,76,0.12)]">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] border border-[rgba(0,229,255,0.24)] bg-[rgba(0,229,255,0.1)]">
-                    <Zap className="h-4 w-4 text-primary-light" />
-                </div>
+                <Image
+                    src="/vajrax-logo.png"
+                    alt="VajraX logo"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 shrink-0 object-contain"
+                />
                 {!collapsed && (
-                    <span className="text-base font-black tracking-tight">
-                        <span className="text-gradient">Vajra</span>
-                        <span className="text-foreground">X</span>
-                    </span>
+                    <Image
+                        src="/vajrax-wordmark.png"
+                        alt="VajraX"
+                        width={156}
+                        height={36}
+                        className="h-5 w-auto object-contain"
+                    />
                 )}
             </div>
 

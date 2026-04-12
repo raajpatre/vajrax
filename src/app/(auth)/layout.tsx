@@ -1,4 +1,4 @@
-import { Zap } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import PublicAmbientBackground from "@/components/ui/PublicAmbientBackground";
 
@@ -24,13 +24,20 @@ export default function AuthLayout({
                 href="/"
                 className="flex items-center gap-2.5 mb-8 relative z-10 group"
             >
-                <div className="hidden h-10 w-10 items-center justify-center rounded-[4px] border border-[rgba(0,229,255,0.24)] bg-[rgba(0,229,255,0.1)] transition-all group-hover:bg-[rgba(0,229,255,0.18)] sm:flex">
-                    <Zap className="w-5 h-5 text-primary-light" />
-                </div>
-                <span className="text-2xl font-bold tracking-tight">
-                    <span className="text-gradient">Vajra</span>
-                    <span className="text-foreground">X</span>
-                </span>
+                <Image
+                    src="/vajrax-logo.png"
+                    alt="VajraX logo"
+                    width={52}
+                    height={52}
+                    className="hidden h-12 w-12 object-contain transition-transform duration-300 group-hover:scale-105 sm:block"
+                />
+                <Image
+                    src="/vajrax-wordmark.png"
+                    alt="VajraX"
+                    width={210}
+                    height={50}
+                    className="h-8 w-auto object-contain"
+                />
             </Link>
 
             {/* Auth card */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
@@ -22,11 +22,15 @@ import {
     Pencil,
     Trash2,
     Save,
+    RefreshCw,
+    Sheet,
+    ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
 import { LucideIcon } from "lucide-react";
 import { submitEquipmentRequest } from "@/actions/equipment-requests";
+import { syncInventoryStocksToGoogleSheets } from "@/actions/inventory-history";
 
 type InventoryItem = Tables<"inventory_items">;
 
@@ -419,7 +423,7 @@ function RequestModal({
                             <button
                                 type="submit"
                                 disabled={loading || !reason.trim() || quantity < 1}
-                                className="hover-shine bg-[#00e5ff] hover:bg-[#00cce6] text-black font-bold uppercase tracking-widest flex items-center justify-center gap-2 w-full py-3 rounded-none shadow-[0_0_20px_rgba(0,229,255,0.2)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin text-black" />
@@ -440,6 +444,8 @@ export default function InventoryPage() {
     const { isAuthenticated, isFaculty, isModerator, isInventoryManager, loading: userLoading } = useUser();
     const canManageInventory = isFaculty || isModerator || isInventoryManager;
     const supabase = createClient();
+    const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL?.trim() || null;
+    const isGoogleSheetConfigured = Boolean(googleSheetUrl);
 
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -447,6 +453,9 @@ export default function InventoryPage() {
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [requestItem, setRequestItem] = useState<InventoryItem | null>(null);
     const [editItem, setEditItem] = useState<InventoryItem | null | undefined>(undefined);
+    const [actionError, setActionError] = useState<string | null>(null);
+    const [syncMessage, setSyncMessage] = useState<string | null>(null);
+    const [isSyncPending, startSyncTransition] = useTransition();
 
     const categories = Array.from(new Set(items.map((i) => i.category)));
 
@@ -465,8 +474,27 @@ export default function InventoryPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this item? This cannot be undone.")) return;
+        setActionError(null);
+        setSyncMessage(null);
         await supabase.from("inventory_items").delete().eq("id", id);
         setItems((prev) => prev.filter((i) => i.id !== id));
+    };
+
+    const handleSheetSync = () => {
+        setActionError(null);
+        setSyncMessage(null);
+
+        startSyncTransition(async () => {
+            const result = await syncInventoryStocksToGoogleSheets();
+            if (!result.ok) {
+                setActionError(result.error);
+                return;
+            }
+
+            setSyncMessage(
+                `Synced ${result.count} stock row${result.count === 1 ? "" : "s"} to Google Sheets.`
+            );
+        });
     };
 
     const filtered = items.filter((item) => {
@@ -492,15 +520,52 @@ export default function InventoryPage() {
                     </p>
                 </div>
                 {canManageInventory && (
-                    <button
-                        onClick={() => setEditItem(null)}
-                        className="btn-primary text-sm"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Item
-                    </button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                            onClick={handleSheetSync}
+                            disabled={isSyncPending || !isGoogleSheetConfigured}
+                            className="btn-primary text-sm disabled:opacity-50"
+                        >
+                            {isSyncPending ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <RefreshCw className="w-4 h-4" />
+                            )}
+                            Sync to Sheet
+                        </button>
+                        <a
+                            href={googleSheetUrl || "https://docs.google.com/spreadsheets/d/1NGiGWa8EceraGPMWFoxipQPOKS6YJbGXjczBaIEgc6k/edit?usp=sharing"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn-ghost text-sm"
+                        >
+                            <Sheet className="w-4 h-4" />
+                            Open Sheet
+                            <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <button
+                            onClick={() => setEditItem(null)}
+                            className="btn-primary text-sm"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Item
+                        </button>
+                    </div>
                 )}
             </div>
+
+            {actionError && (
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {actionError}
+                </div>
+            )}
+
+            {syncMessage && (
+                <div className="mb-4 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+                    {syncMessage}
+                </div>
+            )}
 
             {/* Search + Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -644,7 +709,7 @@ export default function InventoryPage() {
                                         {isAuthenticated && isAvailable && (
                                             <button
                                                 onClick={() => setRequestItem(item)}
-                                                className="hover-shine bg-[#00e5ff] hover:bg-[#00cce6] text-black font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-none shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:shadow-[0_0_20px_rgba(0,229,255,0.5)] transition-all"
+                                                className="btn-primary !px-4 !py-2 text-[11px]"
                                             >
                                                 Request
                                             </button>
