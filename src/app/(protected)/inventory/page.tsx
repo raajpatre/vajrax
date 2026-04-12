@@ -67,6 +67,30 @@ const AVAILABLE_CATEGORIES = [
     "general",
 ];
 
+function isStockVisibleToUser(input: {
+    isFaculty: boolean;
+    isModerator: boolean;
+    isInventoryManager: boolean;
+}) {
+    return input.isFaculty || input.isModerator || input.isInventoryManager;
+}
+
+function getInventoryAvailabilityMeta(item: InventoryItem, canViewExactAvailability: boolean) {
+    const isVisibleToGeneralUsers = item.available_quantity > 2;
+    const isAvailable = canViewExactAvailability ? item.available_quantity > 0 : isVisibleToGeneralUsers;
+
+    return {
+        isAvailable,
+        label: canViewExactAvailability
+            ? isAvailable
+                ? `${item.available_quantity}/${item.total_quantity} available`
+                : "Out of stock"
+            : isAvailable
+                ? "Available"
+                : "Out of stock",
+    };
+}
+
 // Add/Edit Modal
 function ItemModal({
     item,
@@ -253,10 +277,12 @@ function ItemModal({
 // Request modal
 function RequestModal({
     item,
+    canViewExactAvailability,
     onClose,
     onSubmitted,
 }: {
     item: InventoryItem;
+    canViewExactAvailability: boolean;
     onClose: () => void;
     onSubmitted: () => void;
 }) {
@@ -267,6 +293,7 @@ function RequestModal({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const availabilityMeta = getInventoryAvailabilityMeta(item, canViewExactAvailability);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -341,8 +368,12 @@ function RequestModal({
                             </div>
                             <div>
                                 <p className="text-sm font-semibold">{item.name}</p>
-                                <p className="text-xs text-text-muted">
-                                    {item.available_quantity} of {item.total_quantity} available
+                                <p
+                                    className={`text-xs font-medium ${
+                                        availabilityMeta.isAvailable ? "text-emerald-400" : "text-red-400"
+                                    }`}
+                                >
+                                    {availabilityMeta.label}
                                 </p>
                                 {item.required_safety_certification && (
                                     <p className="text-[11px] text-amber-300 mt-1">
@@ -443,6 +474,11 @@ function RequestModal({
 export default function InventoryPage() {
     const { isAuthenticated, isFaculty, isModerator, isInventoryManager, loading: userLoading } = useUser();
     const canManageInventory = isFaculty || isModerator || isInventoryManager;
+    const canViewExactAvailability = isStockVisibleToUser({
+        isFaculty,
+        isModerator,
+        isInventoryManager,
+    });
     const supabase = createClient();
     const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL?.trim() || null;
     const isGoogleSheetConfigured = Boolean(googleSheetUrl);
@@ -622,7 +658,7 @@ export default function InventoryPage() {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filtered.map((item) => {
-                        const isAvailable = item.available_quantity > 0;
+                        const availabilityMeta = getInventoryAvailabilityMeta(item, canViewExactAvailability);
                         return (
                             <motion.div
                                 key={item.id}
@@ -691,22 +727,20 @@ export default function InventoryPage() {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">
                                             <div
-                                                className={`w-2 h-2 rounded-full ${isAvailable ? "bg-emerald-400" : "bg-red-400"
+                                                className={`w-2 h-2 rounded-full ${availabilityMeta.isAvailable ? "bg-emerald-400" : "bg-red-400"
                                                     }`}
                                             />
                                             <span
-                                                className={`text-xs font-medium ${isAvailable
+                                                className={`text-xs font-medium ${availabilityMeta.isAvailable
                                                         ? "text-emerald-400"
                                                         : "text-red-400"
                                                     }`}
                                             >
-                                                {isAvailable
-                                                    ? `${item.available_quantity}/${item.total_quantity} available`
-                                                    : "Out of stock"}
+                                                {availabilityMeta.label}
                                             </span>
                                         </div>
 
-                                        {isAuthenticated && isAvailable && (
+                                        {isAuthenticated && availabilityMeta.isAvailable && (
                                             <button
                                                 onClick={() => setRequestItem(item)}
                                                 className="btn-primary !px-4 !py-2 text-[11px]"
@@ -727,6 +761,7 @@ export default function InventoryPage() {
                 {requestItem && (
                     <RequestModal
                         item={requestItem}
+                        canViewExactAvailability={canViewExactAvailability}
                         onClose={() => setRequestItem(null)}
                         onSubmitted={fetchItems}
                     />
