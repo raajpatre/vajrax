@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     User,
     Calendar,
@@ -19,6 +19,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
+import { removeProjectMember } from "@/actions/project-members";
 
 interface ProjectMember {
     id: string;
@@ -56,6 +57,12 @@ interface ProjectData {
     cover_image_url: string | null;
     created_at: string;
     created_by: string | null;
+    creator?: {
+        id: string;
+        display_name: string;
+        avatar_url: string | null;
+        username: string | null;
+    } | null;
 }
 
 const statusStyles: Record<string, string> = {
@@ -116,6 +123,25 @@ export default function ProjectDetailClient({
     }, [supabase, project.id]);
 
     const isOwner = !!user?.id && project.created_by === user.id;
+    const displayMembers = useMemo(() => {
+        const creator = project.creator;
+        const creatorAlreadyListed = !!creator && members.some((member) => member.user.id === creator.id);
+
+        if (!creator || creatorAlreadyListed) {
+            return members;
+        }
+
+        return [
+            {
+                id: `owner-${project.id}`,
+                role: "lead",
+                joined_at: project.created_at,
+                user: creator,
+            },
+            ...members,
+        ];
+    }, [members, project.created_at, project.creator, project.id]);
+
     const isLead = isOwner || members.some(
         (m) => m.user.id === user?.id && m.role === "lead"
     );
@@ -126,6 +152,8 @@ export default function ProjectDetailClient({
     const [inviteError, setInviteError] = useState<string | null>(null);
     const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
     const [inviting, setInviting] = useState(false);
+    const [memberActionError, setMemberActionError] = useState<string | null>(null);
+    const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -226,8 +254,22 @@ export default function ProjectDetailClient({
 
     const handleRemoveMember = async (memberId: string) => {
         if (!confirm("Remove this member from the project?")) return;
-        await supabase.from("project_members").delete().eq("id", memberId);
+        setMemberActionError(null);
+        setRemovingMemberId(memberId);
+
+        const result = await removeProjectMember({
+            projectId: project.id,
+            memberId,
+        });
+
+        if (!result.ok) {
+            setMemberActionError(result.error);
+            setRemovingMemberId(null);
+            return;
+        }
+
         setMembers((prev) => prev.filter((m) => m.id !== memberId));
+        setRemovingMemberId(null);
     };
 
     // --- Post progress update ---
@@ -362,7 +404,7 @@ export default function ProjectDetailClient({
                 <div className="glass rounded-lg p-4 md:p-5">
                     <h2 className="text-sm font-bold mb-3 flex items-center gap-1.5">
                         <Users className="w-4 h-4 text-primary-light" />
-                        Team ({members.length})
+                        Team ({displayMembers.length})
                     </h2>
 
                     {/* Invite form — visible to lead */}
@@ -406,8 +448,11 @@ export default function ProjectDetailClient({
                     )}
 
                     {/* Member list */}
+                    {memberActionError && (
+                        <p className="mb-3 px-1 text-[10px] text-red-400">{memberActionError}</p>
+                    )}
                     <div className="space-y-2.5">
-                        {members.map((m) => (
+                        {displayMembers.map((m) => (
                             <div key={m.id} className="flex items-center gap-2.5 group">
                                 <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center overflow-hidden">
                                     {m.user.avatar_url ? (
@@ -424,15 +469,20 @@ export default function ProjectDetailClient({
                                 </div>
                                 {m.role === "lead" ? (
                                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20 font-semibold">
-                                        Lead
+                                        Leader
                                     </span>
                                 ) : isLead ? (
                                     <button
                                         onClick={() => handleRemoveMember(m.id)}
+                                        disabled={removingMemberId === m.id}
                                         className="text-text-muted hover:text-red-400 transition-colors p-1 opacity-0 group-hover:opacity-100"
                                         title="Remove member"
                                     >
-                                        <Trash2 className="w-3 h-3" />
+                                        {removingMemberId === m.id ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-3 h-3" />
+                                        )}
                                     </button>
                                 ) : null}
                             </div>

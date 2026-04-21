@@ -25,6 +25,7 @@ import {
     Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { removeProjectMember } from "@/actions/project-members";
 
 interface Member {
     id: string;
@@ -85,6 +86,8 @@ export default function ProjectManagePage() {
     const [username, setUsername] = useState("");
     const [addError, setAddError] = useState<string | null>(null);
     const [addingMember, setAddingMember] = useState(false);
+    const [memberActionError, setMemberActionError] = useState<string | null>(null);
+    const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
     // Update form
     const [updateTitle, setUpdateTitle] = useState("");
@@ -189,8 +192,22 @@ export default function ProjectManagePage() {
 
     const handleRemoveMember = async (memberId: string) => {
         if (!confirm("Remove this member from the project?")) return;
-        await supabase.from("project_members").delete().eq("id", memberId);
+        setMemberActionError(null);
+        setRemovingMemberId(memberId);
+
+        const result = await removeProjectMember({
+            projectId: id,
+            memberId,
+        });
+
+        if (!result.ok) {
+            setMemberActionError(result.error);
+            setRemovingMemberId(null);
+            return;
+        }
+
         setMembers((prev) => prev.filter((m) => m.id !== memberId));
+        setRemovingMemberId(null);
     };
 
     const handlePostUpdate = async (e: React.FormEvent) => {
@@ -443,6 +460,10 @@ export default function ProjectManagePage() {
                         <p className="text-xs text-red-400 mb-3 px-1">{addError}</p>
                     )}
 
+                    {memberActionError && (
+                        <p className="text-xs text-red-400 mb-3 px-1">{memberActionError}</p>
+                    )}
+
                     {/* Member list */}
                     <div className="space-y-2">
                         {members.map((m) => (
@@ -467,10 +488,15 @@ export default function ProjectManagePage() {
                                 ) : (
                                     <button
                                         onClick={() => handleRemoveMember(m.id)}
+                                        disabled={removingMemberId === m.id}
                                         className="text-text-muted hover:text-red-400 transition-colors p-1"
                                         title="Remove member"
                                     >
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                        {removingMemberId === m.id ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        )}
                                     </button>
                                 )}
                             </div>

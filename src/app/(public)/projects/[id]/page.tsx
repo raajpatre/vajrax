@@ -8,7 +8,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
     const { data: project } = await supabase
         .from("projects")
-        .select("*")
+        .select("*, creator:profiles!projects_created_by_fkey(id, display_name, avatar_url, username)")
         .eq("id", id)
         .single();
 
