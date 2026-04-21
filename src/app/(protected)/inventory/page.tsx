@@ -25,14 +25,22 @@ import {
     RefreshCw,
     Sheet,
     ExternalLink,
+    ShoppingCart,
+    Minus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
 import { LucideIcon } from "lucide-react";
-import { submitEquipmentRequest } from "@/actions/equipment-requests";
+import { submitEquipmentCart } from "@/actions/equipment-requests";
 import { syncInventoryStocksToGoogleSheets } from "@/actions/inventory-history";
 
 type InventoryItem = Tables<"inventory_items">;
+
+interface CartItem {
+    item: InventoryItem;
+    quantity: number;
+    requestType: "borrow" | "permanent";
+}
 
 const CategoryIcon: Record<string, LucideIcon> = {
     microcontroller: CircuitBoard,
@@ -89,6 +97,28 @@ function getInventoryAvailabilityMeta(item: InventoryItem, canViewExactAvailabil
                 ? "Available"
                 : "Out of stock",
     };
+}
+
+const CART_STORAGE_KEY = "vajrax_inventory_cart";
+
+function loadCartFromStorage(): CartItem[] {
+    if (typeof window === "undefined") return [];
+    try {
+        const raw = localStorage.getItem(CART_STORAGE_KEY);
+        if (!raw) return [];
+        return JSON.parse(raw) as CartItem[];
+    } catch {
+        return [];
+    }
+}
+
+function saveCartToStorage(cart: CartItem[]) {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch {
+        /* ignore quota errors */
+    }
 }
 
 // Add/Edit Modal
@@ -274,53 +304,25 @@ function ItemModal({
     );
 }
 
-// Request modal
-function RequestModal({
+// Add-to-cart popover
+function AddToCartModal({
     item,
     canViewExactAvailability,
     onClose,
-    onSubmitted,
+    onAdded,
 }: {
     item: InventoryItem;
     canViewExactAvailability: boolean;
     onClose: () => void;
-    onSubmitted: () => void;
+    onAdded: (cartItem: CartItem) => void;
 }) {
-    const { user } = useUser();
     const [quantity, setQuantity] = useState(1);
-    const [reason, setReason] = useState("");
     const [requestType, setRequestType] = useState<"borrow" | "permanent">("borrow");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false);
     const availabilityMeta = getInventoryAvailabilityMeta(item, canViewExactAvailability);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!user || !reason.trim()) return;
-
-        setLoading(true);
-        setError(null);
-
-        const result = await submitEquipmentRequest({
-            itemId: item.id,
-            quantity,
-            reason: reason.trim(),
-            requestType,
-        });
-
-        if (!result.ok) {
-            setError(result.error);
-            setLoading(false);
-            return;
-        }
-
-        setSuccess(true);
-        setLoading(false);
-        setTimeout(() => {
-            onSubmitted();
-            onClose();
-        }, 1500);
+    const handleAdd = () => {
+        onAdded({ item, quantity, requestType });
+        onClose();
     };
 
     return (
@@ -335,135 +337,284 @@ function RequestModal({
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 className="glass-strong relative z-10 my-auto w-full max-w-md overflow-y-auto p-4 md:p-5 max-h-[calc(100dvh-max(1.5rem,env(safe-area-inset-top))-max(1.5rem,env(safe-area-inset-bottom)))] sm:p-4 md:p-6"
             >
-                {success ? (
-                    <div className="text-center py-8">
-                        <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                        <h3 className="text-lg font-bold mb-1">Request Submitted!</h3>
-                        <p className="text-sm text-text-secondary">
-                            You&apos;ll be notified when it&apos;s reviewed.
+                <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-lg font-bold">Add to Cart</h3>
+                    <button
+                        onClick={onClose}
+                        className="text-text-muted hover:text-foreground transition-colors"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="glass p-3 mb-5 flex items-center gap-3">
+                    <div
+                        className={`w-10 h-10 flex-shrink-0 rounded-lg border flex items-center justify-center ${categoryColors[item.category] ||
+                            "text-text-muted bg-surface border-border"
+                            }`}
+                    >
+                        {(() => {
+                            const Icon = CategoryIcon[item.category] || Box;
+                            return <Icon className="w-5 h-5" />;
+                        })()}
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold">{item.name}</p>
+                        <p
+                            className={`text-xs font-medium ${
+                                availabilityMeta.isAvailable ? "text-emerald-400" : "text-red-400"
+                            }`}
+                        >
+                            {availabilityMeta.label}
                         </p>
+                        {item.required_safety_certification && (
+                            <p className="text-[11px] text-amber-300 mt-1">
+                                Requires certification: <span className="font-semibold">{item.required_safety_certification}</span>
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                            Quantity
+                        </label>
+                        <input
+                            type="number"
+                            min={1}
+                            max={item.available_quantity}
+                            value={quantity}
+                            onChange={(e) => setQuantity(Number(e.target.value))}
+                            className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                            Usage Type
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setRequestType("borrow")}
+                                className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all text-center ${
+                                    requestType === "borrow"
+                                        ? "bg-primary/20 text-primary-light border-primary/30"
+                                        : "text-text-muted border-border hover:border-primary/20"
+                                }`}
+                            >
+                                🔄 Borrowing
+                                <span className="block text-[10px] text-text-muted mt-0.5">Will return after use</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRequestType("permanent")}
+                                className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all text-center ${
+                                    requestType === "permanent"
+                                        ? "bg-amber-400/20 text-amber-400 border-amber-400/30"
+                                        : "text-text-muted border-border hover:border-amber-400/20"
+                                }`}
+                            >
+                                📌 Permanent Use
+                                <span className="block text-[10px] text-text-muted mt-0.5">For a project build</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleAdd}
+                        disabled={quantity < 1}
+                        className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <ShoppingCart className="w-4 h-4 text-black" />
+                        Add to Cart
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+// Cart Drawer
+function CartDrawer({
+    cart,
+    onClose,
+    onUpdateQuantity,
+    onRemove,
+    onChangeType,
+    onSubmit,
+    submitting,
+    submitError,
+    submitSuccess,
+}: {
+    cart: CartItem[];
+    onClose: () => void;
+    onUpdateQuantity: (itemId: string, qty: number) => void;
+    onRemove: (itemId: string) => void;
+    onChangeType: (itemId: string, type: "borrow" | "permanent") => void;
+    onSubmit: (reason: string) => void;
+    submitting: boolean;
+    submitError: string | null;
+    submitSuccess: boolean;
+}) {
+    const [reason, setReason] = useState("");
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-stretch justify-end select-none">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+            <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="relative z-10 w-full max-w-md bg-[var(--color-background)] border-l border-border flex flex-col"
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-border/50">
+                    <div className="flex items-center gap-2.5">
+                        <ShoppingCart className="w-5 h-5 text-primary-light" />
+                        <h2 className="text-lg font-bold">Cart</h2>
+                        <span className="text-xs text-text-muted">({cart.length} item{cart.length !== 1 ? "s" : ""})</span>
+                    </div>
+                    <button onClick={onClose} className="text-text-muted hover:text-foreground transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {submitSuccess ? (
+                    <div className="flex-1 flex items-center justify-center p-6">
+                        <div className="text-center">
+                            <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-bold mb-2">Cart Submitted!</h3>
+                            <p className="text-sm text-text-secondary">
+                                Your request has been sent for review. You&apos;ll be notified when it&apos;s processed.
+                            </p>
+                        </div>
+                    </div>
+                ) : cart.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center p-6">
+                        <div className="text-center">
+                            <ShoppingCart className="w-12 h-12 text-text-muted mx-auto mb-3" />
+                            <h3 className="text-base font-semibold mb-1">Cart is empty</h3>
+                            <p className="text-xs text-text-muted">
+                                Add items from the inventory to get started.
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <>
-                        <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-lg font-bold">Request Equipment</h3>
-                            <button
-                                onClick={onClose}
-                                className="text-text-muted hover:text-foreground transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+                        {/* Cart Items */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {cart.map((entry) => {
+                                const Icon = CategoryIcon[entry.item.category] || Box;
+                                return (
+                                    <motion.div
+                                        key={entry.item.id}
+                                        layout
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="glass p-3"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div
+                                                className={`w-9 h-9 flex-shrink-0 rounded-lg border flex items-center justify-center ${categoryColors[entry.item.category] || "text-text-muted bg-surface border-border"}`}
+                                            >
+                                                <Icon className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold truncate">{entry.item.name}</p>
+                                                <p className="text-[10px] text-text-muted capitalize">{entry.item.category}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => onRemove(entry.item.id)}
+                                                className="p-1 rounded-md text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+
+                                        <div className="mt-3 flex items-center gap-2">
+                                            <div className="flex items-center rounded-lg border border-border overflow-hidden">
+                                                <button
+                                                    onClick={() => onUpdateQuantity(entry.item.id, Math.max(1, entry.quantity - 1))}
+                                                    className="px-2 py-1.5 text-text-muted hover:text-foreground hover:bg-surface/60 transition-all"
+                                                >
+                                                    <Minus className="w-3 h-3" />
+                                                </button>
+                                                <span className="px-3 py-1.5 text-xs font-semibold border-x border-border min-w-[2rem] text-center">
+                                                    {entry.quantity}
+                                                </span>
+                                                <button
+                                                    onClick={() => onUpdateQuantity(entry.item.id, Math.min(entry.item.available_quantity, entry.quantity + 1))}
+                                                    className="px-2 py-1.5 text-text-muted hover:text-foreground hover:bg-surface/60 transition-all"
+                                                >
+                                                    <Plus className="w-3 h-3" />
+                                                </button>
+                                            </div>
+
+                                            <div className="flex gap-1 ml-auto">
+                                                <button
+                                                    onClick={() => onChangeType(entry.item.id, "borrow")}
+                                                    className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
+                                                        entry.requestType === "borrow"
+                                                            ? "bg-sky-400/15 text-sky-300 border-sky-400/25"
+                                                            : "text-text-muted border-border hover:border-sky-400/20"
+                                                    }`}
+                                                >
+                                                    Borrow
+                                                </button>
+                                                <button
+                                                    onClick={() => onChangeType(entry.item.id, "permanent")}
+                                                    className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
+                                                        entry.requestType === "permanent"
+                                                            ? "bg-amber-400/15 text-amber-300 border-amber-400/25"
+                                                            : "text-text-muted border-border hover:border-amber-400/20"
+                                                    }`}
+                                                >
+                                                    Permanent
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
                         </div>
 
-                        <div className="glass p-3 mb-5 flex items-center gap-3">
-                            <div
-                                className={`w-10 h-10 flex-shrink-0 rounded-lg border flex items-center justify-center ${categoryColors[item.category] ||
-                                    "text-text-muted bg-surface border-border"
-                                    }`}
-                            >
-                                {(() => {
-                                    const Icon = CategoryIcon[item.category] || Box;
-                                    return <Icon className="w-5 h-5" />;
-                                })()}
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold">{item.name}</p>
-                                <p
-                                    className={`text-xs font-medium ${
-                                        availabilityMeta.isAvailable ? "text-emerald-400" : "text-red-400"
-                                    }`}
-                                >
-                                    {availabilityMeta.label}
-                                </p>
-                                {item.required_safety_certification && (
-                                    <p className="text-[11px] text-amber-300 mt-1">
-                                        Requires certification: <span className="font-semibold">{item.required_safety_certification}</span>
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {error && (
+                        {/* Footer */}
+                        <div className="border-t border-border/50 p-4 space-y-3">
+                            {submitError && (
                                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
                                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                                    {error}
+                                    {submitError}
                                 </div>
                             )}
-
                             <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                                    Quantity
-                                </label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={item.available_quantity}
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(Number(e.target.value))}
-                                    className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                                    Usage Type
-                                </label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setRequestType("borrow")}
-                                        className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all text-center ${
-                                            requestType === "borrow"
-                                                ? "bg-primary/20 text-primary-light border-primary/30"
-                                                : "text-text-muted border-border hover:border-primary/20"
-                                        }`}
-                                    >
-                                        🔄 Borrowing
-                                        <span className="block text-[10px] text-text-muted mt-0.5">Will return after use</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setRequestType("permanent")}
-                                        className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all text-center ${
-                                            requestType === "permanent"
-                                                ? "bg-amber-400/20 text-amber-400 border-amber-400/30"
-                                                : "text-text-muted border-border hover:border-amber-400/20"
-                                        }`}
-                                    >
-                                        📌 Permanent Use
-                                        <span className="block text-[10px] text-text-muted mt-0.5">For a project build</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                                    Reason
+                                <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                                    Reason for all items
                                 </label>
                                 <textarea
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    required
                                     rows={3}
-                                    placeholder="Why do you need this equipment?"
-                                    className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                                    placeholder="Why do you need these items?"
+                                    className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
                                 />
                             </div>
-
                             <button
-                                type="submit"
-                                disabled={loading || !reason.trim() || quantity < 1}
+                                onClick={() => onSubmit(reason)}
+                                disabled={submitting || !reason.trim() || cart.length === 0}
                                 className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                {loading ? (
+                                {submitting ? (
                                     <Loader2 className="w-4 h-4 animate-spin text-black" />
                                 ) : (
                                     <Send className="w-4 h-4 text-black" />
                                 )}
-                                Submit Request
+                                Submit Request ({cart.length} item{cart.length !== 1 ? "s" : ""})
                             </button>
-                        </form>
+                        </div>
                     </>
                 )}
             </motion.div>
@@ -487,11 +638,28 @@ export default function InventoryPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
-    const [requestItem, setRequestItem] = useState<InventoryItem | null>(null);
     const [editItem, setEditItem] = useState<InventoryItem | null | undefined>(undefined);
     const [actionError, setActionError] = useState<string | null>(null);
     const [syncMessage, setSyncMessage] = useState<string | null>(null);
     const [isSyncPending, startSyncTransition] = useTransition();
+
+    // Cart state
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [addToCartItem, setAddToCartItem] = useState<InventoryItem | null>(null);
+    const [cartOpen, setCartOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+
+    // Load cart from localStorage on mount
+    useEffect(() => {
+        setCart(loadCartFromStorage());
+    }, []);
+
+    // Persist cart to localStorage on changes
+    useEffect(() => {
+        saveCartToStorage(cart);
+    }, [cart]);
 
     const categories = Array.from(new Set(items.map((i) => i.category)));
 
@@ -533,6 +701,63 @@ export default function InventoryPage() {
         });
     };
 
+    const addToCart = (cartItem: CartItem) => {
+        setCart((prev) => {
+            const existing = prev.find((c) => c.item.id === cartItem.item.id);
+            if (existing) {
+                return prev.map((c) =>
+                    c.item.id === cartItem.item.id
+                        ? { ...c, quantity: cartItem.quantity, requestType: cartItem.requestType }
+                        : c
+                );
+            }
+            return [...prev, cartItem];
+        });
+    };
+
+    const updateCartQuantity = (itemId: string, qty: number) => {
+        setCart((prev) => prev.map((c) => (c.item.id === itemId ? { ...c, quantity: qty } : c)));
+    };
+
+    const removeFromCart = (itemId: string) => {
+        setCart((prev) => prev.filter((c) => c.item.id !== itemId));
+    };
+
+    const changeCartType = (itemId: string, type: "borrow" | "permanent") => {
+        setCart((prev) => prev.map((c) => (c.item.id === itemId ? { ...c, requestType: type } : c)));
+    };
+
+    const handleSubmitCart = async (reason: string) => {
+        if (!reason.trim() || cart.length === 0) return;
+        setSubmitting(true);
+        setSubmitError(null);
+
+        const result = await submitEquipmentCart({
+            items: cart.map((c) => ({
+                itemId: c.item.id,
+                quantity: c.quantity,
+                requestType: c.requestType,
+            })),
+            reason: reason.trim(),
+        });
+
+        if (!result.ok) {
+            setSubmitError(result.error);
+            setSubmitting(false);
+            return;
+        }
+
+        setSubmitSuccess(true);
+        setSubmitting(false);
+        setCart([]);
+        saveCartToStorage([]);
+        setTimeout(() => {
+            setCartOpen(false);
+            setSubmitSuccess(false);
+            fetchItems();
+        }, 2000);
+    };
+
     const filtered = items.filter((item) => {
         const matchSearch =
             item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -540,6 +765,8 @@ export default function InventoryPage() {
         const matchCategory = !activeCategory || item.category === activeCategory;
         return matchSearch && matchCategory;
     });
+
+    const isInCart = (itemId: string) => cart.some((c) => c.item.id === itemId);
 
     if (userLoading || loading) {
         return <VajraLoader fullPage />;
@@ -603,7 +830,7 @@ export default function InventoryPage() {
                 </div>
             )}
 
-            {/* Search + Filters */}
+            {/* Search + Cart Button + Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
@@ -615,6 +842,35 @@ export default function InventoryPage() {
                         className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                     />
                 </div>
+
+                {/* Cart Button */}
+                {isAuthenticated && (
+                    <button
+                        onClick={() => { setCartOpen(true); setSubmitError(null); }}
+                        className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-surface hover:bg-surface/80 hover:border-primary/30 text-sm font-medium text-foreground transition-all"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-5 h-5"
+                        >
+                            <circle cx="9" cy="21" r="1" />
+                            <circle cx="20" cy="21" r="1" />
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                        </svg>
+                        Cart
+                        {cart.length > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-primary text-[10px] font-bold text-black">
+                                {cart.length}
+                            </span>
+                        )}
+                    </button>
+                )}
+
                 <div className="flex gap-2 flex-wrap">
                     <button
                         onClick={() => setActiveCategory(null)}
@@ -659,6 +915,7 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filtered.map((item) => {
                         const availabilityMeta = getInventoryAvailabilityMeta(item, canViewExactAvailability);
+                        const alreadyInCart = isInCart(item.id);
                         return (
                             <motion.div
                                 key={item.id}
@@ -741,12 +998,20 @@ export default function InventoryPage() {
                                         </div>
 
                                         {isAuthenticated && availabilityMeta.isAvailable && (
-                                            <button
-                                                onClick={() => setRequestItem(item)}
-                                                className="btn-primary !px-4 !py-2 text-[11px]"
-                                            >
-                                                Request
-                                            </button>
+                                            alreadyInCart ? (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                    In Cart
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setAddToCartItem(item)}
+                                                    className="btn-primary !px-4 !py-2 text-[11px]"
+                                                >
+                                                    <ShoppingCart className="w-3.5 h-3.5" />
+                                                    Add to Cart
+                                                </button>
+                                            )
                                         )}
                                     </div>
                                 </div>
@@ -756,14 +1021,31 @@ export default function InventoryPage() {
                 </div>
             )}
 
-            {/* Request modal */}
+            {/* Add-to-cart modal */}
             <AnimatePresence>
-                {requestItem && (
-                    <RequestModal
-                        item={requestItem}
+                {addToCartItem && (
+                    <AddToCartModal
+                        item={addToCartItem}
                         canViewExactAvailability={canViewExactAvailability}
-                        onClose={() => setRequestItem(null)}
-                        onSubmitted={fetchItems}
+                        onClose={() => setAddToCartItem(null)}
+                        onAdded={addToCart}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Cart Drawer */}
+            <AnimatePresence>
+                {cartOpen && (
+                    <CartDrawer
+                        cart={cart}
+                        onClose={() => { setCartOpen(false); setSubmitSuccess(false); }}
+                        onUpdateQuantity={updateCartQuantity}
+                        onRemove={removeFromCart}
+                        onChangeType={changeCartType}
+                        onSubmit={handleSubmitCart}
+                        submitting={submitting}
+                        submitError={submitError}
+                        submitSuccess={submitSuccess}
                     />
                 )}
             </AnimatePresence>

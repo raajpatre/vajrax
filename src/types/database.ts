@@ -112,6 +112,105 @@ export type Database = {
           },
         ]
       }
+      equipment_carts: {
+        Row: {
+          id: string
+          requester_id: string
+          reason: string
+          status: string
+          reviewed_by: string | null
+          reviewed_at: string | null
+          status_note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          requester_id: string
+          reason: string
+          status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          status_note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          requester_id?: string
+          reason?: string
+          status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          status_note?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_carts_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_carts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_cart_items: {
+        Row: {
+          id: string
+          cart_id: string
+          item_id: string
+          quantity: number
+          request_type: string
+          item_status: string
+          approved_quantity: number | null
+          admin_note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cart_id: string
+          item_id: string
+          quantity?: number
+          request_type?: string
+          item_status?: string
+          approved_quantity?: number | null
+          admin_note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cart_id?: string
+          item_id?: string
+          quantity?: number
+          request_type?: string
+          item_status?: string
+          approved_quantity?: number | null
+          admin_note?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_cart_items_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_cart_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_requests: {
         Row: {
           approved_quantity: number | null

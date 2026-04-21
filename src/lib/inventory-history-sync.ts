@@ -47,6 +47,7 @@ async function postGoogleSheetsPayload(payload: {
     }
 
     const secret = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET?.trim();
+    console.log(`[SheetSync] Sending ${payload.rows.length} rows to ${payload.sheet} (mode: ${payload.mode})`);
     const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
@@ -66,8 +67,12 @@ async function postGoogleSheetsPayload(payload: {
 
     if (!response.ok) {
         const details = await response.text();
+        console.error("[SheetSync] Response not OK:", response.status, details);
         throw new Error(details || `Google Sheets sync failed with ${response.status}`);
     }
+
+    const responseBody = await response.text();
+    console.log("[SheetSync] Response:", response.status, responseBody);
 
     return {
         ok: true as const,

@@ -22,10 +22,14 @@ import {
     ExternalLink,
     RefreshCw,
     Sheet,
+    ShoppingCart,
+    Eye,
+    CheckCheck,
+    MessageSquare,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { logBorrowedEquipmentReturns, reviewEquipmentRequest } from "@/actions/equipment-requests";
+import { logBorrowedEquipmentReturns, reviewEquipmentRequest, reviewEquipmentCart } from "@/actions/equipment-requests";
 import { syncInventorySheetsToGoogleSheets } from "@/actions/inventory-history";
 import {
     RETURN_CONDITIONS,
@@ -69,6 +73,29 @@ interface HistoryEntry {
     approver: { display_name: string } | null;
 }
 
+interface CartDetail {
+    id: string;
+    reason: string;
+    status: string;
+    status_note: string | null;
+    created_at: string;
+    requester: { id: string; display_name: string; avatar_url: string | null; username: string | null };
+    items: Array<{
+        id: string;
+        quantity: number;
+        request_type: "borrow" | "permanent";
+        item_status: string;
+        approved_quantity: number | null;
+        admin_note: string | null;
+        item: {
+            id: string;
+            name: string;
+            category: string;
+            available_quantity: number;
+        };
+    }>;
+}
+
 const statusTabs = [
     { key: "pending", label: "Pending", icon: <Clock className="w-3.5 h-3.5" /> },
     { key: "approved", label: "Approved", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
@@ -83,9 +110,11 @@ const statusColors: Record<string, string> = {
     returned: "text-sky-400 bg-sky-400/10 border-sky-400/20",
     rejected: "text-red-400 bg-red-400/10 border-red-400/20",
     revoked: "text-text-muted bg-surface border-border",
+    partially_approved: "text-amber-300 bg-amber-300/10 border-amber-300/20",
 };
 
 const managementTabs = [
+    { key: "carts", label: "Carts", icon: <ShoppingCart className="w-3.5 h-3.5" /> },
     { key: "requests", label: "Requests", icon: <ClipboardCheck className="w-3.5 h-3.5" /> },
     { key: "history", label: "History", icon: <History className="w-3.5 h-3.5" /> },
 ] as const;
@@ -102,6 +131,8 @@ const historyActionConfig = {
         cls: "text-red-400 bg-red-400/10 border-red-400/20",
     },
 } as const;
+
+// ── Review Modal (for individual legacy requests) ────────────────────────────
 
 function ReviewModal({
     request,
@@ -226,6 +257,8 @@ function ReviewModal({
         </div>
     ), portalTarget);
 }
+
+// ── Return Modal ─────────────────────────────────────────────────────────────
 
 function ReturnModal({
     request,
@@ -380,6 +413,222 @@ function ReturnModal({
     ), portalTarget);
 }
 
+// ── Cart Review Modal (Manual Approval) ──────────────────────────────────────
+
+function CartReviewModal({
+    cart,
+    onClose,
+    onReviewed,
+}: {
+    cart: CartDetail;
+    onClose: () => void;
+    onReviewed: () => Promise<void>;
+}) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [cartNote, setCartNote] = useState("");
+    const [itemDecisions, setItemDecisions] = useState<
+        Record<string, { action: "approved" | "rejected"; approvedQuantity: number; note: string }>
+    >(
+        Object.fromEntries(
+            cart.items.map((ci) => [
+                ci.id,
+                { action: "approved" as const, approvedQuantity: ci.quantity, note: "" },
+            ])
+        )
+    );
+    const portalTarget = typeof document === "undefined" ? null : document.body;
+
+    const updateDecision = (itemId: string, updates: Partial<{ action: "approved" | "rejected"; approvedQuantity: number; note: string }>) => {
+        setItemDecisions((prev) => ({
+            ...prev,
+            [itemId]: { ...prev[itemId], ...updates },
+        }));
+    };
+
+    const handleSubmit = async () => {
+        setLoading(true);
+        setError(null);
+
+        const result = await reviewEquipmentCart({
+            cartId: cart.id,
+            action: "manual",
+            cartNote: cartNote.trim() || undefined,
+            items: cart.items.map((ci) => {
+                const decision = itemDecisions[ci.id];
+                return {
+                    cartItemId: ci.id,
+                    action: decision.action,
+                    approvedQuantity: decision.action === "approved" ? decision.approvedQuantity : undefined,
+                    note: decision.note.trim() || undefined,
+                };
+            }),
+        });
+
+        if (!result.ok) {
+            setError(result.error);
+            setLoading(false);
+            return;
+        }
+
+        await onReviewed();
+        setLoading(false);
+        onClose();
+    };
+
+    if (!portalTarget) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="glass-strong relative z-10 w-full max-w-2xl p-4 md:p-6 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 className="text-lg font-bold">Manual Cart Review</h3>
+                        <p className="text-xs text-text-muted mt-1">
+                            Approve or reject each item individually.
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-text-muted hover:text-foreground transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Cart info */}
+                <div className="glass p-3 mb-4">
+                    <p className="text-xs text-text-muted">
+                        Requested by <span className="font-semibold text-foreground">{cart.requester.username || cart.requester.display_name}</span>
+                    </p>
+                    <p className="text-xs text-text-muted mt-1">
+                        Reason: <span className="text-text-secondary">{cart.reason}</span>
+                    </p>
+                </div>
+
+                {error && (
+                    <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                        {error}
+                    </div>
+                )}
+
+                <div className="space-y-3 mb-5">
+                    {cart.items.map((ci) => {
+                        const decision = itemDecisions[ci.id];
+                        return (
+                            <div key={ci.id} className="rounded-lg border border-border/70 bg-surface/30 px-4 py-4">
+                                <div className="mb-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="text-sm font-semibold">{ci.item.name}</p>
+                                        <div className="flex gap-1 flex-shrink-0">
+                                            <button
+                                                onClick={() => updateDecision(ci.id, { action: "approved" })}
+                                                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                                    decision.action === "approved"
+                                                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                                                        : "text-text-muted border-border hover:border-emerald-500/20"
+                                                }`}
+                                            >
+                                                <CheckCircle2 className="w-3 h-3 inline mr-1" />
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={() => updateDecision(ci.id, { action: "rejected" })}
+                                                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                                    decision.action === "rejected"
+                                                        ? "bg-red-500/15 text-red-300 border-red-500/25"
+                                                        : "text-text-muted border-border hover:border-red-500/20"
+                                                }`}
+                                            >
+                                                <XCircle className="w-3 h-3 inline mr-1" />
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                        <span className="text-xs text-text-muted capitalize">{ci.item.category}</span>
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                                            ci.request_type === "permanent"
+                                                ? "bg-amber-400/10 text-amber-300 border-amber-400/20"
+                                                : "bg-sky-400/10 text-sky-300 border-sky-400/20"
+                                        }`}>
+                                            {ci.request_type === "permanent" ? "Permanent" : "Borrow"}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-text-muted mt-1">
+                                        Requested: {ci.quantity} · Available: {ci.item.available_quantity}
+                                    </p>
+                                </div>
+
+                                {decision.action === "approved" && (
+                                    <div className="mb-3">
+                                        <label className="block text-xs font-medium text-text-secondary mb-1">
+                                            Approved quantity
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={Math.min(ci.quantity, ci.item.available_quantity)}
+                                            value={decision.approvedQuantity}
+                                            onChange={(e) => updateDecision(ci.id, { approvedQuantity: Number(e.target.value) })}
+                                            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                                        />
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                                        Note (optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={decision.note}
+                                        onChange={(e) => updateDecision(ci.id, { note: e.target.value })}
+                                        placeholder="Add a note for this item..."
+                                        className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="mb-4">
+                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                        Cart-level note (optional)
+                    </label>
+                    <textarea
+                        value={cartNote}
+                        onChange={(e) => setCartNote(e.target.value)}
+                        rows={2}
+                        placeholder="Overall note for this cart review..."
+                        className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+                    />
+                </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary/15 px-4 py-3 text-sm font-semibold text-primary-light border border-primary/25 disabled:opacity-50"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+                        Submit Review
+                    </button>
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="btn-ghost text-sm"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>,
+        portalTarget
+    );
+}
+
+// ── Helper functions ─────────────────────────────────────────────────────────
+
 function getReturnSummary(req: RequestDetail) {
     const approvedQuantity = req.approved_quantity || 0;
     const returnedCount = req.return_units.filter((unit) => unit.lifecycle_status === "returned").length;
@@ -429,6 +678,8 @@ function getHistoryApproverName(entry: HistoryEntry) {
     return entry.approver?.display_name || "Unknown user";
 }
 
+// ── Main Page ────────────────────────────────────────────────────────────────
+
 export default function AdminRequestsPage() {
     const { isModerator, isFaculty, isInventoryManager, loading: userLoading } = useUser();
     const supabase = createClient();
@@ -444,15 +695,22 @@ export default function AdminRequestsPage() {
     const [syncMessage, setSyncMessage] = useState<string | null>(null);
     const [reviewTarget, setReviewTarget] = useState<RequestDetail | null>(null);
     const [returnTarget, setReturnTarget] = useState<RequestDetail | null>(null);
-    const [managementTab, setManagementTabState] = useState<"requests" | "history">("requests");
+    const [managementTab, setManagementTabState] = useState<"carts" | "requests" | "history">("carts");
     const [isSyncPending, startSyncTransition] = useTransition();
     const canAccess = isModerator || isFaculty || isInventoryManager;
     const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL?.trim() || null;
     const isGoogleSheetConfigured = Boolean(googleSheetUrl);
 
-    const setManagementTab = useCallback((tab: "requests" | "history") => {
+    // Cart state
+    const [carts, setCarts] = useState<CartDetail[]>([]);
+    const [cartsLoading, setCartsLoading] = useState(true);
+    const [cartFilter, setCartFilter] = useState<string>("pending");
+    const [cartReviewTarget, setCartReviewTarget] = useState<CartDetail | null>(null);
+    const [cartProcessingId, setCartProcessingId] = useState<string | null>(null);
+
+    const setManagementTab = useCallback((tab: "carts" | "requests" | "history") => {
         const params = new URLSearchParams(window.location.search);
-        if (tab === "requests") {
+        if (tab === "carts") {
             params.delete("tab");
         } else {
             params.set("tab", tab);
@@ -542,17 +800,72 @@ export default function AdminRequestsPage() {
         setHistoryLoading(false);
     }, [historyFilterAction, supabase]);
 
+    const fetchCarts = useCallback(async () => {
+        setCartsLoading(true);
+        const { data } = await supabase
+            .from("equipment_carts")
+            .select(`
+                id,
+                reason,
+                status,
+                status_note,
+                created_at,
+                requester:profiles!equipment_carts_requester_id_fkey(id, display_name, avatar_url, username)
+            `)
+            .eq("status", cartFilter)
+            .order("created_at", { ascending: cartFilter === "pending" });
+
+        if (data) {
+            const cartsWithItems: CartDetail[] = [];
+            for (const cart of data) {
+                const { data: items } = await supabase
+                    .from("equipment_cart_items")
+                    .select(`
+                        id,
+                        quantity,
+                        request_type,
+                        item_status,
+                        approved_quantity,
+                        admin_note,
+                        item:inventory_items!equipment_cart_items_item_id_fkey(id, name, category, available_quantity)
+                    `)
+                    .eq("cart_id", cart.id);
+
+                cartsWithItems.push({
+                    ...cart,
+                    requester: cart.requester as unknown as CartDetail["requester"],
+                    items: (items || []).map((ci) => ({
+                        ...ci,
+                        request_type: ci.request_type as "borrow" | "permanent",
+                        item: ci.item as unknown as CartDetail["items"][0]["item"],
+                    })),
+                });
+            }
+            setCarts(cartsWithItems);
+        }
+        setCartsLoading(false);
+    }, [supabase, cartFilter]);
+
     useEffect(() => {
-        const timeoutId = window.setTimeout(() => {
-            void fetchRequests();
-        }, 0);
-        return () => window.clearTimeout(timeoutId);
-    }, [fetchRequests]);
+        if (managementTab === "requests") {
+            const timeoutId = window.setTimeout(() => {
+                void fetchRequests();
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
+        }
+    }, [fetchRequests, managementTab]);
 
     useEffect(() => {
         const syncTabFromUrl = () => {
             const params = new URLSearchParams(window.location.search);
-            setManagementTabState(params.get("tab") === "history" ? "history" : "requests");
+            const tab = params.get("tab");
+            if (tab === "history") {
+                setManagementTabState("history");
+            } else if (tab === "requests") {
+                setManagementTabState("requests");
+            } else {
+                setManagementTabState("carts");
+            }
         };
 
         syncTabFromUrl();
@@ -572,6 +885,18 @@ export default function AdminRequestsPage() {
         return () => window.clearTimeout(timeoutId);
     }, [fetchHistory, managementTab]);
 
+    useEffect(() => {
+        if (managementTab !== "carts") {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            void fetchCarts();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [fetchCarts, managementTab]);
+
     const handleReject = async (req: RequestDetail) => {
         setProcessingId(req.id);
         setActionError(null);
@@ -589,6 +914,44 @@ export default function AdminRequestsPage() {
 
         await fetchRequests();
         setProcessingId(null);
+    };
+
+    const handleCartApproveAll = async (cartId: string) => {
+        setCartProcessingId(cartId);
+        setActionError(null);
+
+        const result = await reviewEquipmentCart({
+            cartId,
+            action: "approve_all",
+        });
+
+        if (!result.ok) {
+            setActionError(result.error);
+            setCartProcessingId(null);
+            return;
+        }
+
+        await fetchCarts();
+        setCartProcessingId(null);
+    };
+
+    const handleCartRejectAll = async (cartId: string) => {
+        setCartProcessingId(cartId);
+        setActionError(null);
+
+        const result = await reviewEquipmentCart({
+            cartId,
+            action: "reject_all",
+        });
+
+        if (!result.ok) {
+            setActionError(result.error);
+            setCartProcessingId(null);
+            return;
+        }
+
+        await fetchCarts();
+        setCartProcessingId(null);
     };
 
     const handleSheetSync = () => {
@@ -628,7 +991,7 @@ export default function AdminRequestsPage() {
                 <div className="flex-1">
                     <h1 className="text-xl font-bold">Inventory Requests</h1>
                     <p className="text-xs text-text-muted">
-                        Review requests and switch into inventory history from one workspace
+                        Review carts, individual requests, and inventory history from one workspace
                     </p>
                 </div>
             </div>
@@ -649,7 +1012,173 @@ export default function AdminRequestsPage() {
                 ))}
             </div>
 
-            {managementTab === "requests" ? (
+            {/* ── Carts Tab ── */}
+            {managementTab === "carts" ? (
+                <>
+                    {actionError && (
+                        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                            {actionError}
+                        </div>
+                    )}
+
+                    <div className="flex gap-2 mb-6 flex-wrap">
+                        {[
+                            { key: "pending", label: "Pending", icon: <Clock className="w-3.5 h-3.5" /> },
+                            { key: "approved", label: "Approved", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+                            { key: "partially_approved", label: "Partial", icon: <Eye className="w-3.5 h-3.5" /> },
+                            { key: "rejected", label: "Rejected", icon: <XCircle className="w-3.5 h-3.5" /> },
+                        ].map((tab) => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setCartFilter(tab.key)}
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${cartFilter === tab.key
+                                    ? "bg-primary/20 text-primary-light border border-primary/30"
+                                    : "text-text-muted hover:text-foreground border border-border hover:border-border"
+                                    }`}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {cartsLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                            <VajraLoader />
+                        </div>
+                    ) : carts.length === 0 ? (
+                        <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
+                            <ShoppingCart className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">
+                                {cartFilter === "pending" ? "No pending carts" : `No ${cartFilter} carts`}
+                            </h3>
+                            <p className="text-text-muted text-sm">
+                                {cartFilter === "pending"
+                                    ? "All carts have been reviewed."
+                                    : `No carts with "${cartFilter}" status.`}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <AnimatePresence mode="popLayout">
+                                {carts.map((cart) => (
+                                    <motion.div
+                                        key={cart.id}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        layout
+                                        className="glass p-4 md:p-5"
+                                    >
+                                        {/* Cart Header */}
+                                        <div className="flex items-center gap-2.5 mb-3">
+                                            <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center overflow-hidden">
+                                                {cart.requester.avatar_url ? (
+                                                    <img
+                                                        src={cart.requester.avatar_url}
+                                                        alt={cart.requester.display_name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <User className="w-4 h-4 text-primary-light" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-semibold">
+                                                    {cart.requester.username || cart.requester.display_name}
+                                                </p>
+                                                <p className="text-[10px] text-text-muted">
+                                                    {new Date(cart.created_at).toLocaleDateString("en-US", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                        hour: "numeric",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </p>
+                                            </div>
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border capitalize ${statusColors[cart.status] || statusColors.pending}`}>
+                                                {cart.status === "partially_approved" ? "Partial" : cart.status}
+                                            </span>
+                                        </div>
+
+                                        {/* Cart Reason */}
+                                        <p className="text-xs text-text-secondary mb-3">
+                                            <span className="text-text-muted">Reason:</span> {cart.reason}
+                                        </p>
+
+                                        {cart.status_note && (
+                                            <p className="text-xs text-text-muted italic mb-3">
+                                                Note: {cart.status_note}
+                                            </p>
+                                        )}
+
+                                        {/* Cart Items */}
+                                        <div className="space-y-2 mb-4">
+                                            {cart.items.map((ci) => (
+                                                <div
+                                                    key={ci.id}
+                                                    className="glass p-3 flex items-center justify-between gap-2"
+                                                >
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium truncate">{ci.item.name}</p>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="text-xs text-text-muted capitalize">{ci.item.category}</span>
+                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold border ${
+                                                                ci.request_type === "permanent"
+                                                                    ? "text-amber-300 border-amber-400/30 bg-amber-500/10"
+                                                                    : "text-sky-300 border-sky-400/30 bg-sky-500/10"
+                                                            }`}>
+                                                                {ci.request_type === "permanent" ? "Permanent" : "Borrow"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-lg font-bold text-primary-light">×{ci.quantity}</span>
+                                                        {ci.item_status !== "pending" && (
+                                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border capitalize ${statusColors[ci.item_status] || statusColors.pending}`}>
+                                                                {ci.item_status}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Cart Actions */}
+                                        {cartFilter === "pending" && (
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => void handleCartApproveAll(cart.id)}
+                                                    disabled={cartProcessingId === cart.id}
+                                                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 text-xs font-semibold hover:bg-emerald-500/25 transition-all disabled:opacity-50"
+                                                >
+                                                    {cartProcessingId === cart.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
+                                                    Approve Cart
+                                                </button>
+                                                <button
+                                                    onClick={() => setCartReviewTarget(cart)}
+                                                    disabled={cartProcessingId === cart.id}
+                                                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary-light border border-primary/20 text-xs font-semibold hover:bg-primary/20 transition-all disabled:opacity-50"
+                                                >
+                                                    <MessageSquare className="w-4 h-4" />
+                                                    Manual Approval
+                                                </button>
+                                                <button
+                                                    onClick={() => void handleCartRejectAll(cart.id)}
+                                                    disabled={cartProcessingId === cart.id}
+                                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-all disabled:opacity-50"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                    )}
+                </>
+            ) : managementTab === "requests" ? (
                 <>
                     {actionError && (
                         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -990,6 +1519,14 @@ export default function AdminRequestsPage() {
                     request={returnTarget}
                     onClose={() => setReturnTarget(null)}
                     onLogged={fetchRequests}
+                />
+            )}
+
+            {cartReviewTarget && (
+                <CartReviewModal
+                    cart={cartReviewTarget}
+                    onClose={() => setCartReviewTarget(null)}
+                    onReviewed={fetchCarts}
                 />
             )}
         </div>

@@ -70,7 +70,12 @@ export default function ProjectManagePage() {
     const { user, isFaculty, loading: userLoading } = useUser();
     const supabase = createClient();
 
-    const [project, setProject] = useState<{ title: string; status: string; cover_image_url: string | null } | null>(null);
+    const [project, setProject] = useState<{
+        title: string;
+        status: string;
+        cover_image_url: string | null;
+        created_by: string | null;
+    } | null>(null);
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
     const [isLead, setIsLead] = useState(false);
@@ -99,7 +104,7 @@ export default function ProjectManagePage() {
         setLoading(true);
         const { data: proj } = await supabase
             .from("projects")
-            .select("title, status, cover_image_url")
+            .select("title, status, cover_image_url, created_by")
             .eq("id", id)
             .single();
         setProject(proj);
@@ -109,6 +114,8 @@ export default function ProjectManagePage() {
             .from("project_members")
             .select("id, role, user:profiles!project_members_user_id_fkey(id, display_name, avatar_url, username)")
             .eq("project_id", id);
+
+        const isOwner = !!user?.id && proj?.created_by === user.id;
 
         if (mem) {
             const mapped = mem.map((m) => ({
@@ -121,8 +128,12 @@ export default function ProjectManagePage() {
                 },
             }));
             setMembers(mapped);
-            setIsLead(mapped.some((m) => m.user.id === user?.id && m.role === "lead"));
-            setIsMember(mapped.some((m) => m.user.id === user?.id));
+            setIsLead(isOwner || mapped.some((m) => m.user.id === user?.id && m.role === "lead"));
+            setIsMember(isOwner || mapped.some((m) => m.user.id === user?.id));
+        } else {
+            setMembers([]);
+            setIsLead(isOwner);
+            setIsMember(isOwner);
         }
         setLoading(false);
     }, [supabase, id, user]);
