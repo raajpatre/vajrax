@@ -115,10 +115,11 @@ export default function ProjectDetailClient({
         refetch();
     }, [supabase, project.id]);
 
-    const isLead = members.some(
+    const isOwner = !!user?.id && project.created_by === user.id;
+    const isLead = isOwner || members.some(
         (m) => m.user.id === user?.id && m.role === "lead"
     );
-    const isMember = members.some((m) => m.user.id === user?.id);
+    const isMember = isOwner || members.some((m) => m.user.id === user?.id);
 
     // --- Invite by email ---
     const [inviteEmail, setInviteEmail] = useState("");

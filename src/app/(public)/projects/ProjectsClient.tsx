@@ -12,9 +12,19 @@ type Project = Tables<"projects">;
 const statusConfig: Record<string, { class: string; label: string }> = {
     ongoing: { class: "status-ongoing", label: "Ongoing" },
     in_progress: { class: "status-ongoing", label: "In Progress" },
-    planning: { class: "status-archived", label: "Planning" },
+    planning: { class: "status-ongoing", label: "Planning" },
     completed: { class: "status-completed", label: "Completed" },
     archived: { class: "status-archived", label: "Archived" },
+    on_hold: { class: "status-archived", label: "On Hold" },
+};
+
+const filterMatchesStatus = (filter: string, status: string) => {
+    if (filter === "all") return true;
+    if (filter === "in_progress") {
+        return ["ongoing", "in_progress", "planning", "on_hold"].includes(status);
+    }
+
+    return status === filter;
 };
 
 const fadeUp = {
@@ -29,8 +39,7 @@ const fadeUp = {
 export default function ProjectsClient({ projects }: { projects: Project[] }) {
     const [filter, setFilter] = useState<string>("all");
     const { isAuthenticated } = useUser();
-    const filtered =
-        filter === "all" ? projects : projects.filter((p) => p.status === filter);
+    const filtered = projects.filter((project) => filterMatchesStatus(filter, project.status));
 
     return (
         <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">

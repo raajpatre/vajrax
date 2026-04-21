@@ -790,3 +790,473 @@ export async function submitEquipmentRequest(input: {
     revalidatePath("/my-requests");
     return { ok: true };
 }
+
+// ── Cart-based equipment request ──────────────────────────────────────────────
+
+export type CartItemInput = {
+    itemId: string;
+    quantity: number;
+    requestType: EquipmentRequestType;
+};
+
+export type CartReviewItemInput = {
+    cartItemId: string;
+    action: "approved" | "rejected";
+    approvedQuantity?: number;
+    note?: string;
+};
+
+export async function submitEquipmentCart(input: {
+    items: CartItemInput[];
+    reason: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return { ok: false, error: "Not authenticated" };
+
+    const reason = input.reason.trim();
+    if (!reason) return { ok: false, error: "Reason is required" };
+    if (!input.items.length) return { ok: false, error: "Cart is empty" };
+
+    // Fetch user profile for safety cert checks
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("safety_certifications")
+        .eq("id", user.id)
+        .single();
+
+    if (profileError || !profile) {
+        return { ok: false, error: profileError?.message ?? "Profile not found" };
+    }
+
+    // Validate each item
+    const itemIds = input.items.map((i) => i.itemId);
+    const { data: inventoryItems, error: itemsError } = await supabase
+        .from("inventory_items")
+        .select("id, name, available_quantity, required_safety_certification")
+        .in("id", itemIds);
+
+    if (itemsError || !inventoryItems) {
+        return { ok: false, error: itemsError?.message ?? "Failed to load items" };
+    }
+
+    const itemMap = new Map(inventoryItems.map((i) => [i.id, i]));
+
+    for (const cartItem of input.items) {
+        const item = itemMap.get(cartItem.itemId);
+        if (!item) return { ok: false, error: `Item not found: ${cartItem.itemId}` };
+        if (cartItem.quantity < 1) return { ok: false, error: `Quantity must be at least 1 for ${item.name}` };
+        if (cartItem.quantity > item.available_quantity) {
+            return { ok: false, error: `Requested quantity exceeds available stock for ${item.name}` };
+        }
+
+        const requiredCert = item.required_safety_certification?.trim();
+        if (requiredCert && requiredCert.length > 0) {
+            const hasCert = (profile.safety_certifications || []).includes(requiredCert);
+            if (!hasCert) {
+                return {
+                    ok: false,
+                    error: `${item.name} requires "${requiredCert}" certification.`,
+                };
+            }
+        }
+    }
+
+    // Create cart
+    const { data: cartRow, error: cartInsertError } = await supabase
+        .from("equipment_carts")
+        .insert({
+            requester_id: user.id,
+            reason,
+        })
+        .select("id")
+        .single();
+
+    if (cartInsertError || !cartRow) {
+        return { ok: false, error: cartInsertError?.message ?? "Failed to create cart" };
+    }
+
+    // Create cart items
+    const cartItemRows = input.items.map((ci) => ({
+        cart_id: cartRow.id,
+        item_id: ci.itemId,
+        quantity: ci.quantity,
+        request_type: ci.requestType,
+    }));
+
+    const { error: cartItemsError } = await supabase
+        .from("equipment_cart_items")
+        .insert(cartItemRows);
+
+    if (cartItemsError) {
+        return { ok: false, error: cartItemsError.message };
+    }
+
+    await notifyInventoryManagers({
+        message: "A new equipment cart has been submitted for review.",
+        relatedEntityId: cartRow.id,
+    });
+
+    revalidatePath("/inventory");
+    revalidatePath("/my-requests");
+    revalidatePath("/admin/requests");
+    return { ok: true };
+}
+
+export async function reviewEquipmentCart(input: {
+    cartId: string;
+    action: "approve_all" | "reject_all" | "manual";
+    items?: CartReviewItemInput[];
+    cartNote?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+    const context = await getModeratorContext();
+    if (!context.ok) {
+        return { ok: false, error: context.error };
+    }
+
+    const { supabase, user, profile } = context;
+
+    // Fetch the cart
+    const { data: cart, error: cartFetchError } = await supabase
+        .from("equipment_carts")
+        .select(`
+            id,
+            requester_id,
+            reason,
+            status,
+            requester:profiles!equipment_carts_requester_id_fkey(
+                id, display_name, username
+            )
+        `)
+        .eq("id", input.cartId)
+        .single();
+
+    if (cartFetchError || !cart) {
+        return { ok: false, error: cartFetchError?.message ?? "Cart not found" };
+    }
+
+    if (cart.status !== "pending") {
+        return { ok: false, error: "This cart has already been reviewed." };
+    }
+
+    // Fetch cart items with inventory info
+    const { data: cartItems, error: cartItemsFetchError } = await supabase
+        .from("equipment_cart_items")
+        .select(`
+            id,
+            item_id,
+            quantity,
+            request_type,
+            item:inventory_items!equipment_cart_items_item_id_fkey(
+                id, name, category, total_quantity, available_quantity
+            )
+        `)
+        .eq("cart_id", input.cartId);
+
+    if (cartItemsFetchError || !cartItems || cartItems.length === 0) {
+        return { ok: false, error: cartItemsFetchError?.message ?? "Cart items not found" };
+    }
+
+    const adminSupabase = createAdminClient();
+    const reviewedAt = new Date().toISOString();
+    const requester = cart.requester as unknown as { id: string; display_name: string; username: string | null };
+
+    // Build decisions for each cart item
+    type ItemDecision = {
+        cartItemId: string;
+        itemId: string;
+        itemName: string;
+        itemCategory: string;
+        totalQuantity: number;
+        availableQuantity: number;
+        requestedQuantity: number;
+        requestType: EquipmentRequestType;
+        action: "approved" | "rejected";
+        approvedQuantity: number;
+        note: string | null;
+        createdRequestId?: string;
+    };
+
+    const decisions: ItemDecision[] = [];
+
+    for (const ci of cartItems) {
+        const item = ci.item as unknown as {
+            id: string;
+            name: string;
+            category: string;
+            total_quantity: number;
+            available_quantity: number;
+        };
+
+        if (input.action === "approve_all") {
+            decisions.push({
+                cartItemId: ci.id,
+                itemId: item.id,
+                itemName: item.name,
+                itemCategory: item.category,
+                totalQuantity: item.total_quantity,
+                availableQuantity: item.available_quantity,
+                requestedQuantity: ci.quantity,
+                requestType: ci.request_type as EquipmentRequestType,
+                action: "approved",
+                approvedQuantity: ci.quantity,
+                note: null,
+            });
+        } else if (input.action === "reject_all") {
+            decisions.push({
+                cartItemId: ci.id,
+                itemId: item.id,
+                itemName: item.name,
+                itemCategory: item.category,
+                totalQuantity: item.total_quantity,
+                availableQuantity: item.available_quantity,
+                requestedQuantity: ci.quantity,
+                requestType: ci.request_type as EquipmentRequestType,
+                action: "rejected",
+                approvedQuantity: 0,
+                note: null,
+            });
+        } else {
+            // Manual: find matching input item
+            const manualItem = input.items?.find((mi) => mi.cartItemId === ci.id);
+            if (!manualItem) {
+                return { ok: false, error: `No decision provided for ${item.name}` };
+            }
+            const approvedQty = manualItem.action === "approved"
+                ? (manualItem.approvedQuantity ?? ci.quantity)
+                : 0;
+            decisions.push({
+                cartItemId: ci.id,
+                itemId: item.id,
+                itemName: item.name,
+                itemCategory: item.category,
+                totalQuantity: item.total_quantity,
+                availableQuantity: item.available_quantity,
+                requestedQuantity: ci.quantity,
+                requestType: ci.request_type as EquipmentRequestType,
+                action: manualItem.action,
+                approvedQuantity: approvedQty,
+                note: manualItem.note?.trim() || null,
+            });
+        }
+    }
+
+    // Validate approved quantities
+    for (const decision of decisions) {
+        if (decision.action === "approved") {
+            if (decision.approvedQuantity < 1 || decision.approvedQuantity > decision.requestedQuantity) {
+                return { ok: false, error: `Invalid approved quantity for ${decision.itemName}` };
+            }
+            if (decision.approvedQuantity > decision.availableQuantity) {
+                return { ok: false, error: `Approved quantity exceeds available stock for ${decision.itemName}` };
+            }
+        }
+    }
+
+    // Process each decision: create equipment_requests rows + update inventory
+    for (const decision of decisions) {
+        const approvedQuantity = decision.action === "approved" ? decision.approvedQuantity : 0;
+        const statusNote = decision.action === "rejected"
+            ? (decision.note || "Rejected")
+            : decision.approvedQuantity === decision.requestedQuantity
+                ? (decision.requestType === "permanent" ? "Approved for permanent use." : "Approved in full.")
+                : `Approved ${decision.approvedQuantity} of ${decision.requestedQuantity}; ${decision.requestedQuantity - decision.approvedQuantity} not approved.`;
+
+        // Create an equipment_request row (unpacking the cart item)
+        const { data: requestRow, error: requestInsertError } = await adminSupabase
+            .from("equipment_requests")
+            .insert({
+                item_id: decision.itemId,
+                requester_id: requester.id,
+                quantity: decision.requestedQuantity,
+                reason: cart.reason + (decision.note ? ` — Note: ${decision.note}` : ""),
+                request_type: decision.requestType,
+                status: decision.action,
+                approved_by: user.id,
+                approved_quantity: approvedQuantity,
+                reviewed_at: reviewedAt,
+                status_note: statusNote,
+            })
+            .select("id")
+            .single();
+
+        if (requestInsertError || !requestRow) {
+            return { ok: false, error: requestInsertError?.message ?? `Failed to create request for ${decision.itemName}` };
+        }
+
+        decision.createdRequestId = requestRow.id;
+
+        // Insert inventory history
+        const historyNote =
+            decision.action === "approved" && approvedQuantity < decision.requestedQuantity
+                ? `Approved ${approvedQuantity} of ${decision.requestedQuantity} requested (from cart).`
+                : `${statusNote} (from cart)`;
+
+        await adminSupabase.from("inventory_history").insert({
+            request_id: requestRow.id,
+            item_id: decision.itemId,
+            actor_id: user.id,
+            action: decision.action,
+            quantity: decision.action === "approved" ? approvedQuantity : decision.requestedQuantity,
+            note: historyNote,
+        });
+
+        // Update cart item status
+        await adminSupabase
+            .from("equipment_cart_items")
+            .update({
+                item_status: decision.action,
+                approved_quantity: approvedQuantity,
+                admin_note: decision.note,
+            })
+            .eq("id", decision.cartItemId);
+
+        // Update inventory and create return units for approved items
+        if (decision.action === "approved") {
+            if (decision.requestType === "permanent") {
+                await adminSupabase
+                    .from("inventory_items")
+                    .update({
+                        total_quantity: decision.totalQuantity - approvedQuantity,
+                        available_quantity: decision.availableQuantity - approvedQuantity,
+                    })
+                    .eq("id", decision.itemId);
+            } else {
+                await adminSupabase
+                    .from("inventory_items")
+                    .update({
+                        available_quantity: decision.availableQuantity - approvedQuantity,
+                    })
+                    .eq("id", decision.itemId);
+
+                // Create return units for borrowing items
+                const returnUnits = Array.from({ length: approvedQuantity }, (_, index) => ({
+                    request_id: requestRow.id,
+                    item_id: decision.itemId,
+                    unit_index: index + 1,
+                    lifecycle_status: "return_pending" as const,
+                    updated_at: reviewedAt,
+                }));
+
+                await adminSupabase
+                    .from("equipment_request_return_units")
+                    .insert(returnUnits);
+            }
+        }
+    }
+
+    // ── Batch sync to Google Sheets ──────────────────────────────────────
+    try {
+        const emailMap = await getUserEmails([requester.id, user.id]);
+        const allSheetRows: ReturnType<typeof buildDecisionSheetRow>[] = [];
+
+        console.log("[CartSync] Decisions to sync:", decisions.map(d => ({
+            itemName: d.itemName,
+            action: d.action,
+            requestType: d.requestType,
+            createdRequestId: d.createdRequestId,
+        })));
+
+        for (const decision of decisions) {
+            if (!decision.createdRequestId) {
+                console.log(`[CartSync] SKIP: ${decision.itemName} — no createdRequestId`);
+                continue;
+            }
+
+            // For rejected or permanent items, create a decision row
+            if (decision.action === "rejected" || decision.requestType === "permanent") {
+                console.log(`[CartSync] Adding decision row for: ${decision.itemName} (${decision.requestType}, ${decision.action})`);
+                allSheetRows.push(
+                    buildDecisionSheetRow({
+                        requestId: decision.createdRequestId,
+                        decision: decision.action,
+                        requestType: decision.requestType,
+                        reviewedAt,
+                        requesterName: getPreferredName(requester),
+                        requesterEmail: emailMap[requester.id] || "",
+                        itemRequested: decision.itemName,
+                        approverName: getPreferredName(profile),
+                        approverEmail: emailMap[user.id] || "",
+                    })
+                );
+            }
+
+            // For approved borrow items, create return unit rows
+            if (decision.action === "approved" && decision.requestType === "borrow") {
+                const { data: createdUnits } = await adminSupabase
+                    .from("equipment_request_return_units")
+                    .select("id")
+                    .eq("request_id", decision.createdRequestId);
+
+                console.log(`[CartSync] Adding ${createdUnits?.length || 0} borrow unit rows for: ${decision.itemName}`);
+                allSheetRows.push(
+                    ...buildBorrowUnitSheetRows({
+                        unitIds: (createdUnits || []).map((u) => u.id),
+                        reviewedAt,
+                        requesterName: getPreferredName(requester),
+                        requesterEmail: emailMap[requester.id] || "",
+                        itemRequested: decision.itemName,
+                        approverName: getPreferredName(profile),
+                        approverEmail: emailMap[user.id] || "",
+                    })
+                );
+            }
+        }
+
+        console.log(`[CartSync] Total sheet rows to sync: ${allSheetRows.length}`, allSheetRows.map(r => ({ item: r.itemRequested, decision: r.decision, lifecycle: r.lifecycleStatus })));
+
+        if (allSheetRows.length > 0) {
+            await syncInventoryHistoryRowsToGoogleSheets({
+                mode: "upsert",
+                rows: allSheetRows,
+            });
+        }
+    } catch (syncError) {
+        console.error("Failed to sync cart to Google Sheets:", syncError);
+    }
+
+    // Determine overall cart status
+    const hasApproved = decisions.some((d) => d.action === "approved");
+    const hasRejected = decisions.some((d) => d.action === "rejected");
+    let cartStatus: string;
+    if (hasApproved && hasRejected) {
+        cartStatus = "partially_approved";
+    } else if (hasApproved) {
+        cartStatus = "approved";
+    } else {
+        cartStatus = "rejected";
+    }
+
+    await adminSupabase
+        .from("equipment_carts")
+        .update({
+            status: cartStatus,
+            reviewed_by: user.id,
+            reviewed_at: reviewedAt,
+            status_note: input.cartNote?.trim() || null,
+        })
+        .eq("id", input.cartId);
+
+    // Sync inventory stocks snapshot
+    await syncInventoryStocksSnapshot();
+
+    // Notify the requester
+    const notificationMessage = cartStatus === "approved"
+        ? "Your equipment cart has been fully approved."
+        : cartStatus === "partially_approved"
+            ? "Your equipment cart has been partially approved. Some items were rejected."
+            : "Your equipment cart has been rejected.";
+
+    await createNotification({
+        userId: requester.id,
+        type: cartStatus === "rejected" ? "equipment_request_rejected" : "equipment_request_approved",
+        message: notificationMessage,
+        relatedEntityId: input.cartId,
+    });
+
+    await revalidateInventoryPaths();
+    return { ok: true };
+}
