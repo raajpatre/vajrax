@@ -11,7 +11,7 @@ export default function ProtectedLayout({
     return (
         <div className="flex min-h-screen">
             <ProtectedSidebar />
-            <div className="flex flex-col flex-1 lg:pl-[260px]">
+            <div className="flex flex-col flex-1 transition-[padding] duration-300 lg:pl-[260px] [.sidebar-collapsed_&]:lg:pl-[68px]">
                 <Navbar />
                 <PublicAmbientBackground />
                 <main className="relative z-10 flex-1 pt-[var(--nav-height)]">

@@ -17,7 +17,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/lib/hooks/useUser";
 
 type SidebarLink = {
@@ -33,7 +33,7 @@ type SidebarLink = {
 const links: SidebarLink[] = [
     // Core
     { href: "/inventory", label: "Inventory", icon: Package, section: "CORE" },
-    { href: "/projects", label: "Explore Projects", icon: FolderOpen, section: "CORE" },
+    { href: "/projects", label: "My Projects", icon: FolderOpen, section: "CORE" },
     { href: "/my-requests", label: "My Requests", icon: ClipboardList, section: "CORE" },
     { href: "/project-invites", label: "Project Invites", icon: Mail, section: "CORE" },
     { href: "/projects/request", label: "Request Project", icon: FolderOpen, section: "CORE" },
@@ -51,6 +51,16 @@ export default function ProtectedSidebar() {
     const pathname = usePathname();
     const { isFaculty, isModerator, isInventoryManager } = useUser();
     const [collapsed, setCollapsed] = useState(false);
+
+    useEffect(() => {
+        if (collapsed) {
+            document.body.classList.add('sidebar-collapsed');
+        } else {
+            document.body.classList.remove('sidebar-collapsed');
+        }
+        
+        return () => document.body.classList.remove('sidebar-collapsed');
+    }, [collapsed]);
 
     const canAdmin = isFaculty || isModerator;
     const canInventory = isFaculty || isModerator || isInventoryManager;
