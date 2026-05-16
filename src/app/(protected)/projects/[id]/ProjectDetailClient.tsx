@@ -274,7 +274,7 @@ export default function ProjectDetailClient({
             .map((value) => value.trim())
             .filter(Boolean);
 
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from("project_updates")
             .insert({
                 project_id: project.id,
@@ -282,11 +282,18 @@ export default function ProjectDetailClient({
                 title: updateTitle.trim(),
                 content: updateContent.trim() || null,
                 version_tag: versionTag.trim() || null,
-                source_urls: sourceUrls,
-                image_urls: imageUrls,
+                source_urls: sourceUrls.length > 0 ? sourceUrls : null,
+                image_urls: imageUrls.length > 0 ? imageUrls : null,
             })
             .select("id, title, content, version_tag, source_urls, image_urls, created_at")
             .single();
+
+        if (error) {
+            console.error("Error posting update:", error);
+            alert("Failed to post update: " + error.message);
+            setPostingUpdate(false);
+            return;
+        }
 
         if (data) {
             const { data: authorProfile } = await supabase

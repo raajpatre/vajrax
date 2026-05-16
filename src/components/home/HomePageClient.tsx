@@ -61,8 +61,8 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
                             transition={{ duration: 0.7, delay: 0.2 }}
                             className="mx-auto mb-8 max-w-2xl text-base leading-relaxed text-text-secondary sm:mb-10 sm:text-2xl"
                         >
-                            The ultimate power in robotics innovation.{" "}
-                            <span className="text-foreground font-semibold">Design. Build. Dominate.</span>
+                            The ultimate power in robotics innovation.
+                            <span className="text-foreground font-semibold block mt-1 sm:mt-2">Design. Build. Dominate.</span>
                         </motion.p>
 
                         <motion.div

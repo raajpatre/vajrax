@@ -25,6 +25,8 @@ import {
     CircleCheckBig,
     Sparkles,
     ArrowUpRight,
+    Mail,
+    Clock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -109,16 +111,18 @@ function StatCard({
 
 function EditProfileModal({
     profile,
+    userEmail,
     onClose,
     onSaved,
 }: {
     profile: Profile;
+    userEmail?: string;
     onClose: () => void;
     onSaved: () => void;
 }) {
     const [displayName, setDisplayName] = useState(profile.display_name);
     const [bio, setBio] = useState(profile.bio || "");
-    const [contactEmail, setContactEmail] = useState(profile.contact_email || "");
+    const contactEmail = userEmail || profile.contact_email || "";
     const [githubUrl, setGithubUrl] = useState(profile.github_url || "");
     const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || "");
     const [currentSemester, setCurrentSemester] = useState<string>(
@@ -176,7 +180,7 @@ function EditProfileModal({
             const baseUpdatePayload = {
                 display_name: displayName.trim(),
                 bio: bio.trim() || null,
-                contact_email: contactEmail.trim() || null,
+                contact_email: contactEmail || null,
                 github_url: githubUrl.trim() || null,
                 linkedin_url: linkedinUrl.trim() || null,
                 avatar_url: avatarUrl,
@@ -286,7 +290,7 @@ function EditProfileModal({
                                     Visibility
                                 </p>
                                 <p className="mt-2 text-sm text-text-secondary">
-                                    Your contact email appears on the Innovators page if you choose to add one.
+                                    Your registered email is automatically used as your contact email on the Innovators page.
                                 </p>
                             </div>
                         </div>
@@ -319,14 +323,14 @@ function EditProfileModal({
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-text-secondary">
-                                Contact Email <span className="text-xs font-normal text-text-muted">(shown on Innovators page)</span>
+                                Contact Email <span className="text-xs font-normal text-text-muted">(synced with registered email)</span>
                             </label>
                             <input
                                 type="email"
                                 value={contactEmail}
-                                onChange={(e) => setContactEmail(e.target.value)}
-                                placeholder="yourname@example.com"
-                                className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                readOnly
+                                disabled
+                                className="w-full rounded-lg border border-border bg-surface/50 px-4 py-3 text-sm text-text-muted cursor-not-allowed"
                             />
                         </div>
 
@@ -573,39 +577,23 @@ export default function ProfilePage() {
                         hint="Projects the member is part of that have reached completed status."
                     />
 
-                    <div className="glass p-4 md:p-5 md:col-span-2 xl:col-span-3">
-                        <div className="mb-4 flex items-center gap-3">
-                            <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-cyan-300/8 text-cyan-100 shadow-[0_0_24px_rgba(76,201,240,0.12)]">
-                                <User className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">Dashboard Notes</p>
-                                <h2 className="text-lg font-semibold text-foreground">Member Snapshot</h2>
-                            </div>
-                        </div>
-                        <div className="grid gap-3 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                            <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-4">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Contact Email</p>
-                                <p className="mt-2 break-all text-sm leading-relaxed text-foreground/90">
-                                    {profile.contact_email || "Not added"}
-                                </p>
-                            </div>
-                            <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-4">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Username</p>
-                                <p className="mt-2 text-sm text-foreground">{profile.username || "Not set"}</p>
-                            </div>
-                            <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-4">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">Profile Updated</p>
-                                <p className="mt-2 text-sm text-foreground">
-                                    {new Date(profile.updated_at).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                    })}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    <StatCard
+                        icon={<Mail className="h-5 w-5" />}
+                        label="Contact Email"
+                        value={profile.contact_email || "Not added"}
+                        hint="Primary email for communication."
+                    />
+
+                    <StatCard
+                        icon={<Clock className="h-5 w-5" />}
+                        label="Profile Updated"
+                        value={new Date(profile.updated_at).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                        })}
+                        hint="Last time this profile was modified."
+                    />
                 </div>
             </div>
 
@@ -613,6 +601,7 @@ export default function ProfilePage() {
                 {showEdit && profile && (
                     <EditProfileModal
                         profile={profile}
+                        userEmail={currentUser?.email}
                         onClose={() => setShowEdit(false)}
                         onSaved={() => {
                             fetchProfile();

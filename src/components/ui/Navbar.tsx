@@ -226,7 +226,7 @@ export default function Navbar() {
                                         : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
                                     }`}
                             >
-                                My Projects
+                                {isFaculty ? "Projects" : "My Projects"}
                                 {pathname.startsWith("/projects") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
@@ -521,7 +521,7 @@ export default function Navbar() {
                                         onClick={closeMenu}
                                         className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                     >
-                                        My Projects
+                                        {isFaculty ? "Projects" : "My Projects"}
                                     </Link>
                                 )}
                                 {publicLinks.filter(link => !(isAuthenticated && (link.href === "/" || link.href === "/contact"))).map((link) => {

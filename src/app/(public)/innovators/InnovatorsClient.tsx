@@ -63,12 +63,12 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                 </p>
 
                 {/* Filters */}
-                <div className="glass mb-10 inline-flex w-full flex-wrap items-center gap-2 rounded-lg px-3 py-2 sm:w-fit">
+                <div className="glass mb-10 inline-flex w-full overflow-x-auto flex-nowrap items-center gap-1.5 sm:gap-2 rounded-lg px-2 py-2 sm:px-3 sm:w-fit [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {filters.map((f) => (
                         <button
                             key={f.id}
                             onClick={() => setFilter(f.id)}
-                            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-all ${
+                            className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-[11px] sm:text-sm font-semibold transition-all sm:px-4 sm:py-2 ${
                                 filter === f.id
                                     ? "border-cyan-300/35 bg-cyan-300/14 text-cyan-100 shadow-[0_0_20px_rgba(0,242,255,0.15)]"
                                     : "border-transparent text-text-secondary hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground"
