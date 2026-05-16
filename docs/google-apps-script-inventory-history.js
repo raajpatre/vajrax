@@ -29,7 +29,7 @@ function doPost(e) {
   const payload = JSON.parse(e.postData.contents || "{}");
   const requestSecret = payload.secret || "";
 
-  if (secret && requestSecret !== secret) {
+  if (!secret || requestSecret !== secret) {
     return ContentService
       .createTextOutput(JSON.stringify({ ok: false, error: "Unauthorized" }))
       .setMimeType(ContentService.MimeType.JSON);

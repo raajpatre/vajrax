@@ -22,7 +22,7 @@ The Apps Script will automatically manage two worksheet tabs:
 
 ## 2. Add an Apps Script webhook
 
-Open `Extensions -> Apps Script` in the sheet and replace the default code with the contents of [docs/google-apps-script-inventory-history.js](/Users/raaj.dev/Documents/AntiGravity/My Projects /VajraX/vajrax/docs/google-apps-script-inventory-history.js).
+Open `Extensions -> Apps Script` in the sheet and replace the default code with the contents of [docs/google-apps-script-inventory-history.js](./google-apps-script-inventory-history.js)
 
 ```javascript
 const HEADER_ROW = [
