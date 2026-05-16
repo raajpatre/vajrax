@@ -33,6 +33,7 @@ type SidebarLink = {
 const links: SidebarLink[] = [
     // Core
     { href: "/inventory", label: "Inventory", icon: Package, section: "CORE" },
+    { href: "/projects", label: "Explore Projects", icon: FolderOpen, section: "CORE" },
     { href: "/my-requests", label: "My Requests", icon: ClipboardList, section: "CORE" },
     { href: "/project-invites", label: "Project Invites", icon: Mail, section: "CORE" },
     { href: "/projects/request", label: "Request Project", icon: FolderOpen, section: "CORE" },

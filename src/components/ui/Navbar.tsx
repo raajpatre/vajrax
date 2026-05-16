@@ -13,7 +13,6 @@ import { Tables } from "@/types/database";
 
 const publicLinks = [
     { href: "/", label: "Home" },
-    { href: "/projects", label: "Projects" },
     { href: "/gallery", label: "Gallery" },
     { href: "/events", label: "Events" },
     { href: "/innovators", label: "Our Innovators" },
@@ -253,6 +252,26 @@ export default function Navbar() {
                             >
                                 Inventory
                                 {pathname.startsWith("/inventory") && (
+                                    <motion.div
+                                        layoutId="navbar-indicator"
+                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-[#00e5ff]"
+                                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                                    />
+                                )}
+                            </Link>
+                        )}
+                        {isAuthenticated && (
+                            <Link
+                                href="/projects"
+                                onClick={closeMenu}
+                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${pathname.startsWith("/projects")
+                                        ? "text-[#c3f5ff] bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.24)] shadow-[0_0_0_1px_rgba(0,229,255,0.12),0_0_20px_rgba(0,229,255,0.1)]"
+                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
+                                    }`}
+                            >
+                                <FolderOpen className="w-3.5 h-3.5 opacity-80" />
+                                Projects
+                                {pathname.startsWith("/projects") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
                                         className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-[#00e5ff]"
@@ -521,6 +540,14 @@ export default function Navbar() {
                                             className="px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
                                         >
                                             Inventory
+                                        </Link>
+                                        <Link
+                                            href="/projects"
+                                            onClick={closeMenu}
+                                            className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
+                                        >
+                                            <FolderOpen className="w-4 h-4" />
+                                            Projects
                                         </Link>
                                         <Link
                                             href="/my-requests"

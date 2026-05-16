@@ -166,7 +166,7 @@ export default function ProjectDetailClient({
             const input = inviteEmail.trim();
             let profile: { id: string; display_name: string } | null = null;
 
-            // 1. If input looks like an email, look up via DB function
+            // Look up via DB function (registered email address only)
             if (input.includes("@")) {
                 const { data } = await supabase.rpc("lookup_profile_by_email", {
                     lookup_email: input.toLowerCase(),
@@ -176,29 +176,8 @@ export default function ProjectDetailClient({
                 }
             }
 
-            // 2. Try username match
             if (!profile) {
-                const { data } = await supabase
-                    .from("profiles")
-                    .select("id, display_name")
-                    .eq("username", input.toLowerCase())
-                    .maybeSingle();
-                profile = data;
-            }
-
-            // 3. Try display_name match
-            if (!profile) {
-                const { data } = await supabase
-                    .from("profiles")
-                    .select("id, display_name")
-                    .ilike("display_name", input)
-                    .limit(1)
-                    .maybeSingle();
-                profile = data;
-            }
-
-            if (!profile) {
-                setInviteError("No member found. Try their email, username, or display name.");
+                setInviteError("No member found with that email address.");
                 setInviting(false);
                 return;
             }
@@ -414,10 +393,10 @@ export default function ProjectDetailClient({
                                 <div className="flex-1 relative">
                                     <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
                                     <input
-                                        type="text"
+                                        type="email"
                                         value={inviteEmail}
                                         onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
-                                        placeholder="Username or name"
+                                        placeholder="Enter email address"
                                         className="w-full bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-xs text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                                     />
                                 </div>
