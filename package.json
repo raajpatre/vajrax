@@ -8,6 +8,12 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "browserslist": [
+    "defaults",
+    "not IE 11",
+    "not dead",
+    "not op_mini all"
+  ],
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.18.9",
     "@react-three/drei": "^10.7.7",

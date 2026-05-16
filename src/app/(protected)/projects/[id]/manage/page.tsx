@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { removeProjectMember } from "@/actions/project-members";
+import { updateProjectHeroImage } from "@/actions/project-management";
 
 interface Member {
     id: string;
@@ -252,16 +253,17 @@ export default function ProjectManagePage() {
             return;
         }
 
-        const { error } = await supabase
-            .from("projects")
-            .update({ cover_image_url: normalizedHeroUrl || null })
-            .eq("id", id);
+        const result = await updateProjectHeroImage({
+            projectId: id,
+            coverImageUrl: normalizedHeroUrl || null,
+        });
 
-        if (error) {
-            setHeroImageMessage(error.message);
+        if (!result.ok) {
+            setHeroImageMessage(result.error);
         } else {
             setProject((current) => current ? { ...current, cover_image_url: normalizedHeroUrl || null } : current);
             setHeroImageMessage(normalizedHeroUrl ? "Hero image updated." : "Hero image removed.");
+            router.refresh();
         }
 
         setSavingHeroImage(false);

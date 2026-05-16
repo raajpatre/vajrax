@@ -49,6 +49,9 @@ export default function HomePageClient({ sponsors }: HomePageClientProps) {
                                 height={172}
                                 className="h-auto w-full max-w-[280px] object-contain sm:max-w-[420px] md:max-w-[560px] lg:max-w-[640px]"
                                 priority
+                                fetchPriority="high"
+                                loading="eager"
+                                style={{ aspectRatio: "720/172" }}
                             />
                         </motion.h1>
 
