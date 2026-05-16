@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
     User,
     Calendar,
@@ -14,6 +15,7 @@ import {
     Send,
     Trash2,
     Mail,
+    X,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -259,6 +261,7 @@ export default function ProjectDetailClient({
     const [updateImageUrls, setUpdateImageUrls] = useState("");
     const [postingUpdate, setPostingUpdate] = useState(false);
     const [showUpdateForm, setShowUpdateForm] = useState(false);
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
     const handlePostUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -597,7 +600,7 @@ export default function ProjectDetailClient({
                                                     )}
                                                 </div>
                                                 {update.content && (
-                                                    <p className="text-xs text-text-secondary mt-0.5 leading-relaxed whitespace-pre-wrap">
+                                                    <p className="text-xs text-text-secondary mt-0.5 leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
                                                         {update.content}
                                                     </p>
                                                 )}
@@ -619,19 +622,18 @@ export default function ProjectDetailClient({
                                                 {update.image_urls && update.image_urls.length > 0 && (
                                                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                                         {update.image_urls.map((imageUrl) => (
-                                                            <a
+                                                            <button
                                                                 key={imageUrl}
-                                                                href={imageUrl}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="overflow-hidden rounded-lg border border-white/10 bg-surface/60"
+                                                                type="button"
+                                                                onClick={() => setLightboxUrl(imageUrl)}
+                                                                className="overflow-hidden rounded-lg border border-white/10 bg-surface/60 cursor-zoom-in"
                                                             >
                                                                 <img
                                                                     src={imageUrl}
                                                                     alt={update.title}
                                                                     className="h-24 w-full object-cover transition-transform duration-300 hover:scale-105"
                                                                 />
-                                                            </a>
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 )}
@@ -652,6 +654,40 @@ export default function ProjectDetailClient({
                 </div>
             </div>
             </div>
+
+            {/* Image Lightbox — portaled to body */}
+            {typeof document !== "undefined" && createPortal(
+                <AnimatePresence>
+                    {lightboxUrl && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                            style={{ zIndex: 99999 }}
+                            onClick={() => setLightboxUrl(null)}
+                        >
+                            <button
+                                onClick={() => setLightboxUrl(null)}
+                                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors z-10"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <motion.img
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                src={lightboxUrl}
+                                alt="Preview"
+                                className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }
