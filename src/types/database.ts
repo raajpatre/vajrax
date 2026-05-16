@@ -587,47 +587,6 @@ export type Database = {
           },
         ]
       }
-      resource_bookings: {
-        Row: {
-          created_at: string
-          end_time: string
-          id: string
-          resource_name: string
-          start_time: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          end_time: string
-          id?: string
-          resource_name: string
-          start_time: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          end_time?: string
-          id?: string
-          resource_name?: string
-          start_time?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "resource_bookings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       sponsors: {
         Row: {
           created_at: string

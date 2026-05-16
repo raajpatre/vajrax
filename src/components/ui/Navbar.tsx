@@ -42,7 +42,6 @@ export default function Navbar() {
     const [notifications, setNotifications] = useState<NotificationRow[]>([]);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
     const { user, profile, loading, isAuthenticated, signOut, isFaculty, isModerator, isInventoryManager } = useUser();
-    const canViewLabHistory = profile?.role === "faculty" || profile?.role === "president";
     const notificationRef = useRef<HTMLDivElement>(null);
     const unreadCount = notifications.filter((notification) => !notification.is_read).length;
 
@@ -254,29 +253,6 @@ export default function Navbar() {
                             >
                                 Inventory
                                 {pathname.startsWith("/inventory") && (
-                                    <motion.div
-                                        layoutId="navbar-indicator"
-                                        className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-[#00e5ff]"
-                                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                                    />
-                                )}
-                            </Link>
-                        )}
-                        {isAuthenticated && (
-                            <Link
-                                href="/lab"
-                                onClick={closeMenu}
-                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${pathname.startsWith("/lab")
-                                        ? "text-[#c3f5ff] bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.24)] shadow-[0_0_0_1px_rgba(0,229,255,0.12),0_0_20px_rgba(0,229,255,0.1)]"
-                                        : "text-text-secondary hover:text-foreground hover:bg-white/[0.04] border border-transparent"
-                                    }`}
-                            >
-                                <FlaskConical className="w-3.5 h-3.5 opacity-80" />
-                                Lab
-                                <span className="ml-1 rounded-full border border-cyan-300/50 bg-cyan-300/14 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.08em] text-cyan-100">
-                                    BETA
-                                </span>
-                                {pathname.startsWith("/lab") && (
                                     <motion.div
                                         layoutId="navbar-indicator"
                                         className="absolute -bottom-[2px] left-2 right-2 h-[2px] rounded-full bg-[#00e5ff]"
@@ -555,17 +531,6 @@ export default function Navbar() {
                                             My Requests
                                         </Link>
                                         <Link
-                                            href="/lab"
-                                            onClick={closeMenu}
-                                            className="px-4 py-3 rounded-lg text-sm font-medium text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-500/10 transition-all flex items-center gap-2"
-                                        >
-                                            <FlaskConical className="w-4 h-4" />
-                                            Lab
-                                            <span className="rounded-full border border-cyan-300/50 bg-cyan-300/14 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.08em] text-cyan-100">
-                                                BETA
-                                            </span>
-                                        </Link>
-                                        <Link
                                             href="/project-invites"
                                             onClick={closeMenu}
                                             className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
@@ -613,16 +578,6 @@ export default function Navbar() {
                                                     >
                                                         <FolderOpen className="w-4 h-4" />
                                                         Project Requests
-                                                    </Link>
-                                                )}
-                                                {canViewLabHistory && (
-                                                    <Link
-                                                        href="/admin/lab-history"
-                                                        onClick={closeMenu}
-                                                        className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-text-secondary hover:text-foreground hover:bg-white/[0.03] transition-all"
-                                                    >
-                                                        <FlaskConical className="w-4 h-4" />
-                                                        Lab History
                                                     </Link>
                                                 )}
                                             </>
