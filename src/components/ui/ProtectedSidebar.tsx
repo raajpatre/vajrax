@@ -17,7 +17,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/lib/hooks/useUser";
 
 type SidebarLink = {
@@ -33,7 +33,7 @@ type SidebarLink = {
 const links: SidebarLink[] = [
     // Core
     { href: "/inventory", label: "Inventory", icon: Package, section: "CORE" },
-    { href: "/lab", label: "Lab Booking", icon: FlaskConical, section: "CORE" },
+    { href: "/projects", label: "My Projects", icon: FolderOpen, section: "CORE" },
     { href: "/my-requests", label: "My Requests", icon: ClipboardList, section: "CORE" },
     { href: "/project-invites", label: "Project Invites", icon: Mail, section: "CORE" },
     { href: "/projects/request", label: "Request Project", icon: FolderOpen, section: "CORE" },
@@ -45,7 +45,6 @@ const links: SidebarLink[] = [
     { href: "/admin/inventory", label: "Manage Inventory", icon: Package, section: "ADMIN", inventoryOnly: true },
     { href: "/admin/inventory-history", label: "Inventory History", icon: History, section: "ADMIN", inventoryOnly: true },
     { href: "/admin/project-requests", label: "Project Proposals", icon: FileText, section: "ADMIN", adminOnly: true },
-    { href: "/admin/lab-history", label: "Lab History", icon: FlaskConical, section: "ADMIN", facultyOnly: true },
 ];
 
 export default function ProtectedSidebar() {
@@ -53,14 +52,22 @@ export default function ProtectedSidebar() {
     const { isFaculty, isModerator, isInventoryManager } = useUser();
     const [collapsed, setCollapsed] = useState(false);
 
+    useEffect(() => {
+        if (collapsed) {
+            document.body.classList.add('sidebar-collapsed');
+        } else {
+            document.body.classList.remove('sidebar-collapsed');
+        }
+        
+        return () => document.body.classList.remove('sidebar-collapsed');
+    }, [collapsed]);
+
     const canAdmin = isFaculty || isModerator;
     const canInventory = isFaculty || isModerator || isInventoryManager;
-    const canLabHistory = isFaculty || isModerator;
 
     const visibleLinks = links.filter((link) => {
         if (link.adminOnly && !canAdmin) return false;
         if (link.inventoryOnly && !canInventory) return false;
-        if (link.facultyOnly && !canLabHistory) return false;
         return true;
     });
 

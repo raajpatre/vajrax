@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
     User,
     Calendar,
@@ -14,6 +15,7 @@ import {
     Send,
     Trash2,
     Mail,
+    X,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -166,7 +168,7 @@ export default function ProjectDetailClient({
             const input = inviteEmail.trim();
             let profile: { id: string; display_name: string } | null = null;
 
-            // 1. If input looks like an email, look up via DB function
+            // Look up via DB function (registered email address only)
             if (input.includes("@")) {
                 const { data } = await supabase.rpc("lookup_profile_by_email", {
                     lookup_email: input.toLowerCase(),
@@ -176,29 +178,8 @@ export default function ProjectDetailClient({
                 }
             }
 
-            // 2. Try username match
             if (!profile) {
-                const { data } = await supabase
-                    .from("profiles")
-                    .select("id, display_name")
-                    .eq("username", input.toLowerCase())
-                    .maybeSingle();
-                profile = data;
-            }
-
-            // 3. Try display_name match
-            if (!profile) {
-                const { data } = await supabase
-                    .from("profiles")
-                    .select("id, display_name")
-                    .ilike("display_name", input)
-                    .limit(1)
-                    .maybeSingle();
-                profile = data;
-            }
-
-            if (!profile) {
-                setInviteError("No member found. Try their email, username, or display name.");
+                setInviteError("No member found with that email address.");
                 setInviting(false);
                 return;
             }
@@ -280,6 +261,7 @@ export default function ProjectDetailClient({
     const [updateImageUrls, setUpdateImageUrls] = useState("");
     const [postingUpdate, setPostingUpdate] = useState(false);
     const [showUpdateForm, setShowUpdateForm] = useState(false);
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
     const handlePostUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -295,7 +277,7 @@ export default function ProjectDetailClient({
             .map((value) => value.trim())
             .filter(Boolean);
 
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from("project_updates")
             .insert({
                 project_id: project.id,
@@ -303,11 +285,18 @@ export default function ProjectDetailClient({
                 title: updateTitle.trim(),
                 content: updateContent.trim() || null,
                 version_tag: versionTag.trim() || null,
-                source_urls: sourceUrls,
-                image_urls: imageUrls,
+                source_urls: sourceUrls.length > 0 ? sourceUrls : null,
+                image_urls: imageUrls.length > 0 ? imageUrls : null,
             })
             .select("id, title, content, version_tag, source_urls, image_urls, created_at")
             .single();
+
+        if (error) {
+            console.error("Error posting update:", error);
+            alert("Failed to post update: " + error.message);
+            setPostingUpdate(false);
+            return;
+        }
 
         if (data) {
             const { data: authorProfile } = await supabase
@@ -414,10 +403,10 @@ export default function ProjectDetailClient({
                                 <div className="flex-1 relative">
                                     <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
                                     <input
-                                        type="text"
+                                        type="email"
                                         value={inviteEmail}
                                         onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
-                                        placeholder="Username or name"
+                                        placeholder="Enter email address"
                                         className="w-full bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-xs text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                                     />
                                 </div>
@@ -611,7 +600,7 @@ export default function ProjectDetailClient({
                                                     )}
                                                 </div>
                                                 {update.content && (
-                                                    <p className="text-xs text-text-secondary mt-0.5 leading-relaxed whitespace-pre-wrap">
+                                                    <p className="text-xs text-text-secondary mt-0.5 leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
                                                         {update.content}
                                                     </p>
                                                 )}
@@ -633,19 +622,18 @@ export default function ProjectDetailClient({
                                                 {update.image_urls && update.image_urls.length > 0 && (
                                                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                                         {update.image_urls.map((imageUrl) => (
-                                                            <a
+                                                            <button
                                                                 key={imageUrl}
-                                                                href={imageUrl}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="overflow-hidden rounded-lg border border-white/10 bg-surface/60"
+                                                                type="button"
+                                                                onClick={() => setLightboxUrl(imageUrl)}
+                                                                className="overflow-hidden rounded-lg border border-white/10 bg-surface/60 cursor-zoom-in"
                                                             >
                                                                 <img
                                                                     src={imageUrl}
                                                                     alt={update.title}
                                                                     className="h-24 w-full object-cover transition-transform duration-300 hover:scale-105"
                                                                 />
-                                                            </a>
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 )}
@@ -666,6 +654,40 @@ export default function ProjectDetailClient({
                 </div>
             </div>
             </div>
+
+            {/* Image Lightbox — portaled to body */}
+            {typeof document !== "undefined" && createPortal(
+                <AnimatePresence>
+                    {lightboxUrl && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                            style={{ zIndex: 99999 }}
+                            onClick={() => setLightboxUrl(null)}
+                        >
+                            <button
+                                onClick={() => setLightboxUrl(null)}
+                                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors z-10"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <motion.img
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                src={lightboxUrl}
+                                alt="Preview"
+                                className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

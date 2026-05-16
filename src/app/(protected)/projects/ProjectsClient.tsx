@@ -38,7 +38,7 @@ const fadeUp = {
 
 export default function ProjectsClient({ projects }: { projects: Project[] }) {
     const [filter, setFilter] = useState<string>("all");
-    const { isAuthenticated } = useUser();
+    const { isAuthenticated, isFaculty } = useUser();
     const filtered = projects.filter((project) => filterMatchesStatus(filter, project.status));
 
     return (
@@ -49,9 +49,13 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
                 <div className="mb-11 flex flex-col gap-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div>
-                            <h1 className="section-title mb-3 text-2xl sm:text-3xl">Projects</h1>
+                            <h1 className="section-title mb-3 text-2xl sm:text-3xl">
+                                {isFaculty ? "Projects" : "My Projects"}
+                            </h1>
                             <p className="max-w-xl text-text-secondary">
-                                Explore our robotics R&D portfolio, from first prototype to competition-ready systems.
+                                {isFaculty 
+                                    ? "Explore our robotics R&D portfolio, from first prototype to competition-ready systems."
+                                    : "Manage and track the progress of your robotics projects."}
                             </p>
                         </div>
                         {isAuthenticated && (
