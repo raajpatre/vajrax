@@ -1,15 +1,19 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X, Loader2, Image as ImageIcon, Calendar, MapPin, Tag, Link2, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
+import { Tables } from "@/types/database";
+
+type GalleryItem = Tables<"gallery_items">;
 
 interface GalleryUploadModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    editItem?: GalleryItem | null;
 }
 
 function normalizeImageUrl(raw: string) {
@@ -32,7 +36,7 @@ function normalizeImageUrl(raw: string) {
     }
 }
 
-export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: GalleryUploadModalProps) {
+export default function GalleryUploadModal({ isOpen, onClose, onSuccess, editItem = null }: GalleryUploadModalProps) {
     const { user } = useUser();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -48,6 +52,37 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
     const [loadingMessage, setLoadingMessage] = useState("");
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            if (editItem) {
+                setTitle(editItem.title || "");
+                setDescription(editItem.description || "");
+                setDate(editItem.created_at ? new Date(editItem.created_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
+                setTag(editItem.tag || "Gallery");
+                setLocationCity(editItem.location_city || "Bengaluru");
+                setLocationCountry(editItem.location_country || "India");
+                setImageSource("url");
+                setImageFile(null);
+                setImageUrlInput(editItem.cover_image_url || "");
+                setImagePreview(editItem.cover_image_url || null);
+            } else {
+                setTitle("");
+                setDescription("");
+                setDate(new Date().toISOString().split("T")[0]);
+                setTag("Gallery");
+                setLocationCity("Bengaluru");
+                setLocationCountry("India");
+                setImageSource("upload");
+                setImageFile(null);
+                setImageUrlInput("");
+                setImagePreview(null);
+            }
+            setError(null);
+            setLoading(false);
+            setLoadingMessage("");
+        }
+    }, [isOpen, editItem]);
 
     const normalizedImageUrl = useMemo(() => normalizeImageUrl(imageUrlInput), [imageUrlInput]);
     const hasUploadImage = imageSource === "upload" && !!imageFile;
@@ -114,20 +149,49 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
             // Use the selected date string to populate created_at
             const isoDate = new Date(date).toISOString();
 
-            setLoadingMessage("Saving gallery item to database...");
-            // Insert metadata
-            const { error: insertError } = await supabase.from("gallery_items").insert({
-                title: title.trim(),
-                description: description.trim() || null,
-                cover_image_url: imageUrl,
-                created_at: isoDate,
-                tag: tag.trim() || "Gallery",
-                location_city: locationCity.trim() || "Bengaluru",
-                location_country: locationCountry.trim() || "India",
-                created_by: user?.id || null,
-            });
+            setLoadingMessage(editItem ? "Saving changes..." : "Saving gallery item to database...");
+            
+            if (editItem) {
+                // Update metadata
+                const { error: updateError } = await supabase
+                    .from("gallery_items")
+                    .update({
+                        title: title.trim(),
+                        description: description.trim() || null,
+                        cover_image_url: imageUrl,
+                        created_at: isoDate,
+                        tag: tag.trim() || "Gallery",
+                        location_city: locationCity.trim() || "Bengaluru",
+                        location_country: locationCountry.trim() || "India",
+                    })
+                    .eq("id", editItem.id);
 
-            if (insertError) throw insertError;
+                if (updateError) throw updateError;
+
+                // If image changed and previous image was an uploaded file in storage, delete it
+                if (imageUrl !== editItem.cover_image_url) {
+                    const urlParts = editItem.cover_image_url.split('/gallery-images/');
+                    const filename = urlParts.length > 1 ? urlParts[1] : null;
+
+                    if (filename) {
+                        supabase.storage.from("gallery-images").remove([filename]).catch(e => console.error(e));
+                    }
+                }
+            } else {
+                // Insert metadata
+                const { error: insertError } = await supabase.from("gallery_items").insert({
+                    title: title.trim(),
+                    description: description.trim() || null,
+                    cover_image_url: imageUrl,
+                    created_at: isoDate,
+                    tag: tag.trim() || "Gallery",
+                    location_city: locationCity.trim() || "Bengaluru",
+                    location_country: locationCountry.trim() || "India",
+                    created_by: user?.id || null,
+                });
+
+                if (insertError) throw insertError;
+            }
 
             setTitle("");
             setDescription("");
@@ -168,9 +232,13 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                         >
                             <div className="flex items-start justify-between gap-4 border-b border-white/8 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
                                 <div>
-                                    <h2 className="text-lg font-bold sm:text-xl">Add to Gallery</h2>
+                                    <h2 className="text-lg font-bold sm:text-xl">
+                                        {editItem ? "Edit Image Details" : "Add to Gallery"}
+                                    </h2>
                                     <p className="mt-1 max-w-[16rem] text-xs text-text-muted sm:max-w-none sm:text-sm">
-                                        Upload a new moment with its image, tag, date, and location details.
+                                        {editItem 
+                                            ? "Update the details and image of this gallery moment." 
+                                            : "Upload a new moment with its image, tag, date, and location details."}
                                     </p>
                                 </div>
                                 <button
@@ -411,7 +479,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Galle
                                                 {loading ? (
                                                     <Loader2 className="w-5 h-5 animate-spin" />
                                                 ) : (
-                                                    "Upload to Gallery"
+                                                    editItem ? "Save Changes" : "Upload to Gallery"
                                                 )}
                                             </button>
                                         </div>

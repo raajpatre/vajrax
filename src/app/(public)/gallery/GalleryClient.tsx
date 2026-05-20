@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
-import { Image as ImageIcon, X, Plus, Trash2, Loader2 } from "lucide-react";
+import { Image as ImageIcon, X, Plus, Trash2, Loader2, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
     const router = useRouter();
     const [selected, setSelected] = useState<GalleryItem | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [editItem, setEditItem] = useState<GalleryItem | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
     const formatCardDate = (value: string) => {
@@ -158,14 +159,23 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                         >
                             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
                                 {(isFaculty || isModerator) && (
-                                    <button
-                                        onClick={handleDelete}
-                                        disabled={isDeleting}
-                                        className="w-8 h-8 rounded-full bg-red-500/80 flex items-center justify-center text-white hover:bg-red-600 transition-colors disabled:opacity-50"
-                                        title="Delete Image"
-                                    >
-                                        {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => setEditItem(selected)}
+                                            className="w-8 h-8 rounded-full bg-cyan-500/80 flex items-center justify-center text-white hover:bg-cyan-600 transition-colors"
+                                            title="Edit Image"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={isDeleting}
+                                            className="w-8 h-8 rounded-full bg-red-500/80 flex items-center justify-center text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                                            title="Delete Image"
+                                        >
+                                            {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                        </button>
+                                    </>
                                 )}
                                 <button
                                     onClick={() => setSelected(null)}
@@ -213,9 +223,14 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
             </AnimatePresence>
             
             <GalleryUploadModal 
-                isOpen={isUploadModalOpen} 
-                onClose={() => setIsUploadModalOpen(false)} 
+                isOpen={isUploadModalOpen || !!editItem} 
+                onClose={() => {
+                    setIsUploadModalOpen(false);
+                    setEditItem(null);
+                }} 
+                editItem={editItem}
                 onSuccess={() => {
+                    setSelected(null);
                     router.refresh();
                 }} 
             />
