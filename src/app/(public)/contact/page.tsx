@@ -115,7 +115,7 @@ export default function ContactPage() {
           {/* LEFT — contact info */}
           <div className="col-span-12 lg:col-span-7">
             <div className="mb-7">
-              <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[44px] leading-none">Contact</h1>
+              <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] leading-none" style={{ fontSize: "clamp(28px, 5vw, 44px)" }}>Contact</h1>
               <p className="text-[#8b9ab0] text-[14px] mt-3 max-w-[58ch] leading-relaxed">
                 Mail us, find us, or just drop by during lab hours. Most replies under 24 hours.
               </p>

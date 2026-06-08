@@ -232,7 +232,7 @@ export default function HomePageClient({ sponsors, stats }: HomePageClientProps)
 
                     {/* Stat strip */}
                     <div
-                        className="mt-8 flex items-center gap-8 font-mono text-[11px] uppercase tracking-[0.18em]"
+                        className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 font-mono text-[11px] uppercase tracking-[0.18em]"
                         style={{ color: "#4a5568", ...stagger(580) }}
                     >
                         <span className="flex items-center gap-2">

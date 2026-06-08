@@ -304,7 +304,7 @@ export default function AdminProjectRequestsPage() {
 
     if (!isModerator && !isFaculty) {
         return (
-            <div className="max-w-3xl mx-auto px-8 pt-20 pb-20 text-center">
+            <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-20 pb-20 text-center">
                 <div
                     className="mx-auto w-16 h-16 grid place-items-center rounded-md mb-5"
                     style={{
@@ -331,7 +331,7 @@ export default function AdminProjectRequestsPage() {
         {/* Radial glow */}
         <div className="fixed top-0 right-0 w-[500px] h-[400px] pointer-events-none" style={{ background: "radial-gradient(ellipse,rgba(0,229,255,0.04) 0%,transparent 70%)" }} />
 
-        <div className="relative max-w-3xl mx-auto px-8 pt-10 pb-20">
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
             {/* Page header */}
             <div className="flex items-center gap-2 mb-2">
                 <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />

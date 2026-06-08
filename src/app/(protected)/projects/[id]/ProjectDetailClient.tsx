@@ -650,7 +650,7 @@ export default function ProjectDetailClient({
     const st  = STATUS_CFG[project.status] ?? STATUS_CFG.planning;
 
     return (
-        <div className="min-h-screen bg-[#07090f] px-8 pt-10 pb-20">
+        <div className="min-h-screen bg-[#07090f] px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
             <div className="max-w-[1360px] mx-auto">
 
                 {/* Back link */}

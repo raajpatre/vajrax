@@ -305,7 +305,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
   }, [filter, projects]);
 
   return (
-    <div className="px-8 pt-10 pb-16 min-h-screen bg-[#07090f]">
+    <div className="px-4 sm:px-8 pt-6 sm:pt-10 pb-16 min-h-screen bg-[#07090f]">
       {/* Page header */}
       <div className="flex items-end justify-between gap-6 mb-7 flex-wrap">
         <div>
