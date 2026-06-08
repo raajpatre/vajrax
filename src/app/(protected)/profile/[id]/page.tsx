@@ -269,7 +269,7 @@ function EditProfileModal({
                 style={{ background: "rgba(7,9,15,0.75)" }}
                 onClick={onClose}
             />
-            <div className="absolute inset-0 grid place-items-center p-6 pointer-events-none">
+            <div className="absolute inset-0 grid place-items-center p-3 sm:p-6 pointer-events-none">
                 <div
                     className="relative w-full max-w-lg pointer-events-auto rounded-md"
                     style={{
@@ -479,7 +479,7 @@ function EditProfileModal({
                             )}
 
                             {/* GitHub + LinkedIn */}
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <div
                                         className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
@@ -678,27 +678,27 @@ export default function ProfilePage() {
             />
             {/* Cyan radial glow */}
             <div
-                className="fixed top-0 left-64 w-[600px] h-[400px] pointer-events-none"
+                className="fixed top-0 left-0 lg:left-64 w-[600px] h-[400px] pointer-events-none"
                 style={{ background: "radial-gradient(ellipse,rgba(0,229,255,0.06) 0%,transparent 70%)" }}
             />
 
-            <div className="relative max-w-5xl mx-auto px-8 pt-12 pb-20">
+            <div className="relative max-w-5xl mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-16 sm:pb-20">
                 {/* Kicker */}
-                <div className="flex items-center gap-2 mb-8">
+                <div className="flex items-center gap-2 mb-6 sm:mb-8">
                     <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
                     <span
                         className="font-mono text-[11px] uppercase tracking-[0.24em]"
                         style={{ color: "#00e5ff" }}
                     >
-                        // WORKSPACE / PROFILE
+                        // PROFILE
                     </span>
                 </div>
 
-                {/* Two-column layout */}
-                <div className="grid gap-10" style={{ gridTemplateColumns: "2fr 3fr" }}>
+                {/* Stacks on mobile, side-by-side on lg+ */}
+                <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 lg:gap-10">
                     {/* LEFT — lanyard + edit button */}
                     <div className="flex flex-col items-center gap-4">
-                        <div className="w-full">
+                        <div className="w-full max-h-[380px] lg:max-h-none overflow-hidden">
                             <ProfileLanyard
                                 avatarUrl={profile.avatar_url}
                                 displayName={profile.display_name}
@@ -745,7 +745,7 @@ export default function ProfilePage() {
                             <div className="flex items-start gap-3 flex-wrap">
                                 <h1
                                     className="font-sans font-black tracking-tight leading-none"
-                                    style={{ fontSize: 36, color: "#f0f4ff" }}
+                                    style={{ fontSize: "clamp(26px, 6vw, 36px)", color: "#f0f4ff" }}
                                 >
                                     {profile.display_name}
                                 </h1>
