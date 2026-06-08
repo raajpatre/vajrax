@@ -4,10 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
     formatSheetDateTime,
+    getConditionLabel,
     getLifecycleStatusLabel,
     getPreferredName,
+    getSheetItemStatus,
     getSyncKeyForRequestDecision,
     getSyncKeyForReturnUnit,
+    type GivingCondition,
     type ReturnCondition,
     type ReturnLifecycleStatus,
 } from "@/lib/inventory-requests";
@@ -33,11 +36,14 @@ type DecisionRequestRow = {
     id: string;
     status: "approved" | "rejected";
     request_type: "borrow" | "permanent";
+    quantity: number;
+    approved_quantity: number | null;
     reviewed_at: string | null;
     requester_id: string;
     approved_by: string | null;
     item: {
         name: string;
+        is_consumable: boolean;
     } | null;
     requester: {
         display_name: string;
@@ -53,7 +59,9 @@ type BorrowUnitRow = {
     id: string;
     unit_index: number;
     lifecycle_status: ReturnLifecycleStatus;
+    giving_condition: GivingCondition | null;
     return_condition: ReturnCondition | null;
+    returned_at: string | null;
     request: {
         id: string;
         reviewed_at: string | null;
@@ -106,17 +114,29 @@ function mapDecisionRows(rows: DecisionRequestRow[], emailMap: EmailMap) {
             }
 
             const { date, time24h } = formatSheetDateTime(row.reviewed_at);
+            const isConsumable = row.item.is_consumable;
 
             return {
                 syncKey: getSyncKeyForRequestDecision(row.id),
+                itemType: isConsumable ? "consumable" : "non_consumable",
                 date,
                 time24h,
                 requesterName: getName(row.requester),
                 requesterEmail: emailMap[row.requester_id] || "",
                 itemRequested: row.item.name,
+                quantity: row.status === "approved" ? (row.approved_quantity ?? row.quantity) : row.quantity,
                 decision: row.status,
                 approverName: getName(row.approver),
                 approverEmail: emailMap[row.approved_by] || "",
+                status: getSheetItemStatus({
+                    decision: row.status,
+                    isConsumable,
+                    requestType: row.request_type,
+                }),
+                givingCondition: "",
+                returnCondition: "",
+                returnDate: "",
+                returnTime: "",
                 lifecycleStatus: getLifecycleStatusLabel({
                     decision: row.status,
                     requestType: row.request_type,
@@ -141,17 +161,34 @@ function mapBorrowUnitRows(rows: BorrowUnitRow[], emailMap: EmailMap) {
             }
 
             const { date, time24h } = formatSheetDateTime(row.request.reviewed_at);
+            const ret = row.returned_at
+                ? formatSheetDateTime(row.returned_at)
+                : { date: "", time24h: "" };
+            const givingCondition = (row.giving_condition ?? "perfect") as GivingCondition;
 
             return {
                 syncKey: getSyncKeyForReturnUnit(row.id),
+                itemType: "non_consumable",
                 date,
                 time24h,
                 requesterName: getName(row.request.requester),
                 requesterEmail: emailMap[row.request.requester_id] || "",
                 itemRequested: row.request.item.name,
+                quantity: 1,
                 decision: "approved",
                 approverName: getName(row.request.approver),
                 approverEmail: emailMap[row.request.approved_by] || "",
+                status: getSheetItemStatus({
+                    decision: "approved",
+                    isConsumable: false,
+                    requestType: "borrow",
+                    lifecycleStatus: row.lifecycle_status,
+                    returnCondition: row.return_condition,
+                }),
+                givingCondition: getConditionLabel(givingCondition),
+                returnCondition: row.return_condition ? getConditionLabel(row.return_condition) : "",
+                returnDate: ret.date,
+                returnTime: ret.time24h,
                 lifecycleStatus: getLifecycleStatusLabel({
                     decision: "approved",
                     requestType: "borrow",
@@ -291,11 +328,14 @@ export async function syncInventoryHistoryToGoogleSheets(): Promise<
                     id,
                     status,
                     request_type,
+                    quantity,
+                    approved_quantity,
                     reviewed_at,
                     requester_id,
                     approved_by,
                     item:inventory_items!equipment_requests_item_id_fkey(
-                        name
+                        name,
+                        is_consumable
                     ),
                     requester:profiles!equipment_requests_requester_id_fkey(
                         display_name,
@@ -317,7 +357,9 @@ export async function syncInventoryHistoryToGoogleSheets(): Promise<
                     id,
                     unit_index,
                     lifecycle_status,
+                    giving_condition,
                     return_condition,
+                    returned_at,
                     request:equipment_requests!equipment_request_return_units_request_id_fkey(
                         id,
                         reviewed_at,
@@ -349,12 +391,14 @@ export async function syncInventoryHistoryToGoogleSheets(): Promise<
         return { ok: false, error: borrowUnitError.message };
     }
 
+    // Per-request rows cover rejections, permanent grants, and consumables.
+    // Non-consumable borrows are emitted per unit (see mapBorrowUnitRows) instead.
     const decisionRows = (decisionData as unknown as DecisionRequestRow[]).filter((row) => {
         if (row.status === "rejected") {
             return true;
         }
 
-        return row.request_type === "permanent";
+        return row.request_type === "permanent" || Boolean(row.item?.is_consumable);
     });
 
     const borrowUnitRows = (borrowUnitData as unknown as BorrowUnitRow[]).filter((row) => Boolean(row.request));

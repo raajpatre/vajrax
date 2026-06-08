@@ -1,47 +1,33 @@
-import Image from "next/image";
-import Link from "next/link";
-import PublicAmbientBackground from "@/components/ui/PublicAmbientBackground";
-
 export const metadata = {
-    title: "Authentication — VajraX",
+  title: "Authentication — VajraX",
 };
 
-export default function AuthLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="relative min-h-screen flex flex-col items-center justify-center overflow-x-hidden bg-[#0b0e14] px-6 py-12">
-            <PublicAmbientBackground />
-            <div className="absolute inset-0 bg-grid opacity-60" />
-            <div className="absolute inset-0 bg-radial opacity-55" />
-            {/* Background glow */}
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-x-hidden bg-[#07090f] px-6 py-12">
+      {/* circuit grid */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage: "radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, transparent 90%)",
+          WebkitMaskImage: "radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, transparent 90%)",
+        }}
+      />
+      <div
+        className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(0,229,255,0.10) 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute -bottom-40 -left-40 w-[560px] h-[560px] pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)" }}
+      />
 
-            {/* Logo */}
-            <Link
-                href="/"
-                className="flex items-center gap-2.5 mb-8 relative z-10 group"
-            >
-                <Image
-                    src="/vajrax-logo.png"
-                    alt="VajraX logo"
-                    width={52}
-                    height={52}
-                    className="hidden h-12 w-12 object-contain transition-transform duration-300 group-hover:scale-105 sm:block"
-                />
-                <Image
-                    src="/vajrax-wordmark.png"
-                    alt="VajraX"
-                    width={210}
-                    height={50}
-                    className="h-8 w-auto object-contain"
-                />
-            </Link>
-
-            {/* Auth card */}
-            <div className="relative z-10 w-full max-w-md">{children}</div>
-        </div>
-    );
+      <div className="relative z-10 w-full flex flex-col items-center">
+        {children}
+      </div>
+    </div>
+  );
 }

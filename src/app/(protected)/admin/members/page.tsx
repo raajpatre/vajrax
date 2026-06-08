@@ -1,29 +1,40 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
+import { grantSafetyCertification, revokeSafetyCertification } from "@/actions/safety-certifications";
 import {
-    grantSafetyCertification,
-    revokeSafetyCertification,
-} from "@/actions/safety-certifications";
-import {
-    AlertCircle,
-    ShieldCheck,
-    User,
     Search,
-    ChevronDown,
     X,
     Trash2,
+    Plus,
+    ShieldCheck,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    AlertCircle,
+    UsersRound,
+    User,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+
+/* ── types ────────────────────────────────────────────────── */
+type MemberRole =
+    | "member"
+    | "president"
+    | "vice_president"
+    | "faculty"
+    | "inventory_manager"
+    | "website_manager"
+    | "printing_head";
 
 interface MemberProfile {
     id: string;
     display_name: string;
     avatar_url: string | null;
-    role: string;
+    contact_email: string | null;
+    role: MemberRole;
     custom_tags: string[] | null;
     safety_certifications: string[];
     created_at: string;
@@ -31,308 +42,638 @@ interface MemberProfile {
 
 interface TagObject {
     name: string;
-    color: string;
+    color: string; // hex
 }
 
+/* ── tag serialization ────────────────────────────────────── */
 function parseTag(raw: string): TagObject {
     try {
-        const parsed = JSON.parse(raw);
-        if (parsed.name && parsed.color) return parsed;
+        const p = JSON.parse(raw);
+        if (p.name && p.color) return p;
     } catch { }
-    return { name: raw, color: "#6366f1" };
+    return { name: raw, color: "#00e5ff" };
+}
+function serializeTag(t: TagObject): string {
+    return JSON.stringify(t);
 }
 
-function serializeTag(tag: TagObject): string {
-    return JSON.stringify(tag);
-}
-
-const PRESET_COLORS = [
-    "#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#f43f5e",
-    "#a78bfa", "#fb923c", "#34d399", "#60a5fa", "#e879f9",
+/* ── color presets ────────────────────────────────────────── */
+const TC_COLORS = [
+    { id: "cyan",    hex: "#00e5ff" },
+    { id: "amber",   hex: "#f59e0b" },
+    { id: "emerald", hex: "#22c55e" },
+    { id: "violet",  hex: "#a78bfa" },
+    { id: "rose",    hex: "#fb7185" },
+    { id: "sky",     hex: "#38bdf8" },
+    { id: "teal",    hex: "#5eead4" },
+    { id: "slate",   hex: "#8b9ab0" },
 ];
 
-const roles = [
-    { value: "member", label: "Member" },
-    { value: "inventory_manager", label: "Inventory Manager" },
-    { value: "website_manager", label: "Website Manager" },
-    { value: "printing_head", label: "3D Printing Head" },
-    { value: "president", label: "President" },
-    { value: "vice_president", label: "Vice President" },
-    { value: "faculty", label: "Faculty" },
-];
-
-const roleBadge: Record<string, string> = {
-    member: "text-text-muted bg-surface border-border",
-    inventory_manager: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-    website_manager: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-    printing_head: "text-orange-400 bg-orange-400/10 border-orange-400/20",
-    president: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-    vice_president: "text-violet-400 bg-violet-400/10 border-violet-400/20",
-    faculty: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
+/* ── role config ──────────────────────────────────────────── */
+const ROLE_CFG: Record<string, { fg: string; bg: string; bd: string; label: string }> = {
+    member:            { fg: "#8b9ab0", bg: "rgba(139,154,176,0.12)", bd: "rgba(139,154,176,0.45)", label: "MEMBER" },
+    president:         { fg: "#f59e0b", bg: "rgba(245,158,11,0.12)",  bd: "rgba(245,158,11,0.50)",  label: "PRESIDENT" },
+    vice_president:    { fg: "#a78bfa", bg: "rgba(167,139,250,0.12)", bd: "rgba(167,139,250,0.50)", label: "VICE PRESIDENT" },
+    faculty:           { fg: "#00e5ff", bg: "rgba(0,229,255,0.12)",   bd: "rgba(0,229,255,0.50)",   label: "FACULTY" },
+    inventory_manager: { fg: "#22c55e", bg: "rgba(34,197,94,0.12)",   bd: "rgba(34,197,94,0.50)",   label: "INV. MANAGER" },
+    website_manager:   { fg: "#fbbf24", bg: "rgba(251,191,36,0.12)",  bd: "rgba(251,191,36,0.50)",  label: "WEB MANAGER" },
+    printing_head:     { fg: "#f97316", bg: "rgba(249,115,22,0.12)",  bd: "rgba(249,115,22,0.50)",  label: "PRINT HEAD" },
 };
+const ROLE_OPTIONS = [
+    "member", "inventory_manager", "website_manager",
+    "printing_head", "president", "vice_president", "faculty",
+] as const;
 
-// ─── Member Row ──────────────────────────────────────
-function MemberRow({
+/* ── Avatar ───────────────────────────────────────────────── */
+function Avatar({
+    avatarUrl,
+    displayName,
+    role,
+    size = 40,
+}: {
+    avatarUrl: string | null;
+    displayName: string;
+    role: string;
+    size?: number;
+}) {
+    const c = ROLE_CFG[role] ?? ROLE_CFG.member;
+    const initials = displayName
+        .split(" ")
+        .map((p) => p[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
+    return (
+        <div
+            className="shrink-0 grid place-items-center rounded-full font-mono font-bold select-none overflow-hidden"
+            style={{
+                width: size,
+                height: size,
+                fontSize: size * 0.33,
+                color: c.fg,
+                background: avatarUrl ? "transparent" : c.bg,
+                border: `1.5px solid ${c.bd}`,
+                boxShadow: `0 0 0 2px ${c.bg}`,
+            }}
+        >
+            {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+            ) : (
+                initials
+            )}
+        </div>
+    );
+}
+
+/* ── RoleSelect (custom dropdown) ─────────────────────────── */
+function RoleSelect({
+    value,
+    onChange,
+    isSelf,
+}: {
+    value: string;
+    onChange: (r: string) => void;
+    isSelf: boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+    const c = ROLE_CFG[value] ?? ROLE_CFG.member;
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    return (
+        <div ref={ref} className="relative inline-block">
+            <button
+                onClick={() => !isSelf && setOpen((o) => !o)}
+                disabled={isSelf}
+                className="inline-flex items-center gap-2 h-8 px-2.5 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] transition-all"
+                style={{
+                    color: c.fg,
+                    background: c.bg,
+                    borderColor: open ? c.fg : c.bd,
+                    opacity: isSelf ? 0.6 : 1,
+                    cursor: isSelf ? "not-allowed" : "pointer",
+                }}
+            >
+                {c.label}
+                {!isSelf && (
+                    open
+                        ? <ChevronUp size={11} style={{ color: c.fg }} />
+                        : <ChevronDown size={11} style={{ color: c.fg }} />
+                )}
+            </button>
+
+            {open && (
+                <div
+                    className="absolute left-0 top-[calc(100%+4px)] z-30 w-48 rounded-sm border overflow-hidden shadow-2xl"
+                    style={{
+                        background: "#111820",
+                        borderColor: "rgba(0,229,255,0.30)",
+                        boxShadow:
+                            "0 0 0 1px rgba(0,229,255,0.06),0 16px 40px -8px rgba(0,0,0,0.95)",
+                    }}
+                >
+                    {ROLE_OPTIONS.map((r) => {
+                        const rc = ROLE_CFG[r] ?? ROLE_CFG.member;
+                        return (
+                            <button
+                                key={r}
+                                onClick={() => { onChange(r); setOpen(false); }}
+                                className="w-full flex items-center gap-2.5 px-3 h-9 text-left transition-colors"
+                                style={{ background: value === r ? rc.bg : "transparent" }}
+                                onMouseEnter={(e) => {
+                                    if (value !== r) e.currentTarget.style.background = "rgba(0,229,255,0.04)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (value !== r) e.currentTarget.style.background = "transparent";
+                                }}
+                            >
+                                <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ background: rc.fg, boxShadow: `0 0 6px ${rc.fg}` }}
+                                />
+                                <span
+                                    className="font-mono text-[11px] uppercase tracking-[0.12em]"
+                                    style={{ color: rc.fg }}
+                                >
+                                    {rc.label}
+                                </span>
+                                {value === r && (
+                                    <Check size={11} style={{ color: rc.fg, marginLeft: "auto" }} />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+function Divider() {
+    return <div className="h-px my-4" style={{ background: "rgba(0,229,255,0.08)" }} />;
+}
+
+/* ── MicroLabel ───────────────────────────────────────────── */
+function MicroLabel({ children, error }: { children: React.ReactNode; error?: string | null }) {
+    return (
+        <div className="flex items-center gap-1.5 mb-2">
+            <span
+                className="font-mono text-[9.5px] uppercase tracking-[0.22em]"
+                style={{ color: "#4a5568" }}
+            >
+                {children}
+            </span>
+            {error && (
+                <span
+                    className="flex items-center gap-1 font-mono text-[9.5px]"
+                    style={{ color: "#ef4444" }}
+                >
+                    <AlertCircle size={11} /> {error}
+                </span>
+            )}
+        </div>
+    );
+}
+
+/* ── TagChip ──────────────────────────────────────────────── */
+function TagChip({ name, color, onRemove }: { name: string; color: string; onRemove: () => void }) {
+    return (
+        <span
+            className="inline-flex items-center gap-1 h-[22px] pl-2 pr-1 rounded-sm border font-mono text-[10.5px] tracking-[0.08em]"
+            style={{
+                color,
+                background: `${color}18`,
+                borderColor: `${color}70`,
+            }}
+        >
+            {name}
+            <button
+                onClick={onRemove}
+                className="grid place-items-center w-4 h-4 rounded-sm transition-colors"
+                style={{ color }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+                <X size={10} />
+            </button>
+        </span>
+    );
+}
+
+/* ── CertChip ─────────────────────────────────────────────── */
+function CertChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+    return (
+        <span
+            className="inline-flex items-center gap-1.5 h-[22px] pl-2 pr-1 rounded-sm border font-mono text-[10px] tracking-[0.08em]"
+            style={{
+                color: "#f59e0b",
+                background: "rgba(245,158,11,0.10)",
+                borderColor: "rgba(245,158,11,0.45)",
+            }}
+        >
+            <ShieldCheck size={11} />
+            {label}
+            <button
+                onClick={onRemove}
+                className="grid place-items-center w-4 h-4 rounded-sm transition-colors"
+                style={{ color: "#f59e0b" }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.12)"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+                <X size={10} />
+            </button>
+        </span>
+    );
+}
+
+/* ── AddTagRow ────────────────────────────────────────────── */
+function AddTagRow({ onAdd }: { onAdd: (t: TagObject) => void }) {
+    const [input, setInput] = useState("");
+    const [selectedHex, setSelectedHex] = useState(TC_COLORS[0].hex);
+
+    const submit = () => {
+        const t = input.trim();
+        if (!t) return;
+        onAdd({ name: t, color: selectedHex });
+        setInput("");
+    };
+
+    return (
+        <div className="flex items-center gap-2 mt-2">
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                placeholder="Tag name…"
+                className="flex-1 h-8 text-[12px] border rounded-sm px-2.5 outline-none transition-colors placeholder:opacity-40"
+                style={{
+                    background: "#07090f",
+                    color: "#f0f4ff",
+                    borderColor: "rgba(0,229,255,0.18)",
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+            />
+            <div className="flex items-center gap-1 shrink-0">
+                {TC_COLORS.map((tc) => (
+                    <button
+                        key={tc.id}
+                        onClick={() => setSelectedHex(tc.hex)}
+                        className="rounded-full transition-all"
+                        title={tc.id}
+                        style={{
+                            width: 14,
+                            height: 14,
+                            background: tc.hex,
+                            outline: selectedHex === tc.hex ? `2px solid ${tc.hex}` : "2px solid transparent",
+                            outlineOffset: selectedHex === tc.hex ? 2 : 0,
+                            opacity: selectedHex === tc.hex ? 1 : 0.45,
+                        }}
+                    />
+                ))}
+            </div>
+            <button
+                onClick={submit}
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-sm border font-medium text-[11.5px] transition-all shrink-0"
+                style={{
+                    color: "#00e5ff",
+                    background: "rgba(0,229,255,0.08)",
+                    borderColor: "rgba(0,229,255,0.40)",
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(0,229,255,0.16)"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "rgba(0,229,255,0.08)"; }}
+            >
+                <Plus size={12} /> Add
+            </button>
+        </div>
+    );
+}
+
+/* ── AddCertRow ───────────────────────────────────────────── */
+function AddCertRow({ onAdd }: { onAdd: (c: string) => void }) {
+    const [input, setInput] = useState("");
+    const submit = () => {
+        const t = input.trim();
+        if (!t) return;
+        onAdd(t);
+        setInput("");
+    };
+    return (
+        <div className="flex items-center gap-2 mt-2">
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                placeholder="e.g. OSHA 10 General Industry"
+                className="flex-1 h-8 text-[12px] border rounded-sm px-2.5 outline-none transition-colors placeholder:opacity-40"
+                style={{
+                    background: "#07090f",
+                    color: "#f0f4ff",
+                    borderColor: "rgba(245,158,11,0.20)",
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.55)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.20)"; }}
+            />
+            <button
+                onClick={submit}
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-sm border font-medium text-[11.5px] transition-all shrink-0"
+                style={{
+                    color: "#f59e0b",
+                    background: "rgba(245,158,11,0.08)",
+                    borderColor: "rgba(245,158,11,0.40)",
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.16)"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; }}
+            >
+                <Plus size={12} /> Add
+            </button>
+        </div>
+    );
+}
+
+/* ── MemberCard ───────────────────────────────────────────── */
+function MemberCard({
     member,
+    isSelf,
+    currentUserId,
     onRoleChange,
-    supabase,
     onTagsChange,
     onSafetyCertsChange,
+    onDelete,
     updatingId,
     deletingId,
-    currentUserId,
-    onDeleteMember,
-}: any) {
-    const [tagInput, setTagInput] = useState("");
-    const [certInput, setCertInput] = useState("");
-    const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
-    const [showColorPicker, setShowColorPicker] = useState(false);
+    supabase,
+}: {
+    member: MemberProfile;
+    isSelf: boolean;
+    currentUserId: string | null;
+    onRoleChange: (id: string, role: string) => void;
+    onTagsChange: (id: string, tags: string[]) => void;
+    onSafetyCertsChange: (id: string, certs: string[]) => void;
+    onDelete: (member: MemberProfile) => void;
+    updatingId: string | null;
+    deletingId: string | null;
+    supabase: ReturnType<typeof createClient>;
+}) {
+    const [tagErr, setTagErr] = useState<string | null>(null);
+    const [certErr, setCertErr] = useState<string | null>(null);
     const [isUpdatingTag, setIsUpdatingTag] = useState(false);
     const [isUpdatingCert, setIsUpdatingCert] = useState(false);
+
+    const parsedTags = useMemo(
+        () => (member.custom_tags ?? []).map(parseTag),
+        [member.custom_tags]
+    );
+
     const isDeleting = deletingId === member.id;
-    const isSelf = currentUserId === member.id;
+    const roleColor = ROLE_CFG[member.role]?.fg ?? "#00e5ff";
 
-    const parsedTags: TagObject[] = (member.custom_tags || []).map(parseTag);
+    const joinedLabel = new Date(member.created_at)
+        .toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+        .toUpperCase();
 
-    const handleAddTag = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const name = tagInput.trim();
-        if (!name || parsedTags.some((t) => t.name === name)) {
-            setTagInput("");
-            return;
+    const addTag = async (tag: TagObject) => {
+        setTagErr(null);
+        if (parsedTags.length >= 8) { setTagErr("Max 8 tags per member"); return; }
+        if (parsedTags.some((t) => t.name.toLowerCase() === tag.name.toLowerCase())) {
+            setTagErr("Tag already exists"); return;
         }
-
         setIsUpdatingTag(true);
-        const newTag = serializeTag({ name, color: selectedColor });
-        const newTags = [...(member.custom_tags || []), newTag];
+        const newTags = [...(member.custom_tags ?? []), serializeTag(tag)];
         const { error } = await supabase.from("profiles").update({ custom_tags: newTags }).eq("id", member.id);
-        if (!error) {
-            onTagsChange(member.id, newTags);
-        }
-        setTagInput("");
-        setShowColorPicker(false);
+        if (!error) onTagsChange(member.id, newTags);
         setIsUpdatingTag(false);
     };
 
-    const handleRemoveTag = async (nameToRemove: string) => {
+    const removeTag = async (name: string) => {
         setIsUpdatingTag(true);
-        const newTagStrings = (member.custom_tags || []).filter((raw: string) => {
-            return parseTag(raw).name !== nameToRemove;
-        });
-        const { error } = await supabase.from("profiles").update({ custom_tags: newTagStrings }).eq("id", member.id);
-        if (!error) {
-            onTagsChange(member.id, newTagStrings);
-        }
+        const newTags = (member.custom_tags ?? []).filter(
+            (raw) => parseTag(raw).name !== name
+        );
+        const { error } = await supabase.from("profiles").update({ custom_tags: newTags }).eq("id", member.id);
+        if (!error) onTagsChange(member.id, newTags);
+        setTagErr(null);
         setIsUpdatingTag(false);
     };
 
-    const handleGrantCert = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const cert = certInput.trim();
-        if (!cert) return;
-        if ((member.safety_certifications || []).includes(cert)) {
-            setCertInput("");
-            return;
+    const addCert = async (cert: string) => {
+        setCertErr(null);
+        if ((member.safety_certifications ?? []).includes(cert)) {
+            setCertErr("Already added"); return;
         }
         setIsUpdatingCert(true);
         const result = await grantSafetyCertification({ userId: member.id, certification: cert });
         if (result.ok) {
-            onSafetyCertsChange(member.id, [...(member.safety_certifications || []), cert]);
-            setCertInput("");
+            onSafetyCertsChange(member.id, [...(member.safety_certifications ?? []), cert]);
         }
         setIsUpdatingCert(false);
     };
 
-    const handleRevokeCert = async (cert: string) => {
+    const removeCert = async (cert: string) => {
         setIsUpdatingCert(true);
         const result = await revokeSafetyCertification({ userId: member.id, certification: cert });
         if (result.ok) {
             onSafetyCertsChange(
                 member.id,
-                (member.safety_certifications || []).filter((c: string) => c !== cert)
+                (member.safety_certifications ?? []).filter((c) => c !== cert)
             );
         }
+        setCertErr(null);
         setIsUpdatingCert(false);
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        <div
+            className="relative rounded-md overflow-visible transition-all duration-200"
+            style={{
+                background: "#0d1117",
+                border: "1px solid rgba(0,229,255,0.12)",
+                padding: 20,
+                opacity: isDeleting ? 0.5 : 1,
+            }}
         >
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {member.avatar_url ? (
-                        <img src={member.avatar_url} alt={member.display_name} className="w-full h-full object-cover" />
-                    ) : (
-                        <User className="w-5 h-5 text-primary-light" />
-                    )}
-                </div>
+            {/* Role-colored left accent strip */}
+            <div
+                className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"
+                style={{
+                    background: roleColor,
+                    boxShadow: `0 0 8px ${roleColor}80`,
+                }}
+            />
 
+            {/* Header row */}
+            <div className="flex items-center gap-3 pl-3">
+                <Avatar
+                    avatarUrl={member.avatar_url}
+                    displayName={member.display_name}
+                    role={member.role}
+                    size={40}
+                />
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{member.display_name}</p>
-                    <p className="text-[10px] text-text-muted mb-1">
-                        Joined {new Date(member.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
-                    </p>
-
-                    {/* Custom Tags */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        {parsedTags.map((tag) => (
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                            className="font-sans font-semibold text-[15px] tracking-tight"
+                            style={{ color: "#f0f4ff" }}
+                        >
+                            {member.display_name}
+                        </span>
+                        {isSelf && (
                             <span
-                                key={tag.name}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                className="font-mono text-[9.5px] uppercase tracking-[0.18em] px-1.5 h-4 grid place-items-center rounded-sm border"
                                 style={{
-                                    color: tag.color,
-                                    backgroundColor: `${tag.color}18`,
-                                    borderColor: `${tag.color}40`,
+                                    color: "#00e5ff",
+                                    background: "rgba(0,229,255,0.10)",
+                                    borderColor: "rgba(0,229,255,0.35)",
                                 }}
                             >
-                                {tag.name}
-                                <button
-                                    onClick={() => handleRemoveTag(tag.name)}
-                                    disabled={isUpdatingTag}
-                                    className="hover:opacity-60 transition-opacity disabled:opacity-30"
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
+                                YOU
                             </span>
-                        ))}
-
-                        {/* Add Tag form */}
-                        <div className="relative">
-                            <form onSubmit={handleAddTag} className="flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowColorPicker((v) => !v)}
-                                    className="w-4 h-4 rounded-full border-2 border-border flex-shrink-0 transition-transform hover:scale-110"
-                                    style={{ backgroundColor: selectedColor }}
-                                    title="Pick tag color"
-                                />
-                                <input
-                                    type="text"
-                                    value={tagInput}
-                                    onChange={(e) => setTagInput(e.target.value)}
-                                    onFocus={() => setShowColorPicker(true)}
-                                    placeholder="+ add tag"
-                                    disabled={isUpdatingTag}
-                                    className="w-20 px-2 py-0.5 bg-background border border-border rounded-full text-[10px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary transition-all"
-                                />
-                            </form>
-
-                            <AnimatePresence>
-                                {showColorPicker && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -4, scale: 0.95 }}
-                                        className="absolute top-7 left-0 z-20 p-2 bg-surface border border-border rounded-xl shadow-xl"
-                                        onMouseDown={(e) => e.preventDefault()}
-                                    >
-                                        <p className="text-[9px] text-text-muted mb-1.5 px-0.5">Tag color</p>
-                                        <div className="grid grid-cols-5 gap-1.5">
-                                            {PRESET_COLORS.map((c) => (
-                                                <button
-                                                    key={c}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedColor(c);
-                                                        setShowColorPicker(false);
-                                                    }}
-                                                    className="w-5 h-5 rounded-full transition-transform hover:scale-125 focus:outline-none"
-                                                    style={{
-                                                        backgroundColor: c,
-                                                        boxShadow: selectedColor === c ? `0 0 0 2px white, 0 0 0 3px ${c}` : "none",
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                        )}
                     </div>
-
-                    {/* Safety Certifications */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        {(member.safety_certifications || []).map((cert: string) => (
-                            <span
-                                key={cert}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border text-amber-300 bg-amber-400/10 border-amber-400/25"
-                            >
-                                {cert}
-                                <button
-                                    onClick={() => handleRevokeCert(cert)}
-                                    disabled={isUpdatingCert}
-                                    className="hover:opacity-60 transition-opacity disabled:opacity-30"
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
-                            </span>
-                        ))}
-                        <form onSubmit={handleGrantCert} className="flex items-center gap-1">
-                            <input
-                                type="text"
-                                value={certInput}
-                                onChange={(e) => setCertInput(e.target.value)}
-                                placeholder="+ safety cert"
-                                disabled={isUpdatingCert}
-                                className="w-24 px-2 py-0.5 bg-background border border-border rounded-full text-[10px] text-foreground placeholder:text-text-muted focus:outline-none focus:border-amber-400/40 transition-all"
-                            />
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-shrink-0 self-start sm:self-center items-center gap-2">
-                <div className="relative">
-                    <select
-                        value={member.role}
-                        onChange={(e) => onRoleChange(member.id, e.target.value)}
-                        disabled={updatingId === member.id || isDeleting}
-                        className={`appearance-none pl-3 pr-8 py-1.5 rounded-lg text-[11px] font-semibold border cursor-pointer focus:outline-none transition-all ${roleBadge[member.role] || roleBadge.member
-                            } ${updatingId === member.id || isDeleting ? "opacity-50" : ""}`}
+                    <div
+                        className="font-mono text-[10.5px] mt-0.5 truncate"
+                        style={{ color: "#4a5568" }}
                     >
-                        {roles.map((r) => (
-                            <option key={r.value} value={r.value}>{r.label}</option>
-                        ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                        {member.contact_email ?? "—"}
+                    </div>
                 </div>
-
-                <button
-                    type="button"
-                    onClick={() => onDeleteMember(member)}
-                    disabled={isDeleting || isSelf}
-                    title={isSelf ? "You cannot delete your own account" : "Remove member"}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 transition-all hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                    {isDeleting ? <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" /> : <Trash2 className="w-3.5 h-3.5" />}
-                    Remove
-                </button>
+                <div className="flex items-center gap-3 shrink-0">
+                    <span
+                        className="font-mono text-[10px] uppercase tracking-[0.16em] hidden sm:block"
+                        style={{ color: "#4a5568" }}
+                    >
+                        Joined{" "}
+                        <span style={{ color: "#8b9ab0" }}>{joinedLabel}</span>
+                    </span>
+                    <button
+                        onClick={() => !isSelf && onDelete(member)}
+                        disabled={isSelf || isDeleting}
+                        className="grid place-items-center w-8 h-8 rounded-sm border transition-all"
+                        title={isSelf ? "Cannot remove your own account" : "Remove member"}
+                        style={{
+                            color: isSelf ? "#4a5568" : "#ef4444",
+                            background: isSelf ? "transparent" : "rgba(239,68,68,0.06)",
+                            borderColor: isSelf ? "rgba(74,85,104,0.40)" : "rgba(239,68,68,0.35)",
+                            cursor: isSelf ? "not-allowed" : "pointer",
+                        }}
+                        onMouseOver={(e) => {
+                            if (!isSelf) e.currentTarget.style.background = "rgba(239,68,68,0.15)";
+                        }}
+                        onMouseOut={(e) => {
+                            if (!isSelf) e.currentTarget.style.background = "rgba(239,68,68,0.06)";
+                        }}
+                    >
+                        {isDeleting ? (
+                            <span
+                                className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin"
+                            />
+                        ) : (
+                            <Trash2 size={14} />
+                        )}
+                    </button>
+                </div>
             </div>
-        </motion.div>
+
+            <Divider />
+
+            {/* Role */}
+            <div className="pl-3">
+                <MicroLabel>ROLE</MicroLabel>
+                <RoleSelect
+                    value={member.role}
+                    onChange={(r) => onRoleChange(member.id, r)}
+                    isSelf={isSelf}
+                />
+                {updatingId === member.id && (
+                    <span
+                        className="ml-2 font-mono text-[10px] uppercase tracking-[0.14em]"
+                        style={{ color: "#00e5ff" }}
+                    >
+                        Saving…
+                    </span>
+                )}
+            </div>
+
+            <Divider />
+
+            {/* Tags */}
+            <div className="pl-3">
+                <MicroLabel error={tagErr}>TAGS</MicroLabel>
+                <div className={`flex flex-wrap gap-1.5 ${isUpdatingTag ? "opacity-60" : ""}`}>
+                    {parsedTags.map((t) => (
+                        <TagChip
+                            key={t.name}
+                            name={t.name}
+                            color={t.color}
+                            onRemove={() => removeTag(t.name)}
+                        />
+                    ))}
+                    {parsedTags.length === 0 && (
+                        <span
+                            className="font-mono text-[10.5px]"
+                            style={{ color: "#4a5568" }}
+                        >
+                            // no tags — add one below
+                        </span>
+                    )}
+                </div>
+                <AddTagRow onAdd={addTag} />
+            </div>
+
+            <Divider />
+
+            {/* Certifications */}
+            <div className="pl-3">
+                <MicroLabel error={certErr}>CERTIFICATIONS</MicroLabel>
+                <div className={`flex flex-wrap gap-1.5 ${isUpdatingCert ? "opacity-60" : ""}`}>
+                    {(member.safety_certifications ?? []).map((cert) => (
+                        <CertChip key={cert} label={cert} onRemove={() => removeCert(cert)} />
+                    ))}
+                    {(member.safety_certifications ?? []).length === 0 && (
+                        <span
+                            className="font-mono text-[10.5px]"
+                            style={{ color: "#4a5568" }}
+                        >
+                            // no certifications on file
+                        </span>
+                    )}
+                </div>
+                <AddCertRow onAdd={addCert} />
+            </div>
+        </div>
     );
 }
 
-// ─── Main Page ───────────────────────────────────────
+/* ── Page ─────────────────────────────────────────────────── */
 export default function MemberManagement() {
     const { user, isModerator, isFaculty, loading: authLoading } = useUser();
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
+
     const [members, setMembers] = useState<MemberProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [deletedName, setDeletedName] = useState<string | null>(null);
 
     const fetchMembers = useCallback(async () => {
         const { data } = await supabase
             .from("profiles")
-            .select("id, display_name, avatar_url, role, created_at, custom_tags, safety_certifications")
+            .select(
+                "id, display_name, avatar_url, contact_email, role, created_at, custom_tags, safety_certifications"
+            )
             .order("created_at", { ascending: true });
-        if (data) setMembers(data);
+        if (data) setMembers(data as MemberProfile[]);
         setLoading(false);
     }, [supabase]);
 
@@ -340,26 +681,20 @@ export default function MemberManagement() {
         fetchMembers();
     }, [fetchMembers]);
 
-    const handleRoleChange = async (userId: string, newRole: string) => {
-        setUpdatingId(userId);
-        await supabase
-            .from("profiles")
-            .update({
-                role: newRole as
-                    | "member"
-                    | "inventory_manager"
-                    | "website_manager"
-                    | "printing_head"
-                    | "president"
-                    | "vice_president"
-                    | "faculty",
-            })
-            .eq("id", userId);
-        setMembers((prev) =>
-            prev.map((m) => (m.id === userId ? { ...m, role: newRole } : m))
-        );
-        setUpdatingId(null);
-    };
+    const handleRoleChange = useCallback(
+        async (userId: string, newRole: string) => {
+            setUpdatingId(userId);
+            await supabase
+                .from("profiles")
+                .update({ role: newRole as MemberProfile["role"] })
+                .eq("id", userId);
+            setMembers((prev) =>
+                prev.map((m) => (m.id === userId ? { ...m, role: newRole as MemberRole } : m))
+            );
+            setUpdatingId(null);
+        },
+        [supabase]
+    );
 
     const handleTagsChange = useCallback((userId: string, newTags: string[]) => {
         setMembers((prev) =>
@@ -373,106 +708,268 @@ export default function MemberManagement() {
         );
     }, []);
 
-    const handleDeleteMember = useCallback(async (member: MemberProfile) => {
-        if (member.id === user?.id) {
-            setError("You cannot delete your own account from this page.");
-            return;
-        }
+    const handleDeleteMember = useCallback(
+        async (member: MemberProfile) => {
+            if (member.id === user?.id) {
+                setError("You cannot delete your own account from this page.");
+                return;
+            }
+            const confirmed = window.confirm(
+                `Delete ${member.display_name} permanently? This will remove their account and prevent future sign-in.`
+            );
+            if (!confirmed) return;
 
-        const confirmed = window.confirm(
-            `Delete ${member.display_name} permanently? This will remove their account and prevent future sign-in.`
-        );
+            setDeletingId(member.id);
+            setError(null);
 
-        if (!confirmed) return;
+            const response = await fetch(`/api/admin/members/${member.id}`, {
+                method: "DELETE",
+            });
+            const data = await response.json().catch(() => ({ error: "Failed to delete member." }));
 
-        setDeletingId(member.id);
-        setError(null);
+            if (!response.ok) {
+                setError(data.error || "Failed to delete member.");
+                setDeletingId(null);
+                return;
+            }
 
-        const response = await fetch(`/api/admin/members/${member.id}`, {
-            method: "DELETE",
-        });
-
-        const data = await response.json().catch(() => ({ error: "Failed to delete member." }));
-
-        if (!response.ok) {
-            setError(data.error || "Failed to delete member.");
+            setMembers((prev) => prev.filter((m) => m.id !== member.id));
             setDeletingId(null);
-            return;
-        }
+            setDeletedName(member.display_name);
+            setTimeout(() => setDeletedName(null), 3000);
+        },
+        [user?.id]
+    );
 
-        setMembers((prev) => prev.filter((entry) => entry.id !== member.id));
-        setDeletingId(null);
-    }, [user?.id]);
+    const filtered = useMemo(() => {
+        const q = search.toLowerCase().trim();
+        if (!q) return members;
+        return members.filter(
+            (m) =>
+                m.display_name.toLowerCase().includes(q) ||
+                (m.contact_email ?? "").toLowerCase().includes(q) ||
+                m.role.toLowerCase().includes(q) ||
+                (m.custom_tags ?? []).some((raw) =>
+                    parseTag(raw).name.toLowerCase().includes(q)
+                ) ||
+                (m.safety_certifications ?? []).some((c) => c.toLowerCase().includes(q))
+        );
+    }, [members, search]);
 
-    if (authLoading || loading) {
-        return <VajraLoader fullPage />;
-    }
+    if (authLoading || loading) return <VajraLoader fullPage />;
 
     if (!isModerator && !isFaculty) {
         return (
-            <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-                <ShieldCheck className="w-16 h-16 text-text-muted mx-auto mb-4" />
-                <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-                <p className="text-text-muted text-sm">
-                    Only club leadership and faculty can manage members.
-                </p>
+            <div className="min-h-screen grid place-items-center" style={{ background: "#07090f" }}>
+                <div
+                    className="relative w-full max-w-sm text-center rounded-md p-10"
+                    style={{
+                        background: "#0d1117",
+                        border: "1px solid rgba(239,68,68,0.30)",
+                        boxShadow: "0 0 0 1px rgba(239,68,68,0.08)",
+                    }}
+                >
+                    <div
+                        className="absolute inset-x-0 top-0 h-px"
+                        style={{
+                            background:
+                                "linear-gradient(90deg,transparent,rgba(239,68,68,0.7),transparent)",
+                        }}
+                    />
+                    <div
+                        className="mx-auto mb-4 w-14 h-14 grid place-items-center rounded-md border"
+                        style={{
+                            color: "#ef4444",
+                            background: "rgba(239,68,68,0.10)",
+                            borderColor: "rgba(239,68,68,0.35)",
+                        }}
+                    >
+                        <User size={24} />
+                    </div>
+                    <h2 className="font-bold text-[18px] tracking-tight" style={{ color: "#f0f4ff" }}>
+                        Access Denied
+                    </h2>
+                    <p className="text-[13px] mt-2" style={{ color: "#8b9ab0" }}>
+                        Only club leadership and faculty can manage members.
+                    </p>
+                </div>
             </div>
         );
     }
 
-    const filtered = members.filter((m) =>
-        m.display_name.toLowerCase().includes(search.toLowerCase())
-    );
-
     return (
-        <div className="max-w-3xl mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
+        <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+            {/* Grid bg */}
+            <div
+                className="fixed inset-0 pointer-events-none"
+                style={{
+                    backgroundImage:
+                        "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)",
+                    backgroundSize: "40px 40px",
+                }}
+            />
+
+            <div className="relative max-w-3xl mx-auto px-8 pt-10 pb-20">
+                {/* Kicker */}
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
+                    <span
+                        className="font-mono text-[10.5px] uppercase tracking-[0.24em]"
+                        style={{ color: "#00e5ff" }}
+                    >
+                        // ADMIN / MEMBERS
+                    </span>
+                </div>
+
+                {/* Page header */}
+                <div className="flex items-end justify-between gap-4 mb-8">
                     <div>
-                        <h1 className="text-xl font-bold">Members</h1>
-                        <p className="text-xs text-text-muted">
-                            {members.length} total members
+                        <h1
+                            className="font-sans font-black tracking-tight"
+                            style={{ fontSize: 30, color: "#f0f4ff" }}
+                        >
+                            Member Management
+                        </h1>
+                        <p className="text-[13.5px] mt-1.5" style={{ color: "#8b9ab0" }}>
+                            Manage roles, tags, and certifications across all members.
                         </p>
                     </div>
                 </div>
-            </div>
 
-            {/* Search */}
-            <div className="relative mb-6">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search members..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                />
-            </div>
-
-            {error && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {error}
+                {/* Controls row */}
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="relative flex-1 max-w-sm">
+                        <span
+                            className="absolute inset-y-0 left-0 grid place-items-center w-9 border-r pointer-events-none"
+                            style={{ borderColor: "rgba(0,229,255,0.12)", color: "#8b9ab0" }}
+                        >
+                            <Search size={13} />
+                        </span>
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search members, roles, tags…"
+                            className="w-full h-9 text-[12.5px] border rounded-md outline-none transition-colors pl-11 pr-3 placeholder:opacity-40"
+                            style={{
+                                background: "#0d1117",
+                                color: "#f0f4ff",
+                                borderColor: "rgba(0,229,255,0.12)",
+                            }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.40)"; }}
+                            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.12)"; }}
+                        />
+                    </div>
+                    <span
+                        className="font-mono text-[11px] uppercase tracking-[0.16em] shrink-0 tabular-nums"
+                        style={{ color: "#8b9ab0" }}
+                    >
+                        {filtered.length}{" "}
+                        <span style={{ color: "#4a5568" }}>
+                            member{filtered.length !== 1 ? "s" : ""}
+                        </span>
+                    </span>
+                    {/* Role legend */}
+                    <div className="hidden lg:flex items-center gap-1.5 ml-auto">
+                        {Object.values(ROLE_CFG).slice(0, 5).map((rc) => (
+                            <span
+                                key={rc.label}
+                                title={rc.label}
+                                className="w-2 h-2 rounded-full"
+                                style={{ background: rc.fg, boxShadow: `0 0 6px ${rc.fg}80` }}
+                            />
+                        ))}
+                    </div>
                 </div>
-            )}
 
-            {/* List */}
-            <div className="space-y-2">
-                {filtered.map((member) => (
-                    <MemberRow
-                        key={member.id}
-                        member={member}
-                        onRoleChange={handleRoleChange}
-                        supabase={supabase}
-                        onTagsChange={handleTagsChange}
-                        onSafetyCertsChange={handleSafetyCertsChange}
-                        updatingId={updatingId}
-                        deletingId={deletingId}
-                        currentUserId={user?.id ?? null}
-                        onDeleteMember={handleDeleteMember}
-                    />
-                ))}
+                {/* Error banner */}
+                {error && (
+                    <div
+                        className="mb-4 flex items-center gap-2.5 px-4 py-2.5 rounded-sm border"
+                        style={{
+                            background: "rgba(239,68,68,0.08)",
+                            borderColor: "rgba(239,68,68,0.35)",
+                        }}
+                    >
+                        <AlertCircle size={13} style={{ color: "#ef4444" }} />
+                        <span className="font-mono text-[11px]" style={{ color: "#8b9ab0" }}>
+                            <span style={{ color: "#ef4444" }}>Error: </span>
+                            {error}
+                        </span>
+                        <button
+                            onClick={() => setError(null)}
+                            className="ml-auto"
+                            style={{ color: "#4a5568" }}
+                        >
+                            <X size={13} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Delete toast */}
+                {deletedName && (
+                    <div
+                        className="mb-4 flex items-center gap-2.5 px-4 py-2.5 rounded-sm border"
+                        style={{
+                            background: "rgba(239,68,68,0.08)",
+                            borderColor: "rgba(239,68,68,0.30)",
+                        }}
+                    >
+                        <Trash2 size={13} style={{ color: "#ef4444" }} />
+                        <span className="font-mono text-[11px]" style={{ color: "#8b9ab0" }}>
+                            <span style={{ color: "#ef4444" }}>{deletedName}</span> removed from roster.
+                        </span>
+                    </div>
+                )}
+
+                {/* List */}
+                {filtered.length === 0 ? (
+                    <div
+                        className="text-center py-14 border border-dashed rounded-md"
+                        style={{
+                            borderColor: "rgba(0,229,255,0.15)",
+                            background: "rgba(0,229,255,0.02)",
+                        }}
+                    >
+                        <div
+                            className="mx-auto w-12 h-12 grid place-items-center border rounded-md mb-4"
+                            style={{
+                                borderColor: "rgba(0,229,255,0.18)",
+                                background: "#07090f",
+                                color: "#4a5568",
+                            }}
+                        >
+                            <UsersRound size={20} />
+                        </div>
+                        <div
+                            className="font-sans font-semibold text-[15px]"
+                            style={{ color: "#f0f4ff" }}
+                        >
+                            No members found
+                        </div>
+                        <p className="text-[13px] mt-1.5" style={{ color: "#8b9ab0" }}>
+                            Try a different search term.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {filtered.map((m) => (
+                            <MemberCard
+                                key={m.id}
+                                member={m}
+                                isSelf={m.id === user?.id}
+                                currentUserId={user?.id ?? null}
+                                onRoleChange={handleRoleChange}
+                                onTagsChange={handleTagsChange}
+                                onSafetyCertsChange={handleSafetyCertsChange}
+                                onDelete={handleDeleteMember}
+                                updatingId={updatingId}
+                                deletingId={deletingId}
+                                supabase={supabase}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

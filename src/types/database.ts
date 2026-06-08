@@ -284,11 +284,12 @@ export type Database = {
       equipment_request_return_units: {
         Row: {
           created_at: string
+          giving_condition: "perfect" | "partly_damaged" | "trash" | null
           id: string
           item_id: string
           lifecycle_status: "return_pending" | "returned"
           request_id: string
-          return_condition: "perfect" | "moderate" | "poor" | "disposable" | null
+          return_condition: "perfect" | "partly_damaged" | "trash" | null
           returned_at: string | null
           returned_by: string | null
           unit_index: number
@@ -296,11 +297,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          giving_condition?: "perfect" | "partly_damaged" | "trash" | null
           id?: string
           item_id: string
           lifecycle_status?: "return_pending" | "returned"
           request_id: string
-          return_condition?: "perfect" | "moderate" | "poor" | "disposable" | null
+          return_condition?: "perfect" | "partly_damaged" | "trash" | null
           returned_at?: string | null
           returned_by?: string | null
           unit_index: number
@@ -308,11 +310,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          giving_condition?: "perfect" | "partly_damaged" | "trash" | null
           id?: string
           item_id?: string
           lifecycle_status?: "return_pending" | "returned"
           request_id?: string
-          return_condition?: "perfect" | "moderate" | "poor" | "disposable" | null
+          return_condition?: "perfect" | "partly_damaged" | "trash" | null
           returned_at?: string | null
           returned_by?: string | null
           unit_index?: number
@@ -400,39 +403,45 @@ export type Database = {
       }
       gallery_items: {
         Row: {
-          cover_image_url: string
+          cover_image_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
           id: string
           location_city: string | null
           location_country: string | null
+          media_url: string | null
           project_id: string | null
           tag: string | null
+          tag_color: string | null
           title: string
         }
         Insert: {
-          cover_image_url: string
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           location_city?: string | null
           location_country?: string | null
+          media_url?: string | null
           project_id?: string | null
           tag?: string | null
+          tag_color?: string | null
           title: string
         }
         Update: {
-          cover_image_url?: string
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           location_city?: string | null
           location_country?: string | null
+          media_url?: string | null
           project_id?: string | null
           tag?: string | null
+          tag_color?: string | null
           title?: string
         }
         Relationships: [
@@ -904,6 +913,7 @@ export type Database = {
           source_urls: string[] | null
           title: string
           version_tag: string | null
+          video_urls: string[] | null
         }
         Insert: {
           author_id: string
@@ -915,6 +925,7 @@ export type Database = {
           source_urls?: string[] | null
           title: string
           version_tag?: string | null
+          video_urls?: string[] | null
         }
         Update: {
           author_id?: string
@@ -926,6 +937,7 @@ export type Database = {
           source_urls?: string[] | null
           title?: string
           version_tag?: string | null
+          video_urls?: string[] | null
         }
         Relationships: [
           {

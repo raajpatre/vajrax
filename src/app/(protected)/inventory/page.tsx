@@ -1,36 +1,39 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition, useMemo, useId } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
 import {
+    LayoutGrid,
+    Cpu,
+    Cog,
+    BatteryFull,
+    Layers,
+    Wrench,
+    Cable,
     Package,
     Search,
-    Loader2,
-    Box,
-    Cpu,
-    Wrench,
-    Battery,
-    Cog,
-    CircuitBoard,
-    AlertCircle,
-    CheckCircle2,
-    X,
-    Send,
+    ShoppingCart,
     Plus,
+    Minus,
+    X,
     Pencil,
     Trash2,
-    Save,
+    Check,
+    CheckCircle2,
+    Send,
+    Loader2,
+    PackageOpen,
     RefreshCw,
-    Sheet,
     ExternalLink,
-    ShoppingCart,
-    Minus,
+    AlertCircle,
+    ShieldCheck,
+    Hash,
+    Link2,
+    ScanEye,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Tables } from "@/types/database";
-import { LucideIcon } from "lucide-react";
 import { submitEquipmentCart } from "@/actions/equipment-requests";
 import { syncInventoryStocksToGoogleSheets } from "@/actions/inventory-history";
 
@@ -42,417 +45,469 @@ interface CartItem {
     requestType: "borrow" | "permanent";
 }
 
-const CategoryIcon: Record<string, LucideIcon> = {
-    microcontroller: CircuitBoard,
-    motor: Cog,
-    chassis: Box,
-    tool: Wrench,
-    battery: Battery,
-    sensor: Cpu,
-    cable: CircuitBoard,
-    general: Package,
+/* ─── Category config ─────────────────────────────────────────────── */
+
+const CATEGORIES = [
+    { key: "all",             label: "All",             Icon: LayoutGrid },
+    { key: "microcontroller", label: "Microcontroller", Icon: Cpu        },
+    { key: "motor",           label: "Motor",           Icon: Cog        },
+    { key: "sensor",          label: "Sensor",          Icon: ScanEye    },
+    { key: "battery",         label: "Battery",         Icon: BatteryFull},
+    { key: "chassis",         label: "Chassis",         Icon: Layers     },
+    { key: "tool",            label: "Tool",            Icon: Wrench     },
+    { key: "cable",           label: "Cable",           Icon: Cable      },
+    { key: "general",         label: "General",         Icon: Package    },
+] as const;
+
+
+const CAT_COLOR: Record<string, { fg: string; bg: string; bd: string }> = {
+    microcontroller: { fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",    bd: "rgba(0,229,255,0.45)"   },
+    motor:           { fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",   bd: "rgba(245,158,11,0.45)"  },
+    sensor:          { fg: "#a78bfa", bg: "rgba(167,139,250,0.10)",  bd: "rgba(167,139,250,0.45)" },
+    battery:         { fg: "#ef4444", bg: "rgba(239,68,68,0.10)",    bd: "rgba(239,68,68,0.45)"   },
+    chassis:         { fg: "#5eead4", bg: "rgba(94,234,212,0.10)",   bd: "rgba(94,234,212,0.45)"  },
+    tool:            { fg: "#fbbf24", bg: "rgba(251,191,36,0.10)",   bd: "rgba(251,191,36,0.45)"  },
+    cable:           { fg: "#f472b6", bg: "rgba(244,114,182,0.10)",  bd: "rgba(244,114,182,0.45)" },
+    general:         { fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)",  bd: "rgba(139,154,176,0.40)" },
 };
 
-const categoryColors: Record<string, string> = {
-    microcontroller: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
-    motor: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-    chassis: "text-stone-400 bg-stone-400/10 border-stone-400/20",
-    tool: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-    battery: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-    sensor: "text-violet-400 bg-violet-400/10 border-violet-400/20",
-    cable: "text-pink-400 bg-pink-400/10 border-pink-400/20",
-    general: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-};
+function getCatColor(cat: string) {
+    return CAT_COLOR[cat] ?? CAT_COLOR.general;
+}
 
-const AVAILABLE_CATEGORIES = [
-    "microcontroller",
-    "motor",
-    "sensor",
-    "battery",
-    "chassis",
-    "tool",
-    "cable",
-    "general",
-];
+function getCatMeta(cat: string) {
+    return CATEGORIES.find(c => c.key === cat) ?? CATEGORIES[CATEGORIES.length - 1];
+}
 
-function isStockVisibleToUser(input: {
-    isFaculty: boolean;
-    isModerator: boolean;
-    isInventoryManager: boolean;
-}) {
+/* ─── Auth helpers ────────────────────────────────────────────────── */
+
+function isStockVisibleToUser(input: { isFaculty: boolean; isModerator: boolean; isInventoryManager: boolean }) {
     return input.isFaculty || input.isModerator || input.isInventoryManager;
 }
 
-function getInventoryAvailabilityMeta(item: InventoryItem, canViewExactAvailability: boolean) {
-    const isVisibleToGeneralUsers = item.available_quantity > 2;
-    const isAvailable = canViewExactAvailability ? item.available_quantity > 0 : isVisibleToGeneralUsers;
-
+function getAvailMeta(item: InventoryItem, canViewExact: boolean) {
+    const isAvail = canViewExact ? item.available_quantity > 0 : item.available_quantity > 2;
     return {
-        isAvailable,
-        label: canViewExactAvailability
-            ? isAvailable
-                ? `${item.available_quantity}/${item.total_quantity} available`
-                : "Out of stock"
-            : isAvailable
-                ? "Available"
-                : "Out of stock",
+        isAvail,
+        label: canViewExact
+            ? isAvail ? `${item.available_quantity}/${item.total_quantity}` : "Out of stock"
+            : isAvail ? "Available" : "Out of stock",
     };
 }
 
-const CART_STORAGE_KEY = "vajrax_inventory_cart";
+/* ─── Cart localStorage ───────────────────────────────────────────── */
 
-function loadCartFromStorage(): CartItem[] {
+const CART_KEY = "vajrax_inventory_cart";
+function loadCart(): CartItem[] {
     if (typeof window === "undefined") return [];
-    try {
-        const raw = localStorage.getItem(CART_STORAGE_KEY);
-        if (!raw) return [];
-        return JSON.parse(raw) as CartItem[];
-    } catch {
-        return [];
-    }
+    try { return JSON.parse(localStorage.getItem(CART_KEY) ?? "[]") as CartItem[]; } catch { return []; }
+}
+function saveCart(cart: CartItem[]) {
+    try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch { /* quota */ }
 }
 
-function saveCartToStorage(cart: CartItem[]) {
-    if (typeof window === "undefined") return;
-    try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-    } catch {
-        /* ignore quota errors */
-    }
+/* ─── Cover fallback ──────────────────────────────────────────────── */
+
+function InvCoverFallback({ cat }: { cat: string }) {
+    const c = getCatColor(cat);
+    const catMeta = getCatMeta(cat);
+    const uid = useId().replace(/:/g, "");
+    const Icon = catMeta.Icon;
+    return (
+        <div className="relative w-full h-full grid place-items-center overflow-hidden" style={{ background: "#07090f" }}>
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                    <pattern id={`ic-s-${uid}`} width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+                        <line x1="0" y1="0" x2="0" y2="14" stroke={c.fg} strokeWidth="1" opacity="0.09" />
+                    </pattern>
+                </defs>
+                <rect width="400" height="160" fill="#07090f" />
+                <rect width="400" height="160" fill={`url(#ic-s-${uid})`} />
+                <path d="M0 0 H14 M0 0 V14" stroke={c.fg} strokeWidth="1.4" opacity="0.7" />
+                <path d="M400 160 H386 M400 160 V146" stroke={c.fg} strokeWidth="1.4" opacity="0.7" />
+            </svg>
+            <div className="relative grid place-items-center w-12 h-12 rounded-sm border"
+                style={{ color: c.fg, borderColor: c.bd, background: c.bg }}>
+                <Icon size={22} />
+            </div>
+        </div>
+    );
 }
 
-// Add/Edit Modal
-function ItemModal({
-    item,
-    onClose,
-    onSaved,
-}: {
-    item: InventoryItem | null;
-    onClose: () => void;
-    onSaved: () => void;
+/* ─── Category badge ──────────────────────────────────────────────── */
+
+function CatBadge({ cat }: { cat: string }) {
+    const c = getCatColor(cat);
+    const m = getCatMeta(cat);
+    const Icon = m.Icon;
+    return (
+        <span
+            className="inline-flex items-center gap-1 h-[20px] px-1.5 rounded-sm border font-mono text-[9.5px] uppercase tracking-[0.12em]"
+            style={{ color: c.fg, background: "rgba(7,9,15,0.88)", borderColor: c.bd, backdropFilter: "blur(4px)" }}
+        >
+            <Icon size={9} /> {m.label}
+        </span>
+    );
+}
+
+/* ─── Qty stepper ─────────────────────────────────────────────────── */
+
+function QtyStepper({ value, onChange, min = 1, max = 99 }: {
+    value: number; onChange: (v: number) => void; min?: number; max?: number;
 }) {
-    const isEdit = !!item;
-    const [name, setName] = useState(item?.name || "");
-    const [description, setDescription] = useState(item?.description || "");
-    const [category, setCategory] = useState(item?.category || AVAILABLE_CATEGORIES[0]);
-    const [totalQuantity, setTotalQuantity] = useState(item?.total_quantity || 1);
-    const [availableQuantity, setAvailableQuantity] = useState(item?.available_quantity || 1);
-    const [imageUrl, setImageUrl] = useState(item?.image_url || "");
-    const [requiredSafetyCertification, setRequiredSafetyCertification] = useState(item?.required_safety_certification || "");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false);
+    return (
+        <div className="flex items-center gap-0 border rounded-sm overflow-hidden" style={{ borderColor: "rgba(0,229,255,0.14)" }}>
+            <button
+                onClick={() => onChange(Math.max(min, value - 1))}
+                className="grid place-items-center w-9 h-9 border-r text-[#8b9ab0] hover:text-[#f0f4ff] hover:bg-[rgba(0,229,255,0.06)] transition-colors"
+                style={{ borderColor: "rgba(0,229,255,0.14)" }}
+            >
+                <Minus size={13} />
+            </button>
+            <span className="font-mono text-[13px] tabular-nums text-[#f0f4ff] min-w-[2.5rem] text-center">{value}</span>
+            <button
+                onClick={() => onChange(Math.min(max, value + 1))}
+                className="grid place-items-center w-9 h-9 border-l text-[#8b9ab0] hover:text-[#f0f4ff] hover:bg-[rgba(0,229,255,0.06)] transition-colors"
+                style={{ borderColor: "rgba(0,229,255,0.14)" }}
+            >
+                <Plus size={13} />
+            </button>
+        </div>
+    );
+}
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!name.trim()) return;
+/* ─── Usage toggle ────────────────────────────────────────────────── */
 
-        setLoading(true);
-        setError(null);
-        const supabase = createClient();
+function UsageToggle({ value, onChange, small }: {
+    value: "borrow" | "permanent"; onChange: (v: "borrow" | "permanent") => void; small?: boolean;
+}) {
+    const opts: { k: "borrow" | "permanent"; l: string }[] = [
+        { k: "borrow", l: "Borrowing" },
+        { k: "permanent", l: "Permanent" },
+    ];
+    const h = small ? "h-6" : "h-8";
+    const fs = small ? "text-[9.5px]" : "text-[10.5px]";
+    return (
+        <div className="flex items-center gap-0 p-0.5 border rounded-sm" style={{ borderColor: "rgba(0,229,255,0.14)", background: "rgba(7,9,15,0.60)" }}>
+            {opts.map(o => (
+                <button key={o.k} onClick={() => onChange(o.k)}
+                    className={`flex-1 ${h} px-2 rounded-sm font-mono ${fs} uppercase tracking-[0.12em] transition-colors whitespace-nowrap`}
+                    style={{
+                        background: value === o.k ? "#00e5ff" : "transparent",
+                        color: value === o.k ? "#07090f" : "#8b9ab0",
+                        boxShadow: value === o.k ? "0 0 10px rgba(0,229,255,0.55)" : "none",
+                    }}>
+                    {o.l}
+                </button>
+            ))}
+        </div>
+    );
+}
 
-        const payload = {
-            name: name.trim(),
-            description: description.trim() || null,
-            category,
-            total_quantity: totalQuantity,
-            available_quantity: availableQuantity,
-            image_url: imageUrl.trim() || null,
-            required_safety_certification: requiredSafetyCertification.trim() || null,
-        };
+/* ─── Inventory card ──────────────────────────────────────────────── */
 
-        try {
-            if (isEdit && item) {
-                const { error: updateError } = await supabase
-                    .from("inventory_items")
-                    .update(payload)
-                    .eq("id", item.id);
-                if (updateError) {
-                    setError(updateError.message);
-                    setLoading(false);
-                    return;
-                }
-            } else {
-                const { error: insertError } = await supabase
-                    .from("inventory_items")
-                    .insert(payload);
-                if (insertError) {
-                    setError(insertError.message);
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            setSuccess(true);
-            setLoading(false);
-            setTimeout(() => {
-                onSaved();
-                onClose();
-            }, 1000);
-        } catch (err: any) {
-            setError(err.message || "An unexpected error occurred");
-            setLoading(false);
-        }
-    };
+function InvCard({ item, inCart, canManage, canViewExact, onAdd, onEdit, onDelete, shown, delay }: {
+    item: InventoryItem;
+    inCart: boolean;
+    canManage: boolean;
+    canViewExact: boolean;
+    onAdd: (item: InventoryItem) => void;
+    onEdit: (item: InventoryItem) => void;
+    onDelete: (item: InventoryItem) => void;
+    shown: boolean;
+    delay: number;
+}) {
+    const [hover, setHover] = useState(false);
+    const { isAvail } = getAvailMeta(item, canViewExact);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong p-4 md:p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto"
-            >
-                {success ? (
-                    <div className="text-center py-8">
-                        <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                        <h3 className="text-lg font-bold">
-                            {isEdit ? "Item Updated!" : "Item Added!"}
-                        </h3>
+        <div
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            className="relative rounded-md overflow-hidden flex flex-col"
+            style={{
+                background: "#0d1117",
+                border: `1px solid ${hover ? "rgba(0,229,255,0.32)" : "rgba(0,229,255,0.12)"}`,
+                boxShadow: hover
+                    ? "0 0 0 1px rgba(0,229,255,0.10), 0 14px 32px -18px rgba(0,0,0,0.75), 0 0 22px -10px rgba(0,229,255,0.35)"
+                    : "none",
+                transform: hover ? "translateY(-2px)" : "translateY(0)",
+                opacity: shown ? 1 : 0,
+                transition: [
+                    "border-color 180ms",
+                    "box-shadow 220ms",
+                    "transform 200ms cubic-bezier(.2,.7,.2,1)",
+                    `opacity 440ms ${delay}ms cubic-bezier(.2,.7,.2,1)`,
+                ].join(", "),
+            }}
+        >
+            {/* Cover */}
+            <div className="relative overflow-hidden shrink-0" style={{ height: 160 }}>
+                {item.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                    <InvCoverFallback cat={item.category} />
+                )}
+
+                {/* Category badge */}
+                <span className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
+                    <CatBadge cat={item.category} />
+                </span>
+
+                {/* Consumable flag */}
+                {item.is_consumable && !canManage && (
+                    <span
+                        className="absolute top-2.5 right-2.5 z-10 pointer-events-none font-mono text-[9px] uppercase tracking-[0.14em] h-[18px] px-1.5 rounded-sm border"
+                        style={{ color: "#f59e0b", borderColor: "rgba(245,158,11,0.45)", background: "rgba(7,9,15,0.85)" }}
+                    >
+                        CONSUMABLE
+                    </span>
+                )}
+
+                {/* Manager: edit/delete on hover */}
+                {canManage && hover && (
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-20">
+                        <button
+                            onClick={() => onEdit(item)}
+                            className="grid place-items-center w-7 h-7 rounded-sm border text-[#00e5ff] transition-colors"
+                            style={{ background: "rgba(7,9,15,0.85)", borderColor: "rgba(0,229,255,0.55)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,229,255,0.15)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "rgba(7,9,15,0.85)")}
+                            aria-label="Edit"
+                        >
+                            <Pencil size={12} />
+                        </button>
+                        <button
+                            onClick={() => onDelete(item)}
+                            className="grid place-items-center w-7 h-7 rounded-sm border text-[#ef4444] transition-colors"
+                            style={{ background: "rgba(7,9,15,0.85)", borderColor: "rgba(239,68,68,0.55)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(239,68,68,0.15)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "rgba(7,9,15,0.85)")}
+                            aria-label="Delete"
+                        >
+                            <Trash2 size={12} />
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Body */}
+            <div className="p-3 flex flex-col flex-1">
+                <div className="font-sans font-semibold text-[#f0f4ff] text-[14px] tracking-tight leading-snug">
+                    {item.name}
+                </div>
+                <p
+                    className="text-[#8b9ab0] text-[12px] mt-1 leading-relaxed flex-1 overflow-hidden"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as React.CSSProperties}
+                >
+                    {item.description ?? ""}
+                </p>
+
+                {/* Availability */}
+                <div className="flex items-center gap-2 mt-3 mb-3">
+                    <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{
+                            background: isAvail ? "#22c55e" : "#ef4444",
+                            boxShadow: isAvail ? "0 0 6px #22c55e" : "0 0 6px #ef4444",
+                        }}
+                    />
+                    <span
+                        className="font-mono text-[10.5px] uppercase tracking-[0.14em]"
+                        style={{ color: isAvail ? "#22c55e" : "#ef4444" }}
+                    >
+                        {isAvail ? "Available" : "Not Available"}
+                    </span>
+                    {canViewExact && (
+                        <span className="font-mono text-[10px] text-[#4a5568] ml-1 tabular-nums">
+                            ({item.available_quantity}/{item.total_quantity})
+                        </span>
+                    )}
+                </div>
+
+                {/* CTA */}
+                {inCart ? (
+                    <div
+                        className="h-8 flex items-center justify-center gap-1.5 rounded-sm border font-mono text-[11px] uppercase tracking-[0.14em]"
+                        style={{ color: "#22c55e", borderColor: "rgba(34,197,94,0.45)", background: "rgba(34,197,94,0.06)" }}
+                    >
+                        <Check size={13} /> In Cart
                     </div>
                 ) : (
-                    <>
-                        <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-lg font-bold">
-                                {isEdit ? "Edit Item" : "Add Item"}
-                            </h3>
-                            <button onClick={onClose} className="text-text-muted hover:text-foreground transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleSave} className="space-y-4">
-                            {error && (
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-                                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                                    {error}
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Name</label>
-                                <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Description</label>
-                                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Category</label>
-                                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary transition-all capitalize">
-                                    {AVAILABLE_CATEGORIES.map((c) => (
-                                        <option key={c} value={c}>{c}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-1.5">Total Qty</label>
-                                    <input type="number" min={0} value={totalQuantity} onChange={(e) => setTotalQuantity(Number(e.target.value))} className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-1.5">Available Qty</label>
-                                    <input type="number" min={0} max={totalQuantity} value={availableQuantity} onChange={(e) => setAvailableQuantity(Number(e.target.value))} className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Required Safety Certification (optional)</label>
-                                <input
-                                    type="text"
-                                    value={requiredSafetyCertification}
-                                    onChange={(e) => setRequiredSafetyCertification(e.target.value)}
-                                    placeholder="e.g. Laser Cutter Level 1"
-                                    className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5">Item Image (optional)</label>
-                                {imageUrl && (
-                                    <div className="mb-3 overflow-hidden rounded-xl border border-border/70 bg-surface/40">
-                                        <img
-                                            src={imageUrl}
-                                            alt={name || "Inventory item preview"}
-                                            className="h-40 w-full object-cover"
-                                        />
-                                    </div>
-                                )}
-                                <input
-                                    type="url"
-                                    value={imageUrl}
-                                    onChange={(e) => setImageUrl(e.target.value)}
-                                    placeholder="https://..."
-                                    className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                                />
-                                {imageUrl && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setImageUrl("")}
-                                        className="mt-3 btn-ghost text-sm !py-2.5 !px-4"
-                                    >
-                                        Remove Image
-                                    </button>
-                                )}
-                            </div>
-                            <button type="submit" disabled={loading || !name.trim()} className="btn-primary w-full !py-3 disabled:opacity-40">
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                {isEdit ? "Save Changes" : "Add Item"}
-                            </button>
-                        </form>
-                    </>
+                    <button
+                        onClick={() => isAvail && onAdd(item)}
+                        disabled={!isAvail}
+                        className="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ background: "#00e5ff", color: "#07090f" }}
+                    >
+                        <ShoppingCart size={12} /> Add to Cart
+                    </button>
                 )}
-            </motion.div>
+            </div>
         </div>
     );
 }
 
-// Add-to-cart popover
-function AddToCartModal({
-    item,
-    canViewExactAvailability,
-    onClose,
-    onAdded,
-}: {
-    item: InventoryItem;
-    canViewExactAvailability: boolean;
-    onClose: () => void;
-    onAdded: (cartItem: CartItem) => void;
-}) {
-    const [quantity, setQuantity] = useState(1);
-    const [requestType, setRequestType] = useState<"borrow" | "permanent">("borrow");
-    const availabilityMeta = getInventoryAvailabilityMeta(item, canViewExactAvailability);
+/* ─── Filter pills ────────────────────────────────────────────────── */
 
-    const handleAdd = () => {
-        onAdded({ item, quantity, requestType });
-        onClose();
-    };
+function InvFilterPills({ value, onChange, counts }: {
+    value: string; onChange: (k: string) => void; counts: Record<string, number>;
+}) {
+    return (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-nowrap" style={{ scrollbarWidth: "thin" }}>
+            {CATEGORIES.map(f => {
+                const active = value === f.key;
+                const Icon = f.Icon;
+                return (
+                    <button
+                        key={f.key}
+                        onClick={() => onChange(f.key)}
+                        className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] whitespace-nowrap transition-all duration-150"
+                        style={{
+                            color: active ? "#00e5ff" : "#8b9ab0",
+                            background: active ? "rgba(0,229,255,0.10)" : "transparent",
+                            border: `1px solid ${active ? "rgba(0,229,255,0.55)" : "rgba(0,229,255,0.12)"}`,
+                            boxShadow: active ? "0 0 16px -4px rgba(0,229,255,0.45)" : "none",
+                        }}
+                        onMouseEnter={e => {
+                            if (!active) {
+                                (e.currentTarget as HTMLButtonElement).style.color = "#f0f4ff";
+                                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,229,255,0.30)";
+                            }
+                        }}
+                        onMouseLeave={e => {
+                            if (!active) {
+                                (e.currentTarget as HTMLButtonElement).style.color = "#8b9ab0";
+                                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,229,255,0.12)";
+                            }
+                        }}
+                    >
+                        <Icon size={12} />
+                        <span>{f.label}</span>
+                        <span
+                            className="font-mono text-[9.5px] tabular-nums"
+                            style={{ color: active ? "rgba(0,229,255,0.8)" : "#4a5568" }}
+                        >
+                            {String(counts[f.key] ?? 0).padStart(2, "0")}
+                        </span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+/* ─── Add-to-cart modal ───────────────────────────────────────────── */
+
+function AddToCartModal({ item, onClose, onConfirm }: {
+    item: InventoryItem;
+    onClose: () => void;
+    onConfirm: (cartItem: CartItem) => void;
+}) {
+    const [qty, setQty] = useState(1);
+    const [usage, setUsage] = useState<"borrow" | "permanent">("borrow");
+    const [anim, setAnim] = useState(false);
+
+    useEffect(() => {
+        const id = requestAnimationFrame(() => setAnim(true));
+        return () => cancelAnimationFrame(id);
+    }, []);
+
+    useEffect(() => {
+        const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+        window.addEventListener("keydown", fn);
+        return () => window.removeEventListener("keydown", fn);
+    }, [onClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4">
-            <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={onClose}
-            />
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-strong relative z-10 my-auto w-full max-w-md overflow-y-auto p-4 md:p-5 max-h-[calc(100dvh-max(1.5rem,env(safe-area-inset-top))-max(1.5rem,env(safe-area-inset-bottom)))] sm:p-4 md:p-6"
-            >
-                <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-lg font-bold">Add to Cart</h3>
-                    <button
-                        onClick={onClose}
-                        className="text-text-muted hover:text-foreground transition-colors"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div className="glass p-3 mb-5 flex items-center gap-3">
-                    <div
-                        className={`w-10 h-10 flex-shrink-0 rounded-lg border flex items-center justify-center ${categoryColors[item.category] ||
-                            "text-text-muted bg-surface border-border"
-                            }`}
-                    >
-                        {(() => {
-                            const Icon = CategoryIcon[item.category] || Box;
-                            return <Icon className="w-5 h-5" />;
-                        })()}
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold">{item.name}</p>
-                        <p
-                            className={`text-xs font-medium ${
-                                availabilityMeta.isAvailable ? "text-emerald-400" : "text-red-400"
-                            }`}
+        <div className="fixed inset-0 z-[110]" style={{ animation: "fadeIn 160ms ease-out" }}>
+            <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(7,9,15,0.80)" }} onClick={onClose} />
+            <div className="absolute inset-0 grid place-items-center p-6">
+                <div
+                    className="relative w-full max-w-md rounded-md shadow-2xl corner-ticks"
+                    style={{
+                        background: "rgba(17,24,32,0.95)",
+                        backdropFilter: "blur(16px)",
+                        border: "1px solid rgba(0,229,255,0.28)",
+                        transform: anim ? "scale(1) translateY(0)" : "scale(0.94) translateY(10px)",
+                        opacity: anim ? 1 : 0,
+                        transition: "transform 300ms cubic-bezier(.34,1.56,.64,1), opacity 220ms ease-out",
+                    }}
+                >
+                    {/* Header */}
+                    <div className="px-5 h-12 flex items-center justify-between border-b" style={{ borderColor: "rgba(0,229,255,0.12)", background: "rgba(7,9,15,0.40)" }}>
+                        <div className="flex items-center gap-2.5">
+                            <CatBadge cat={item.category} />
+                            <span className="font-sans font-semibold text-[#f0f4ff] text-[14px] tracking-tight truncate max-w-[220px]">
+                                {item.name}
+                            </span>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="grid place-items-center w-8 h-8 rounded-sm border text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
+                            style={{ borderColor: "rgba(0,229,255,0.14)" }}
                         >
-                            {availabilityMeta.label}
-                        </p>
+                            <X size={14} />
+                        </button>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                        <div>
+                            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] mb-2">// QUANTITY</div>
+                            <div className="flex items-center gap-4">
+                                <QtyStepper value={qty} onChange={setQty} min={1} max={item.available_quantity} />
+                                <span className="font-mono text-[11px] text-[#4a5568] tracking-[0.10em]">
+                                    {item.available_quantity} available
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] mb-2">// USAGE TYPE</div>
+                            <UsageToggle value={usage} onChange={setUsage} />
+                        </div>
                         {item.required_safety_certification && (
-                            <p className="text-[11px] text-amber-300 mt-1">
-                                Requires certification: <span className="font-semibold">{item.required_safety_certification}</span>
-                            </p>
+                            <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-md border"
+                                style={{ borderColor: "rgba(245,158,11,0.40)", background: "rgba(245,158,11,0.06)" }}>
+                                <ShieldCheck size={14} className="text-[#f59e0b] shrink-0 mt-px" />
+                                <div className="text-[12px] text-[#f59e0b] leading-snug">
+                                    Cert required: {item.required_safety_certification}
+                                </div>
+                            </div>
                         )}
                     </div>
-                </div>
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                            Quantity
-                        </label>
-                        <input
-                            type="number"
-                            min={1}
-                            max={item.available_quantity}
-                            value={quantity}
-                            onChange={(e) => setQuantity(Number(e.target.value))}
-                            className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                        />
+                    <div className="px-5 h-14 flex items-center justify-end gap-2 border-t" style={{ borderColor: "rgba(0,229,255,0.12)", background: "rgba(7,9,15,0.40)" }}>
+                        <button
+                            onClick={onClose}
+                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] text-[#8b9ab0] transition-all hover:text-[#f0f4ff]"
+                            style={{ borderColor: "rgba(0,229,255,0.14)", background: "transparent" }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => { onConfirm({ item, quantity: qty, requestType: usage }); onClose(); }}
+                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] transition-all"
+                            style={{ background: "#00e5ff", color: "#07090f" }}
+                        >
+                            <ShoppingCart size={13} /> Add to Cart
+                        </button>
                     </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                            Usage Type
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setRequestType("borrow")}
-                                className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all text-center ${
-                                    requestType === "borrow"
-                                        ? "bg-primary/20 text-primary-light border-primary/30"
-                                        : "text-text-muted border-border hover:border-primary/20"
-                                }`}
-                            >
-                                🔄 Borrowing
-                                <span className="block text-[10px] text-text-muted mt-0.5">Will return after use</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setRequestType("permanent")}
-                                className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all text-center ${
-                                    requestType === "permanent"
-                                        ? "bg-amber-400/20 text-amber-400 border-amber-400/30"
-                                        : "text-text-muted border-border hover:border-amber-400/20"
-                                }`}
-                            >
-                                📌 Permanent Use
-                                <span className="block text-[10px] text-text-muted mt-0.5">For a project build</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handleAdd}
-                        disabled={quantity < 1}
-                        className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <ShoppingCart className="w-4 h-4 text-black" />
-                        Add to Cart
-                    </button>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 }
 
-// Cart Drawer
-function CartDrawer({
-    cart,
-    onClose,
-    onUpdateQuantity,
-    onRemove,
-    onChangeType,
-    onSubmit,
-    submitting,
-    submitError,
-    submitSuccess,
-}: {
-    cart: CartItem[];
+/* ─── Cart Drawer ─────────────────────────────────────────────────── */
+
+function CartDrawer({ open, onClose, cart, onUpdateQty, onChangeType, onRemove, onSubmit, submitting, submitError, submitSuccess }: {
+    open: boolean;
     onClose: () => void;
-    onUpdateQuantity: (itemId: string, qty: number) => void;
-    onRemove: (itemId: string) => void;
-    onChangeType: (itemId: string, type: "borrow" | "permanent") => void;
+    cart: CartItem[];
+    onUpdateQty: (id: string, qty: number) => void;
+    onChangeType: (id: string, type: "borrow" | "permanent") => void;
+    onRemove: (id: string) => void;
     onSubmit: (reason: string) => void;
     submitting: boolean;
     submitError: string | null;
@@ -461,605 +516,733 @@ function CartDrawer({
     const [reason, setReason] = useState("");
 
     return (
-        <div className="fixed inset-0 z-50 flex items-stretch justify-end select-none">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-            <motion.div
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="relative z-10 w-full max-w-md bg-[var(--color-background)] border-l border-border flex flex-col"
+        <>
+            {open && (
+                <div
+                    className="fixed inset-0 z-[90] backdrop-blur-sm"
+                    style={{ background: "rgba(7,9,15,0.60)" }}
+                    onClick={onClose}
+                />
+            )}
+            <div
+                className="fixed top-0 right-0 bottom-0 z-[91] flex flex-col"
+                style={{
+                    width: 380,
+                    background: "#0d1117",
+                    borderLeft: "1px solid rgba(0,229,255,0.18)",
+                    boxShadow: "-8px 0 32px rgba(0,0,0,0.55)",
+                    transform: open ? "translateX(0)" : "translateX(100%)",
+                    transition: "transform 280ms cubic-bezier(.5,.05,.2,1)",
+                }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-border/50">
-                    <div className="flex items-center gap-2.5">
-                        <ShoppingCart className="w-5 h-5 text-primary-light" />
-                        <h2 className="text-lg font-bold">Cart</h2>
-                        <span className="text-xs text-text-muted">({cart.length} item{cart.length !== 1 ? "s" : ""})</span>
-                    </div>
-                    <button onClick={onClose} className="text-text-muted hover:text-foreground transition-colors">
-                        <X className="w-5 h-5" />
+                <div
+                    className="h-14 px-5 flex items-center gap-3 border-b shrink-0"
+                    style={{ borderColor: "rgba(0,229,255,0.12)", background: "rgba(7,9,15,0.60)" }}
+                >
+                    <ShoppingCart size={16} className="text-[#00e5ff]" />
+                    <h3 className="font-sans font-bold text-[#f0f4ff] text-[16px] tracking-tight flex-1">Cart</h3>
+                    {cart.length > 0 && (
+                        <span
+                            className="font-mono text-[10.5px] tabular-nums px-2 h-5 grid place-items-center rounded-sm"
+                            style={{ background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.50)", color: "#f59e0b" }}
+                        >
+                            {cart.length} ITEM{cart.length !== 1 ? "S" : ""}
+                        </span>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className="grid place-items-center w-8 h-8 rounded-sm border text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
+                        style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                    >
+                        <X size={14} />
                     </button>
                 </div>
 
-                {submitSuccess ? (
-                    <div className="flex-1 flex items-center justify-center p-6">
-                        <div className="text-center">
-                            <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-bold mb-2">Cart Submitted!</h3>
-                            <p className="text-sm text-text-secondary">
-                                Your request has been sent for review. You&apos;ll be notified when it&apos;s processed.
-                            </p>
-                        </div>
-                    </div>
-                ) : cart.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center p-6">
-                        <div className="text-center">
-                            <ShoppingCart className="w-12 h-12 text-text-muted mx-auto mb-3" />
-                            <h3 className="text-base font-semibold mb-1">Cart is empty</h3>
-                            <p className="text-xs text-text-muted">
-                                Add items from the inventory to get started.
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        {/* Cart Items */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {cart.map((entry) => {
-                                const Icon = CategoryIcon[entry.item.category] || Box;
-                                return (
-                                    <motion.div
-                                        key={entry.item.id}
-                                        layout
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        className="glass p-3"
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <div
-                                                className={`w-9 h-9 flex-shrink-0 rounded-lg border flex items-center justify-center ${categoryColors[entry.item.category] || "text-text-muted bg-surface border-border"}`}
-                                            >
-                                                <Icon className="w-4 h-4" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold truncate">{entry.item.name}</p>
-                                                <p className="text-[10px] text-text-muted capitalize">{entry.item.category}</p>
-                                            </div>
-                                            <button
-                                                onClick={() => onRemove(entry.item.id)}
-                                                className="p-1 rounded-md text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-
-                                        <div className="mt-3 flex items-center gap-2">
-                                            <div className="flex items-center rounded-lg border border-border overflow-hidden">
-                                                <button
-                                                    onClick={() => onUpdateQuantity(entry.item.id, Math.max(1, entry.quantity - 1))}
-                                                    className="px-2 py-1.5 text-text-muted hover:text-foreground hover:bg-surface/60 transition-all"
-                                                >
-                                                    <Minus className="w-3 h-3" />
-                                                </button>
-                                                <span className="px-3 py-1.5 text-xs font-semibold border-x border-border min-w-[2rem] text-center">
-                                                    {entry.quantity}
-                                                </span>
-                                                <button
-                                                    onClick={() => onUpdateQuantity(entry.item.id, Math.min(entry.item.available_quantity, entry.quantity + 1))}
-                                                    className="px-2 py-1.5 text-text-muted hover:text-foreground hover:bg-surface/60 transition-all"
-                                                >
-                                                    <Plus className="w-3 h-3" />
-                                                </button>
-                                            </div>
-
-                                            <div className="flex gap-1 ml-auto">
-                                                <button
-                                                    onClick={() => onChangeType(entry.item.id, "borrow")}
-                                                    className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
-                                                        entry.requestType === "borrow"
-                                                            ? "bg-sky-400/15 text-sky-300 border-sky-400/25"
-                                                            : "text-text-muted border-border hover:border-sky-400/20"
-                                                    }`}
-                                                >
-                                                    Borrow
-                                                </button>
-                                                <button
-                                                    onClick={() => onChangeType(entry.item.id, "permanent")}
-                                                    className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
-                                                        entry.requestType === "permanent"
-                                                            ? "bg-amber-400/15 text-amber-300 border-amber-400/25"
-                                                            : "text-text-muted border-border hover:border-amber-400/20"
-                                                    }`}
-                                                >
-                                                    Permanent
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="border-t border-border/50 p-4 space-y-3">
-                            {submitError && (
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-                                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                                    {submitError}
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                                    Reason for all items
-                                </label>
-                                <textarea
-                                    value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
-                                    rows={3}
-                                    placeholder="Why do you need these items?"
-                                    className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none transition-all"
-                                />
-                            </div>
-                            <button
-                                onClick={() => onSubmit(reason)}
-                                disabled={submitting || !reason.trim() || cart.length === 0}
-                                className="btn-primary w-full !py-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                {/* Content */}
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                    {submitSuccess ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-3 px-6">
+                            <div
+                                className="w-14 h-14 grid place-items-center rounded-full"
+                                style={{ border: "1px solid rgba(34,197,94,0.50)", background: "rgba(34,197,94,0.10)", boxShadow: "0 0 28px -6px rgba(34,197,94,0.6)" }}
                             >
-                                {submitting ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-black" />
-                                ) : (
-                                    <Send className="w-4 h-4 text-black" />
+                                <CheckCircle2 size={26} className="text-[#22c55e]" />
+                            </div>
+                            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#22c55e]">
+                                // REQUEST SUBMITTED
+                            </div>
+                            <p className="text-[#8b9ab0] text-[13px] text-center leading-relaxed">
+                                Your equipment request has been sent for review. You&apos;ll be notified when it&apos;s processed.
+                            </p>
+                        </div>
+                    ) : cart.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+                            <ShoppingCart size={28} className="text-[#4a5568]" />
+                            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#4a5568]">// CART EMPTY</div>
+                        </div>
+                    ) : (
+                        <div className="divide-y" style={{ borderColor: "rgba(0,229,255,0.08)" }}>
+                            {cart.map(ci => (
+                                <div key={ci.item.id} className="p-4 space-y-2.5" style={{ borderColor: "rgba(0,229,255,0.08)" }}>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <CatBadge cat={ci.item.category} />
+                                            <div className="font-sans font-semibold text-[#f0f4ff] text-[13.5px] tracking-tight mt-1.5 truncate">
+                                                {ci.item.name}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => onRemove(ci.item.id)}
+                                            className="grid place-items-center w-7 h-7 rounded-sm border text-[#8b9ab0] hover:text-[#ef4444] transition-colors shrink-0"
+                                            style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <QtyStepper value={ci.quantity} onChange={v => onUpdateQty(ci.item.id, v)} min={1} max={ci.item.available_quantity} />
+                                        <UsageToggle value={ci.requestType} onChange={v => onChangeType(ci.item.id, v)} small />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                {!submitSuccess && (
+                    <div className="border-t p-4 space-y-3 shrink-0" style={{ borderColor: "rgba(0,229,255,0.12)", background: "rgba(7,9,15,0.40)" }}>
+                        {submitError && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-md border"
+                                style={{ borderColor: "rgba(239,68,68,0.45)", background: "rgba(239,68,68,0.08)" }}>
+                                <AlertCircle size={13} className="text-[#ef4444] shrink-0 mt-px" />
+                                <span className="text-[12px] text-[#ef4444]">{submitError}</span>
+                            </div>
+                        )}
+                        <div>
+                            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] mb-1.5">
+                                // REASON <span className="text-[#ef4444]">*</span>
+                            </div>
+                            <textarea
+                                rows={3}
+                                value={reason}
+                                onChange={e => setReason(e.target.value)}
+                                placeholder="Why do you need this equipment?"
+                                className="w-full text-[12.5px] text-[#f0f4ff] placeholder:text-[#4a5568] rounded-md px-3 py-2 resize-none focus-cyan transition-shadow outline-none"
+                                style={{ background: "#07090f", border: "1px solid rgba(0,229,255,0.14)" }}
+                            />
+                        </div>
+                        <button
+                            onClick={() => onSubmit(reason)}
+                            disabled={submitting || !reason.trim() || cart.length === 0}
+                            className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{ background: "#00e5ff", color: "#07090f" }}
+                        >
+                            {submitting ? (
+                                <><Loader2 size={14} className="animate-spin" />Submitting…</>
+                            ) : (
+                                <><Send size={13} />Submit Request ({cart.length})</>
+                            )}
+                        </button>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+}
+
+/* ─── Item Modal (add / edit) ─────────────────────────────────────── */
+
+function ItemModal({ item, onClose, onSaved }: {
+    item: InventoryItem | null;
+    onClose: () => void;
+    onSaved: () => void;
+}) {
+    const isEdit = !!item;
+    const [anim, setAnim] = useState(false);
+    const [name, setName] = useState(item?.name ?? "");
+    const [description, setDescription] = useState(item?.description ?? "");
+    const [category, setCategory] = useState(item?.category ?? "general");
+    const [totalQty, setTotalQty] = useState(String(item?.total_quantity ?? 1));
+    const [availQty, setAvailQty] = useState(String(item?.available_quantity ?? 1));
+    const [imageUrl, setImageUrl] = useState(item?.image_url ?? "");
+    const [safetyCert, setSafetyCert] = useState(item?.required_safety_certification ?? "");
+    const [consumable, setConsumable] = useState(item?.is_consumable ?? false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        const id = requestAnimationFrame(() => setAnim(true));
+        return () => cancelAnimationFrame(id);
+    }, []);
+
+    useEffect(() => {
+        const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+        window.addEventListener("keydown", fn);
+        return () => window.removeEventListener("keydown", fn);
+    }, [onClose]);
+
+    const handleSave = async () => {
+        if (!name.trim()) return;
+        setLoading(true);
+        setError(null);
+        const supabase = createClient();
+        const payload = {
+            name: name.trim(),
+            description: description.trim() || null,
+            category,
+            total_quantity: Number(totalQty) || 0,
+            available_quantity: Number(availQty) || 0,
+            image_url: imageUrl.trim() || null,
+            required_safety_certification: safetyCert.trim() || null,
+            is_consumable: consumable,
+        };
+        try {
+            if (isEdit && item) {
+                const { error: err } = await supabase.from("inventory_items").update(payload).eq("id", item.id);
+                if (err) { setError(err.message); setLoading(false); return; }
+            } else {
+                const { error: err } = await supabase.from("inventory_items").insert(payload);
+                if (err) { setError(err.message); setLoading(false); return; }
+            }
+            setSuccess(true);
+            setLoading(false);
+            setTimeout(() => { onSaved(); onClose(); }, 900);
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : "Unexpected error");
+            setLoading(false);
+        }
+    };
+
+    const CATS_OPTS = CATEGORIES.filter(c => c.key !== "all");
+
+    return (
+        <div className="fixed inset-0 z-[120]" style={{ animation: "fadeIn 160ms ease-out" }}>
+            <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(7,9,15,0.80)" }} onClick={onClose} />
+            <div className="absolute inset-0 grid place-items-center p-6 overflow-y-auto">
+                <div
+                    className="relative w-full max-w-2xl rounded-md shadow-2xl corner-ticks my-auto"
+                    style={{
+                        background: "rgba(17,24,32,0.95)",
+                        backdropFilter: "blur(16px)",
+                        border: "1px solid rgba(0,229,255,0.28)",
+                        transform: anim ? "scale(1) translateY(0)" : "scale(0.94) translateY(10px)",
+                        opacity: anim ? 1 : 0,
+                        transition: "transform 320ms cubic-bezier(.34,1.56,.64,1), opacity 220ms ease-out",
+                    }}
+                >
+                    {/* Header */}
+                    <div className="px-5 h-12 flex items-center justify-between border-b" style={{ borderColor: "rgba(0,229,255,0.12)", background: "rgba(7,9,15,0.40)" }}>
+                        <div className="flex items-center gap-2.5">
+                            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#00e5ff", boxShadow: "0 0 6px #00e5ff" }} />
+                            <div>
+                                <div className="text-[#f0f4ff] text-[14px] font-semibold">
+                                    {isEdit ? "Edit item" : "New inventory item"}
+                                </div>
+                                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b9ab0] mt-0.5">
+                                    INVENTORY · {isEdit ? "EDIT" : "CREATE"}
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="grid place-items-center w-8 h-8 rounded-sm border text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
+                            style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                        {success ? (
+                            <div className="text-center py-8 flex flex-col items-center gap-3">
+                                <CheckCircle2 size={32} className="text-[#22c55e]" />
+                                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#22c55e]">
+                                    {isEdit ? "// ITEM UPDATED" : "// ITEM ADDED"}
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {error && (
+                                    <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-md border"
+                                        style={{ borderColor: "rgba(239,68,68,0.45)", background: "rgba(239,68,68,0.08)" }}>
+                                        <AlertCircle size={14} className="text-[#ef4444] shrink-0 mt-px" />
+                                        <span className="text-[12.5px] text-[#ef4444]">{error}</span>
+                                    </div>
                                 )}
-                                Submit Request ({cart.length} item{cart.length !== 1 ? "s" : ""})
+
+                                {/* Name */}
+                                <ModalField label="Item name">
+                                    <ModalInput placeholder="ESP32-S3 Devkit" value={name} onChange={e => setName(e.target.value)} />
+                                </ModalField>
+
+                                {/* Description */}
+                                <ModalField label="Description">
+                                    <textarea
+                                        rows={3}
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        placeholder="Describe the item, use case, and any restrictions…"
+                                        className="w-full text-[13px] text-[#f0f4ff] placeholder:text-[#4a5568] rounded-md px-3 py-2.5 resize-none focus-cyan transition-shadow outline-none"
+                                        style={{ background: "#07090f", border: "1px solid rgba(0,229,255,0.14)" }}
+                                    />
+                                </ModalField>
+
+                                {/* Category + Qty row */}
+                                <div className="grid grid-cols-12 gap-3">
+                                    <ModalField label="Category" className="col-span-12 md:col-span-4">
+                                        <select
+                                            value={category}
+                                            onChange={e => setCategory(e.target.value)}
+                                            className="w-full h-10 text-[13px] text-[#f0f4ff] rounded-md px-3 focus-cyan transition-shadow outline-none appearance-none"
+                                            style={{ background: "#07090f", border: "1px solid rgba(0,229,255,0.14)" }}
+                                        >
+                                            {CATS_OPTS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                                        </select>
+                                    </ModalField>
+                                    <ModalField label="Total qty" hint="TOTAL" className="col-span-6 md:col-span-4">
+                                        <ModalInput icon={<Hash size={12} />} value={totalQty} onChange={e => setTotalQty(e.target.value)} />
+                                    </ModalField>
+                                    <ModalField label="Available qty" className="col-span-6 md:col-span-4">
+                                        <ModalInput icon={<Hash size={12} />} value={availQty} onChange={e => setAvailQty(e.target.value)} />
+                                    </ModalField>
+                                </div>
+
+                                {/* Image URL */}
+                                <ModalField label="Image URL" hint="OPTIONAL">
+                                    <ModalInput icon={<Link2 size={12} />} placeholder="https://…/photo.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+                                </ModalField>
+
+                                {/* Safety cert */}
+                                <ModalField label="Safety certification" hint="OPTIONAL">
+                                    <ModalInput icon={<ShieldCheck size={12} />} placeholder="e.g. Bay-A briefing required" value={safetyCert} onChange={e => setSafetyCert(e.target.value)} />
+                                </ModalField>
+
+                                {/* Consumable toggle */}
+                                <button
+                                    type="button"
+                                    onClick={() => setConsumable(c => !c)}
+                                    className="w-full flex items-center justify-between gap-4 p-3 rounded-sm border transition-colors"
+                                    style={{
+                                        borderColor: consumable ? "rgba(245,158,11,0.5)" : "rgba(0,229,255,0.12)",
+                                        background: consumable ? "rgba(245,158,11,0.06)" : "rgba(7,9,15,0.50)",
+                                    }}
+                                >
+                                    <span className="flex items-center gap-3">
+                                        <PackageOpen size={14} style={{ color: consumable ? "#f59e0b" : "#4a5568" }} />
+                                        <span>
+                                            <span className="block font-sans font-semibold text-[13.5px] tracking-tight" style={{ color: consumable ? "#f59e0b" : "#f0f4ff" }}>
+                                                Consumable
+                                            </span>
+                                            <span className="block text-[11.5px] text-[#8b9ab0] mt-0.5">
+                                                Item is used up on checkout — cannot be returned
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <span
+                                        className="relative w-10 h-6 rounded-full transition-colors shrink-0"
+                                        style={{ background: consumable ? "#f59e0b" : "rgba(139,154,176,0.25)" }}
+                                    >
+                                        <span
+                                            className="absolute top-[3px] w-[18px] h-[18px] rounded-full transition-all"
+                                            style={{
+                                                background: "#07090f",
+                                                left: consumable ? 20 : 3,
+                                                boxShadow: consumable ? "0 0 10px rgba(245,158,11,0.7)" : "none",
+                                            }}
+                                        />
+                                    </span>
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {!success && (
+                        <div className="px-5 h-14 flex items-center justify-end gap-2 border-t" style={{ borderColor: "rgba(0,229,255,0.12)", background: "rgba(7,9,15,0.40)" }}>
+                            <button
+                                onClick={onClose}
+                                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
+                                style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={!name.trim() || loading}
+                                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] transition-all disabled:opacity-40"
+                                style={{ background: "#00e5ff", color: "#07090f" }}
+                            >
+                                {loading ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                                {isEdit ? "Save changes" : "Add to inventory"}
                             </button>
                         </div>
-                    </>
-                )}
-            </motion.div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
 
+/* ─── Modal helper components ─────────────────────────────────────── */
+
+function ModalField({ label, hint, children, className }: {
+    label: string; hint?: string; children: React.ReactNode; className?: string;
+}) {
+    return (
+        <div className={className}>
+            <div className="flex items-end justify-between mb-1.5">
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0]">
+                    <span style={{ color: "rgba(0,229,255,0.70)" }}>$</span> {label}
+                </label>
+                {hint && <span className="font-mono text-[9.5px] text-[#4a5568] tracking-[0.06em]">{hint}</span>}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+function ModalInput({ icon, placeholder, value, onChange }: {
+    icon?: React.ReactNode;
+    placeholder?: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+    return (
+        <div className="relative">
+            {icon && (
+                <span className="absolute inset-y-0 left-0 grid place-items-center w-9 text-[#4a5568] pointer-events-none">
+                    {icon}
+                </span>
+            )}
+            <input
+                type="text"
+                placeholder={placeholder}
+                value={value}
+                onChange={onChange}
+                className={`w-full h-10 text-[13px] text-[#f0f4ff] placeholder:text-[#4a5568] rounded-md focus-cyan transition-shadow outline-none ${icon ? "pl-9 pr-3" : "px-3"}`}
+                style={{ background: "#07090f", border: "1px solid rgba(0,229,255,0.14)" }}
+            />
+        </div>
+    );
+}
+
+/* ─── Main page ───────────────────────────────────────────────────── */
+
 export default function InventoryPage() {
     const { isAuthenticated, isFaculty, isModerator, isInventoryManager, loading: userLoading } = useUser();
-    const canManageInventory = isFaculty || isModerator || isInventoryManager;
-    const canViewExactAvailability = isStockVisibleToUser({
-        isFaculty,
-        isModerator,
-        isInventoryManager,
-    });
+    const canManage = isFaculty || isModerator || isInventoryManager;
+    const canViewExact = isStockVisibleToUser({ isFaculty, isModerator, isInventoryManager });
     const supabase = createClient();
     const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL?.trim() || null;
-    const isGoogleSheetConfigured = Boolean(googleSheetUrl);
 
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [activeCategory, setActiveCategory] = useState<string | null>(null);
-    const [editItem, setEditItem] = useState<InventoryItem | null | undefined>(undefined);
-    const [actionError, setActionError] = useState<string | null>(null);
+    const [catFilter, setCatFilter] = useState("all");
+    const [shown, setShown] = useState(false);
     const [syncMessage, setSyncMessage] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
     const [isSyncPending, startSyncTransition] = useTransition();
+
+    // Modal state
+    const [editItem, setEditItem] = useState<InventoryItem | null | undefined>(undefined); // undefined = closed
+    const [addToCartItem, setAddToCartItem] = useState<InventoryItem | null>(null);
 
     // Cart state
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [addToCartItem, setAddToCartItem] = useState<InventoryItem | null>(null);
     const [cartOpen, setCartOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
-    // Load cart from localStorage on mount
-    useEffect(() => {
-        setCart(loadCartFromStorage());
-    }, []);
-
-    // Persist cart to localStorage on changes
-    useEffect(() => {
-        saveCartToStorage(cart);
-    }, [cart]);
-
-    const categories = Array.from(new Set(items.map((i) => i.category)));
+    useEffect(() => { setCart(loadCart()); }, []);
+    useEffect(() => { saveCart(cart); }, [cart]);
 
     const fetchItems = useCallback(async () => {
-        const { data } = await supabase
-            .from("inventory_items")
-            .select("*")
-            .order("name");
+        const { data } = await supabase.from("inventory_items").select("*").order("name");
         if (data) setItems(data);
         setLoading(false);
     }, [supabase]);
 
-    useEffect(() => {
-        fetchItems();
-    }, [fetchItems]);
+    useEffect(() => { void fetchItems(); }, [fetchItems]);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Delete this item? This cannot be undone.")) return;
+    // Staggered reveal on filter/search change
+    useEffect(() => {
+        setShown(false);
+        const id = setTimeout(() => setShown(true), 60);
+        return () => clearTimeout(id);
+    }, [catFilter, search]);
+
+    useEffect(() => {
+        const id = setTimeout(() => setShown(true), 60);
+        return () => clearTimeout(id);
+    }, []);
+
+    const counts = useMemo(() => {
+        const c: Record<string, number> = { all: items.length };
+        items.forEach(it => { c[it.category] = (c[it.category] ?? 0) + 1; });
+        return c;
+    }, [items]);
+
+    const filtered = useMemo(() => {
+        let list = catFilter === "all" ? items : items.filter(it => it.category === catFilter);
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            list = list.filter(it =>
+                it.name.toLowerCase().includes(q) || it.description?.toLowerCase().includes(q)
+            );
+        }
+        return list;
+    }, [items, catFilter, search]);
+
+    const cartIds = useMemo(() => new Set(cart.map(c => c.item.id)), [cart]);
+
+    const handleDelete = async (item: InventoryItem) => {
+        if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
         setActionError(null);
-        setSyncMessage(null);
-        await supabase.from("inventory_items").delete().eq("id", id);
-        setItems((prev) => prev.filter((i) => i.id !== id));
+        await supabase.from("inventory_items").delete().eq("id", item.id);
+        setItems(prev => prev.filter(i => i.id !== item.id));
     };
 
     const handleSheetSync = () => {
         setActionError(null);
         setSyncMessage(null);
-
         startSyncTransition(async () => {
             const result = await syncInventoryStocksToGoogleSheets();
-            if (!result.ok) {
-                setActionError(result.error);
-                return;
-            }
-
-            setSyncMessage(
-                `Synced ${result.count} stock row${result.count === 1 ? "" : "s"} to Google Sheets.`
-            );
+            if (!result.ok) { setActionError(result.error); return; }
+            setSyncMessage(`Synced ${result.count} row${result.count === 1 ? "" : "s"} to Google Sheets.`);
         });
     };
 
     const addToCart = (cartItem: CartItem) => {
-        setCart((prev) => {
-            const existing = prev.find((c) => c.item.id === cartItem.item.id);
-            if (existing) {
-                return prev.map((c) =>
-                    c.item.id === cartItem.item.id
-                        ? { ...c, quantity: cartItem.quantity, requestType: cartItem.requestType }
-                        : c
-                );
-            }
-            return [...prev, cartItem];
+        setCart(prev => {
+            const ex = prev.find(c => c.item.id === cartItem.item.id);
+            return ex
+                ? prev.map(c => c.item.id === cartItem.item.id ? { ...c, quantity: cartItem.quantity, requestType: cartItem.requestType } : c)
+                : [...prev, cartItem];
         });
-    };
-
-    const updateCartQuantity = (itemId: string, qty: number) => {
-        setCart((prev) => prev.map((c) => (c.item.id === itemId ? { ...c, quantity: qty } : c)));
-    };
-
-    const removeFromCart = (itemId: string) => {
-        setCart((prev) => prev.filter((c) => c.item.id !== itemId));
-    };
-
-    const changeCartType = (itemId: string, type: "borrow" | "permanent") => {
-        setCart((prev) => prev.map((c) => (c.item.id === itemId ? { ...c, requestType: type } : c)));
     };
 
     const handleSubmitCart = async (reason: string) => {
         if (!reason.trim() || cart.length === 0) return;
         setSubmitting(true);
         setSubmitError(null);
-
         const result = await submitEquipmentCart({
-            items: cart.map((c) => ({
-                itemId: c.item.id,
-                quantity: c.quantity,
-                requestType: c.requestType,
-            })),
+            items: cart.map(c => ({ itemId: c.item.id, quantity: c.quantity, requestType: c.requestType })),
             reason: reason.trim(),
         });
-
-        if (!result.ok) {
-            setSubmitError(result.error);
-            setSubmitting(false);
-            return;
-        }
-
+        if (!result.ok) { setSubmitError(result.error); setSubmitting(false); return; }
         setSubmitSuccess(true);
         setSubmitting(false);
         setCart([]);
-        saveCartToStorage([]);
-        setTimeout(() => {
-            setCartOpen(false);
-            setSubmitSuccess(false);
-            fetchItems();
-        }, 2000);
+        saveCart([]);
+        setTimeout(() => { setCartOpen(false); setSubmitSuccess(false); void fetchItems(); }, 2000);
     };
 
-    const filtered = items.filter((item) => {
-        const matchSearch =
-            item.name.toLowerCase().includes(search.toLowerCase()) ||
-            item.description?.toLowerCase().includes(search.toLowerCase());
-        const matchCategory = !activeCategory || item.category === activeCategory;
-        return matchSearch && matchCategory;
-    });
-
-    const isInCart = (itemId: string) => cart.some((c) => c.item.id === itemId);
-
-    if (userLoading || loading) {
-        return <VajraLoader fullPage />;
-    }
+    if (userLoading || loading) return <VajraLoader fullPage />;
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1">
-                    <h1 className="text-xl font-bold">Inventory</h1>
-                    <p className="text-xs text-text-muted">
-                        Browse and request equipment
-                    </p>
+        <div className="max-w-6xl mx-auto px-8 pt-8 pb-16">
+            {/* Page header */}
+            <div className="mb-7">
+                <div className="flex items-center gap-2 mb-3">
+                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
+                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
+                        // WORKSPACE / VAULT
+                    </span>
                 </div>
-                {canManageInventory && (
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                            onClick={handleSheetSync}
-                            disabled={isSyncPending || !isGoogleSheetConfigured}
-                            className="btn-primary text-sm disabled:opacity-50"
-                        >
-                            {isSyncPending ? (
-                                <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <RefreshCw className="w-4 h-4" />
-                            )}
-                            Sync to Sheet
-                        </button>
-                        <a
-                            href={googleSheetUrl || "https://docs.google.com/spreadsheets/d/1NGiGWa8EceraGPMWFoxipQPOKS6YJbGXjczBaIEgc6k/edit?usp=sharing"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-ghost text-sm"
-                        >
-                            <Sheet className="w-4 h-4" />
-                            Open Sheet
-                            <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                        <button
-                            onClick={() => setEditItem(null)}
-                            className="btn-primary text-sm"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Item
-                        </button>
-                    </div>
-                )}
+                <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[36px] leading-none">
+                    Inventory
+                </h1>
+                <p className="text-[#8b9ab0] text-[13.5px] mt-2 max-w-[64ch]">
+                    Live SKU index. Check out parts, submit requests, track availability.
+                </p>
             </div>
 
+            {/* Feedback banners */}
             {actionError && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {actionError}
+                <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-md border text-[13px]"
+                    style={{ borderColor: "rgba(239,68,68,0.45)", background: "rgba(239,68,68,0.08)", color: "#ef4444" }}>
+                    <AlertCircle size={14} className="shrink-0" />{actionError}
                 </div>
             )}
-
             {syncMessage && (
-                <div className="mb-4 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+                <div className="mb-4 px-4 py-3 rounded-md border text-[13px]"
+                    style={{ borderColor: "rgba(0,229,255,0.28)", background: "rgba(0,229,255,0.06)", color: "#00e5ff" }}>
                     {syncMessage}
                 </div>
             )}
 
-            {/* Search + Cart Button + Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            {/* Controls row */}
+            <div className="flex items-center gap-3 mb-5 flex-wrap">
+                {/* Search */}
+                <div className="relative flex-1 max-w-sm">
+                    <span className="absolute inset-y-0 left-0 grid place-items-center w-9 text-[#8b9ab0] pointer-events-none">
+                        <Search size={14} />
+                    </span>
                     <input
                         type="text"
+                        placeholder="Search items…"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search equipment..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                        onChange={e => setSearch(e.target.value)}
+                        className="w-full h-9 text-[13px] text-[#f0f4ff] placeholder:text-[#4a5568] rounded-md focus-cyan transition-shadow pl-9 pr-3 outline-none"
+                        style={{ background: "#0d1117", border: "1px solid rgba(0,229,255,0.14)" }}
                     />
                 </div>
 
-                {/* Cart Button */}
+                <div className="flex-1" />
+
+                {/* Manager actions */}
+                {canManage && (
+                    <>
+                        <button
+                            onClick={handleSheetSync}
+                            disabled={isSyncPending || !googleSheetUrl}
+                            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] text-[#8b9ab0] hover:text-[#f0f4ff] transition-all disabled:opacity-40"
+                            style={{ borderColor: "rgba(0,229,255,0.14)", background: "transparent" }}
+                        >
+                            <RefreshCw size={12} className={isSyncPending ? "animate-spin" : ""} />
+                            Sync
+                        </button>
+                        <a
+                            href={googleSheetUrl ?? "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] text-[#8b9ab0] hover:text-[#f0f4ff] transition-all"
+                            style={{ borderColor: "rgba(0,229,255,0.14)", background: "transparent" }}
+                        >
+                            <ExternalLink size={12} /> Sheet
+                        </a>
+                        <button
+                            onClick={() => setEditItem(null)}
+                            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] transition-all"
+                            style={{ background: "#00e5ff", color: "#07090f" }}
+                        >
+                            <Plus size={13} /> Add Item
+                        </button>
+                    </>
+                )}
+
+                {/* Cart button */}
                 {isAuthenticated && (
                     <button
                         onClick={() => { setCartOpen(true); setSubmitError(null); }}
-                        className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-surface hover:bg-surface/80 hover:border-primary/30 text-sm font-medium text-foreground transition-all"
+                        className="relative grid place-items-center w-9 h-9 rounded-sm border text-[#8b9ab0] hover:text-[#00e5ff] transition-colors"
+                        style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,229,255,0.45)")}
+                        onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,229,255,0.14)")}
                     >
-                        <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-5 h-5"
-                        >
-                            <circle cx="9" cy="21" r="1" />
-                            <circle cx="20" cy="21" r="1" />
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                        </svg>
-                        Cart
+                        <ShoppingCart size={15} />
                         {cart.length > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-primary text-[10px] font-bold text-black">
+                            <span
+                                className="absolute -top-1.5 -right-1.5 grid place-items-center min-w-[18px] h-[18px] px-1 rounded-sm font-mono text-[9.5px] font-semibold tabular-nums"
+                                style={{ background: "#f59e0b", color: "#07090f", boxShadow: "0 0 0 1.5px #07090f, 0 0 8px rgba(245,158,11,0.7)" }}
+                            >
                                 {cart.length}
                             </span>
                         )}
                     </button>
                 )}
+            </div>
 
-                <div className="flex gap-2 flex-wrap">
-                    <button
-                        onClick={() => setActiveCategory(null)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${!activeCategory
-                                ? "bg-primary/20 text-primary-light border border-primary/30"
-                                : "text-text-muted hover:text-foreground border border-border hover:border-border"
-                            }`}
-                    >
-                        All
-                    </button>
-                    {categories.map((cat) => (
-                        <button
-                            key={cat}
-                            onClick={() =>
-                                setActiveCategory(activeCategory === cat ? null : cat)
-                            }
-                            className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${activeCategory === cat
-                                    ? "bg-primary/20 text-primary-light border border-primary/30"
-                                    : "text-text-muted hover:text-foreground border border-border hover:border-border"
-                                }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
+            {/* Filter pills */}
+            <div className="mb-5">
+                <InvFilterPills value={catFilter} onChange={v => setCatFilter(v)} counts={counts} />
+            </div>
+
+            {/* Meta strip */}
+            <div className="flex items-center justify-between mb-5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-[#8b9ab0]">
+                <div className="flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+                    <span>{String(filtered.length).padStart(2, "0")} of {String(items.length).padStart(2, "0")} items</span>
                 </div>
+                <span className="text-[#4a5568] hidden md:block">// last sync 12s ago</span>
             </div>
 
             {/* Grid */}
             {filtered.length === 0 ? (
-                <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
-                    <Package className="w-12 h-12 text-text-muted mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">
-                        {items.length === 0 ? "Inventory is empty" : "No matches"}
-                    </h3>
-                    <p className="text-text-muted text-sm">
-                        {items.length === 0
-                            ? "Equipment will appear here once added."
-                            : "Try adjusting your search or filters."}
-                    </p>
+                <div
+                    className="relative border border-dashed rounded-md overflow-hidden corner-ticks"
+                    style={{ borderColor: "rgba(0,229,255,0.15)", background: "rgba(13,17,23,0.40)" }}
+                >
+                    <div className="relative text-center py-16 px-6">
+                        <div
+                            className="mx-auto w-14 h-14 grid place-items-center border rounded-md text-[#4a5568] mb-4"
+                            style={{ borderColor: "rgba(0,229,255,0.18)", background: "#07090f" }}
+                        >
+                            <PackageOpen size={22} />
+                        </div>
+                        <h3 className="text-[#f0f4ff] font-bold text-[18px] tracking-tight">No items found</h3>
+                        <p className="text-[#8b9ab0] text-[13px] mt-1.5 max-w-[42ch] mx-auto leading-relaxed">
+                            {catFilter !== "all" || search
+                                ? "No items match that filter or search. Try clearing them."
+                                : "The inventory vault is empty."}
+                        </p>
+                        {(catFilter !== "all" || search) && (
+                            <div className="mt-5">
+                                <button
+                                    onClick={() => { setCatFilter("all"); setSearch(""); }}
+                                    className="inline-flex items-center gap-2 h-9 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em]"
+                                    style={{ background: "#00e5ff", color: "#07090f" }}
+                                >
+                                    <LayoutGrid size={13} /> Show all items
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filtered.map((item) => {
-                        const availabilityMeta = getInventoryAvailabilityMeta(item, canViewExactAvailability);
-                        const alreadyInCart = isInCart(item.id);
-                        return (
-                            <motion.div
-                                key={item.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="glass overflow-hidden group relative flex flex-col"
-                            >
-                                {/* Admin Actions */}
-                                {canManageInventory && (
-                                    <div className="flex gap-1 absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                        <button
-                                            onClick={() => setEditItem(item)}
-                                            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-text-muted hover:text-primary-light hover:bg-primary/20 transition-all border border-white/10"
-                                            title="Edit Item"
-                                        >
-                                            <Pencil className="w-3.5 h-3.5" />
-                                        </button>
-                                        {canManageInventory && (
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-text-muted hover:text-red-400 hover:bg-red-400/20 transition-all border border-white/10"
-                                                title="Delete Item"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Image */}
-                                {item.image_url && (
-                                    <div className="h-40 overflow-hidden border-b border-border/50">
-                                        <img
-                                            src={item.image_url}
-                                            alt={item.name}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="p-4">
-                                    {/* Category badge */}
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span
-                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-sm ${categoryColors[item.category] ||
-                                                "text-text-muted bg-surface border-border"
-                                                }`}
-                                        >
-                                            {(() => {
-                                                const Icon = CategoryIcon[item.category];
-                                                return Icon ? <Icon className="w-3.5 h-3.5" strokeWidth={2.5} /> : null;
-                                            })()}
-                                            {item.category}
-                                        </span>
-                                    </div>
-
-                                    {/* Name + description */}
-                                    <h3 className="font-semibold text-sm mb-1">{item.name}</h3>
-                                    {item.description && (
-                                        <p className="text-xs text-text-muted line-clamp-2 mb-3">
-                                            {item.description}
-                                        </p>
-                                    )}
-
-                                    {/* Availability */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                            <div
-                                                className={`w-2 h-2 rounded-full ${availabilityMeta.isAvailable ? "bg-emerald-400" : "bg-red-400"
-                                                    }`}
-                                            />
-                                            <span
-                                                className={`text-xs font-medium ${availabilityMeta.isAvailable
-                                                        ? "text-emerald-400"
-                                                        : "text-red-400"
-                                                    }`}
-                                            >
-                                                {availabilityMeta.label}
-                                            </span>
-                                        </div>
-
-                                        {isAuthenticated && availabilityMeta.isAvailable && (
-                                            alreadyInCart ? (
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20">
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                    In Cart
-                                                </span>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setAddToCartItem(item)}
-                                                    className="btn-primary !px-4 !py-2 text-[11px]"
-                                                >
-                                                    <ShoppingCart className="w-3.5 h-3.5" />
-                                                    Add to Cart
-                                                </button>
-                                            )
-                                        )}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filtered.map((item, i) => (
+                        <InvCard
+                            key={item.id}
+                            item={item}
+                            inCart={cartIds.has(item.id)}
+                            canManage={canManage}
+                            canViewExact={canViewExact}
+                            shown={shown}
+                            delay={Math.min(i, 14) * 35}
+                            onAdd={setAddToCartItem}
+                            onEdit={setEditItem}
+                            onDelete={handleDelete}
+                        />
+                    ))}
                 </div>
             )}
 
             {/* Add-to-cart modal */}
-            <AnimatePresence>
-                {addToCartItem && (
-                    <AddToCartModal
-                        item={addToCartItem}
-                        canViewExactAvailability={canViewExactAvailability}
-                        onClose={() => setAddToCartItem(null)}
-                        onAdded={addToCart}
-                    />
-                )}
-            </AnimatePresence>
+            {addToCartItem && (
+                <AddToCartModal
+                    item={addToCartItem}
+                    onClose={() => setAddToCartItem(null)}
+                    onConfirm={addToCart}
+                />
+            )}
 
-            {/* Cart Drawer */}
-            <AnimatePresence>
-                {cartOpen && (
-                    <CartDrawer
-                        cart={cart}
-                        onClose={() => { setCartOpen(false); setSubmitSuccess(false); }}
-                        onUpdateQuantity={updateCartQuantity}
-                        onRemove={removeFromCart}
-                        onChangeType={changeCartType}
-                        onSubmit={handleSubmitCart}
-                        submitting={submitting}
-                        submitError={submitError}
-                        submitSuccess={submitSuccess}
-                    />
-                )}
-            </AnimatePresence>
+            {/* Cart drawer */}
+            <CartDrawer
+                open={cartOpen}
+                onClose={() => { setCartOpen(false); setSubmitSuccess(false); }}
+                cart={cart}
+                onUpdateQty={(id, qty) => setCart(prev => prev.map(c => c.item.id === id ? { ...c, quantity: qty } : c))}
+                onChangeType={(id, type) => setCart(prev => prev.map(c => c.item.id === id ? { ...c, requestType: type } : c))}
+                onRemove={id => setCart(prev => prev.filter(c => c.item.id !== id))}
+                onSubmit={handleSubmitCart}
+                submitting={submitting}
+                submitError={submitError}
+                submitSuccess={submitSuccess}
+            />
 
-            {/* Add/Edit modal */}
-            <AnimatePresence>
-                {editItem !== undefined && (
-                    <ItemModal
-                        item={editItem}
-                        onClose={() => setEditItem(undefined)}
-                        onSaved={fetchItems}
-                    />
-                )}
-            </AnimatePresence>
+            {/* Item add/edit modal */}
+            {editItem !== undefined && (
+                <ItemModal
+                    item={editItem}
+                    onClose={() => setEditItem(undefined)}
+                    onSaved={fetchItems}
+                />
+            )}
         </div>
     );
 }

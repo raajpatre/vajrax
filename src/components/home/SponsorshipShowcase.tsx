@@ -1,56 +1,49 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useAnimationFrame, useMotionValue } from "framer-motion";
+import { useLayoutEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import type { Sponsor } from "@/actions/sponsors";
 
 type SponsorshipShowcaseProps = {
     sponsors: Sponsor[];
 };
 
-const tierPriority: Record<string, number> = {
-    Platinum: 0,
-    Gold: 1,
-    Silver: 2,
+/* ── Tier colour map ── */
+const TIER_FG: Record<string, string> = {
+    Platinum: "#00e5ff",
+    Gold:     "#f59e0b",
+    Silver:   "#8b9ab0",
 };
 
+/* ── Single sponsor tile — no box, true logo colours, tier label below ── */
 function SponsorTile({ sponsor }: { sponsor: Sponsor }) {
-    const isPremium = sponsor.tier === "Platinum" || sponsor.tier === "Gold";
-    const tileHeight = sponsor.tier === "Platinum" ? "h-24 min-w-[16rem]" : sponsor.tier === "Gold" ? "h-20 min-w-[14rem]" : "h-16 min-w-[12rem]";
-    const glow =
-        sponsor.tier === "Platinum" || sponsor.tier === "Gold"
-            ? "group-hover:shadow-[0_0_30px_rgba(212,175,55,0.18)] group-hover:border-[#D4AF37]/35"
-            : "group-hover:shadow-[0_0_26px_rgba(0,242,255,0.14)] group-hover:border-[#00F2FF]/28";
-    const imageHoverFilter =
-        sponsor.tier === "Platinum" || sponsor.tier === "Gold"
-            ? "group-hover:[filter:grayscale(0)_brightness(1)_drop-shadow(0_0_14px_rgba(212,175,55,0.55))]"
-            : "group-hover:[filter:grayscale(0)_brightness(1)_drop-shadow(0_0_14px_rgba(0,242,255,0.55))]";
+    const fg = TIER_FG[sponsor.tier] ?? TIER_FG.Silver;
 
-    const content = (
-        <div
-            className={`group energy-card relative flex ${tileHeight} items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-white/[0.045] px-8 backdrop-blur-2xl transition-all duration-300 ${glow}`}
-        >
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/[0.08] via-transparent to-transparent" />
-            <div
-                className={`absolute inset-0 rounded-lg ${
-                    isPremium
-                        ? "bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.16),_transparent_60%)]"
-                        : "bg-[radial-gradient(circle_at_top,_rgba(0,242,255,0.12),_transparent_60%)]"
-                }`}
-            />
+    const inner = (
+        <div className="shrink-0 flex flex-col items-center gap-2 px-10 select-none">
+            {/* Logo or name fallback */}
             {sponsor.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                     src={sponsor.logo_url}
                     alt={sponsor.name}
-                    className={`relative z-10 max-h-12 w-auto max-w-[10rem] object-contain opacity-80 transition-all duration-300 [filter:grayscale(1)_brightness(1.7)] ${imageHoverFilter} group-hover:opacity-100 ${
-                        sponsor.tier === "Platinum" ? "max-h-14 max-w-[11rem]" : ""
-                    }`}
+                    className="h-10 w-auto max-w-[160px] object-contain"
                 />
             ) : (
-                <span className="relative z-10 text-sm font-semibold uppercase tracking-[0.24em] text-slate-200">
+                <span
+                    className="font-semibold tracking-tight text-[14px]"
+                    style={{ color: "#f0f4ff" }}
+                >
                     {sponsor.name}
                 </span>
             )}
+            {/* Tier label */}
+            <span
+                className="font-mono text-[9px] uppercase tracking-[0.22em]"
+                style={{ color: fg }}
+            >
+                {sponsor.tier}
+            </span>
         </div>
     );
 
@@ -63,121 +56,240 @@ function SponsorTile({ sponsor }: { sponsor: Sponsor }) {
                 className="shrink-0"
                 aria-label={`Visit ${sponsor.name}`}
             >
-                {content}
+                {inner}
             </a>
         );
     }
-
-    return <div className="shrink-0">{content}</div>;
+    return <div className="shrink-0">{inner}</div>;
 }
 
-function SponsorMarquee({ sponsors }: { sponsors: Sponsor[] }) {
-    const trackRef = useRef<HTMLDivElement>(null);
-    const x = useMotionValue(0);
-    const [paused, setPaused] = useState(false);
-    const [distance, setDistance] = useState(0);
+// Target scroll speed in pixels per second. Duration is derived from measured group width.
+const PX_PER_SEC = 80;
 
-    const sortedSponsors = useMemo(
-        () =>
-            [...sponsors].sort(
-                (a, b) =>
-                    (tierPriority[a.tier] ?? 99) - (tierPriority[b.tier] ?? 99) ||
-                    a.name.localeCompare(b.name)
-            ),
-        [sponsors]
-    );
+/* ── CSS-animated marquee strip ── */
+function Marquee({
+    items,
+    direction = "left",
+    gap = 24,
+}: {
+    items: Sponsor[];
+    direction?: "left" | "right";
+    gap?: number;
+}) {
+    const groupRef = useRef<HTMLDivElement>(null);
+    const [offset, setOffset] = useState<number | null>(null);
 
-    const marqueeSponsors = useMemo(
-        () => [...sortedSponsors, ...sortedSponsors],
-        [sortedSponsors]
-    );
+    useLayoutEffect(() => {
+        if (groupRef.current) {
+            // offset = group width + the gap between the two groups, so the
+            // seamless clone starts exactly where the first group ends.
+            setOffset(groupRef.current.offsetWidth + gap);
+        }
+    }, [gap]);
 
-    useEffect(() => {
-        const updateDistance = () => {
-            if (!trackRef.current) return;
-            setDistance(trackRef.current.scrollWidth / 2);
-        };
+    if (items.length === 0) return null;
 
-        updateDistance();
-        window.addEventListener("resize", updateDistance);
-        return () => window.removeEventListener("resize", updateDistance);
-    }, [marqueeSponsors.length]);
-
-    useAnimationFrame((_, delta) => {
-        if (paused || distance === 0) return;
-        const next = x.get() - delta * 0.055;
-        x.set(next <= -distance ? next + distance : next);
-    });
-
-    if (sortedSponsors.length === 0) {
-        return (
-            <div className="glass-strong rounded-lg border-[var(--ghost-border)] px-6 py-10 text-center text-sm text-slate-300">
-                Sponsor logos will appear here once faculty or the club president adds them.
-            </div>
-        );
-    }
+    const animName = direction === "left" ? "marqueeL" : "marqueeR";
+    // Minimum 8 s so a single small logo doesn't whip by too fast.
+    const duration = offset != null ? Math.max(8, offset / PX_PER_SEC) : null;
 
     return (
-        <div
-            className="glass-strong relative overflow-hidden rounded-lg border-[var(--ghost-border)] py-6 shadow-[0_20px_54px_rgba(0,0,0,0.35)]"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-        >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,rgba(0,229,255,0.08),rgba(76,201,240,0.05),rgba(31,232,216,0.06))] animate-[aurora-shift_10s_linear_infinite]" />
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#050B14] to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#050B14] to-transparent" />
-            <motion.div ref={trackRef} className="flex w-max items-center gap-5 px-5" style={{ x }}>
-                {marqueeSponsors.map((sponsor, index) => (
-                    <SponsorTile key={`${sponsor.id}-${index}`} sponsor={sponsor} />
-                ))}
-            </motion.div>
+        <div className="relative overflow-hidden marquee-host">
+            {/* Edge fade masks */}
+            <div
+                className="absolute inset-y-0 left-0 w-24 z-10 pointer-events-none"
+                style={{ background: "linear-gradient(90deg, #07090f 0%, rgba(7,9,15,0) 100%)" }}
+            />
+            <div
+                className="absolute inset-y-0 right-0 w-24 z-10 pointer-events-none"
+                style={{ background: "linear-gradient(270deg, #07090f 0%, rgba(7,9,15,0) 100%)" }}
+            />
+
+            {/* Two identical groups — translate by exactly one group width for a seamless loop */}
+            <div
+                className="marquee-track flex items-center"
+                style={{
+                    gap,
+                    animation: duration != null ? `${animName} ${duration}s linear infinite` : undefined,
+                    "--marquee-offset": offset != null ? `-${offset}px` : "-50%",
+                } as React.CSSProperties}
+            >
+                <div ref={groupRef} className="flex items-center shrink-0" style={{ gap }}>
+                    {items.map((s, i) => <SponsorTile key={`a-${i}`} sponsor={s} />)}
+                </div>
+                <div className="flex items-center shrink-0" style={{ gap }}>
+                    {items.map((s, i) => <SponsorTile key={`b-${i}`} sponsor={s} />)}
+                </div>
+            </div>
         </div>
     );
 }
 
+/* ── Full sponsors section ── */
 export default function SponsorshipShowcase({ sponsors }: SponsorshipShowcaseProps) {
+    const platinum = sponsors.filter((s) => s.tier === "Platinum");
+    const gold = sponsors.filter((s) => s.tier === "Gold");
+    const silver = sponsors.filter((s) => s.tier === "Silver");
+
+    // Strip 1 (left): Platinum + Gold; Strip 2 (right): Silver
+    const strip1 = [...platinum, ...gold];
+    const strip2 = silver;
+
+    const isEmpty = sponsors.length === 0;
+
     return (
-        <section className="relative -mt-8 overflow-hidden pb-28 pt-20 sm:pt-24">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,242,255,0.09),_transparent_40%),radial-gradient(circle_at_80%_22%,_rgba(212,175,55,0.07),_transparent_30%)]" />
-            <div className="absolute left-1/2 top-28 h-72 w-72 -translate-x-1/2 rounded-full bg-[#00F2FF]/8 blur-[110px]" />
-            <div className="absolute bottom-0 right-16 h-56 w-56 rounded-full bg-[#D4AF37]/7 blur-[120px]" />
+        <section
+            className="relative bg-[#07090f]"
+            style={{
+                borderTop: "1px solid rgba(0,229,255,0.08)",
+                borderBottom: "1px solid rgba(0,229,255,0.08)",
+            }}
+        >
+            {/* Header */}
+            <div className="max-w-[1480px] mx-auto px-6 lg:px-10 pt-12 pb-3">
+                <div className="flex items-end justify-between flex-wrap gap-4">
+                    {/* Left: kicker + headline + subtitle */}
+                    <div>
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-60px" }}
+                            transition={{ duration: 0.55 }}
+                            className="flex items-center gap-2 mb-3"
+                        >
+                            <span
+                                className="h-px w-8"
+                                style={{ background: "rgba(0,229,255,0.6)" }}
+                            />
+                            <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
+                                // supported by
+                            </span>
+                        </motion.div>
 
-            <div className="relative z-10 mx-auto flex max-w-7xl flex-col gap-12 px-6">
-                <div className="max-w-3xl">
-                    <motion.div
-                        initial={{ opacity: 0, y: 24 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "-80px" }}
-                        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-                        className="inline-flex items-center gap-2 rounded-full border border-cyan-300/24 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-100 shadow-[0_0_24px_rgba(0,242,255,0.1)]"
-                    >
-                        Sponsors & Impact
-                    </motion.div>
-                    <motion.h2
-                        initial={{ opacity: 0, y: 24 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "-80px" }}
-                        transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-                        className="mt-5 text-4xl font-black tracking-[-0.035em] text-white sm:text-5xl"
-                    >
-                        Backed by the institutions that power our
-                        <span className="bg-gradient-to-r from-[#00F2FF] via-white to-[#D4AF37] bg-clip-text text-transparent">
-                            {" "}cyber-forge
-                        </span>
-                    </motion.h2>
-                    <motion.p
-                        initial={{ opacity: 0, y: 24 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "-80px" }}
-                        transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-                        className="mt-4 max-w-2xl text-base leading-8 text-slate-300/92"
-                    >
-                        A live wall of sponsors that signals trust, support, and real-world backing behind VajraX.
-                        Premium partners are elevated with subtle gold accents to preserve hierarchy without visual noise.
-                    </motion.p>
+                        <motion.h2
+                            initial={{ opacity: 0, y: 16 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-60px" }}
+                            transition={{ duration: 0.6, delay: 0.05 }}
+                            className="font-extrabold tracking-tight leading-none text-[#f0f4ff]"
+                            style={{ fontSize: "clamp(24px, 2.4vw, 34px)" }}
+                        >
+                            The hands holding the workshop up.
+                        </motion.h2>
+
+                        <motion.p
+                            initial={{ opacity: 0, y: 16 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-60px" }}
+                            transition={{ duration: 0.6, delay: 0.1 }}
+                            className="mt-3 max-w-[60ch] leading-relaxed"
+                            style={{ fontSize: 13.5, color: "#8b9ab0" }}
+                        >
+                            Hardware, materials, time, and tooling — from companies who think a
+                            student team with an arbor press deserves real backing.
+                        </motion.p>
+                    </div>
+
+                    {/* Right: tier legend */}
+                    {!isEmpty && (
+                        <div className="flex items-center gap-4">
+                            {platinum.length > 0 && (
+                                <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#8b9ab0]">
+                                    <span
+                                        className="w-2 h-2 rounded-full"
+                                        style={{
+                                            background: "#00e5ff",
+                                            boxShadow: "0 0 6px #00e5ff",
+                                        }}
+                                    />
+                                    PLATINUM · {String(platinum.length).padStart(2, "0")}
+                                </div>
+                            )}
+                            {gold.length > 0 && (
+                                <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#8b9ab0]">
+                                    <span
+                                        className="w-2 h-2 rounded-full"
+                                        style={{
+                                            background: "#f59e0b",
+                                            boxShadow: "0 0 6px #f59e0b",
+                                        }}
+                                    />
+                                    GOLD · {String(gold.length).padStart(2, "0")}
+                                </div>
+                            )}
+                            {silver.length > 0 && (
+                                <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#8b9ab0]">
+                                    <span
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ background: "#8b9ab0" }}
+                                    />
+                                    SILVER · {String(silver.length).padStart(2, "0")}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
+            </div>
 
-                <SponsorMarquee sponsors={sponsors} />
+            {/* Marquee strips */}
+            {isEmpty ? (
+                <div className="max-w-[1480px] mx-auto px-6 lg:px-10 py-10">
+                    <div
+                        className="flex items-center justify-center py-10 rounded-sm font-mono text-[11px] uppercase tracking-[0.18em]"
+                        style={{
+                            border: "1px dashed rgba(0,229,255,0.12)",
+                            color: "#4a5568",
+                        }}
+                    >
+                        Sponsor logos will appear here once added by faculty or the president.
+                    </div>
+                </div>
+            ) : (
+                <div className="pt-8 pb-4 space-y-5">
+                    {strip1.length > 0 && (
+                        <Marquee items={strip1} direction="left" />
+                    )}
+                    {strip2.length > 0 && (
+                        <Marquee items={strip2} direction="right" />
+                    )}
+                    {strip1.length === 0 && strip2.length === 0 && (
+                        <Marquee items={sponsors} direction="left" />
+                    )}
+                </div>
+            )}
+
+            {/* Bottom CTA */}
+            <div
+                className="max-w-[1480px] mx-auto px-6 lg:px-10 py-10 flex items-center justify-between"
+                style={{ borderTop: "1px solid rgba(0,229,255,0.08)" }}
+            >
+                <span
+                    className="font-mono text-[10.5px] uppercase tracking-[0.18em]"
+                    style={{ color: "#4a5568" }}
+                >
+                    // sponsorship inquiries
+                </span>
+                <a
+                    href="mailto:vajrax@newton.edu.in"
+                    className="btn-secondary inline-flex items-center gap-2 !text-xs"
+                >
+                    Become a sponsor
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M2 7h10M7 2l5 5-5 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </svg>
+                </a>
             </div>
         </section>
     );

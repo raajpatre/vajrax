@@ -1,23 +1,13 @@
 "use client";
 
-import { KeyboardEvent, useState } from "react";
-import { motion } from "framer-motion";
-import { Tables } from "@/types/database";
+import { useMemo, useState, useId } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
-    Calendar,
-    MapPin,
-    Clock,
-    ExternalLink,
-    Trophy,
-    Wrench,
-    Users,
-    Sparkles,
-    Zap,
-    Plus,
-    Trash2,
-    Loader2,
-    Pencil
+  Code2, Wrench, Users, Trophy, CalendarRange,
+  Calendar, Clock, MapPin, ExternalLink, Lock,
+  Pencil, Trash2, Plus, ArrowRight, ChevronRight, RefreshCcw,
 } from "lucide-react";
+import { Tables } from "@/types/database";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -25,389 +15,513 @@ import EventModal from "./EventModal";
 
 type Event = Tables<"events">;
 
-const eventTypeConfig: Record<
-    string,
-    { icon: typeof Trophy; color: string; bg: string; border: string }
-> = {
-    hackathon: {
-        icon: Trophy,
-        color: "text-amber-400",
-        bg: "bg-amber-400/10",
-        border: "border-amber-400/20",
-    },
-    workshop: {
-        icon: Wrench,
-        color: "text-cyan-400",
-        bg: "bg-cyan-400/10",
-        border: "border-cyan-400/20",
-    },
-    meetup: {
-        icon: Users,
-        color: "text-emerald-400",
-        bg: "bg-emerald-400/10",
-        border: "border-emerald-400/20",
-    },
-    competition: {
-        icon: Sparkles,
-        color: "text-cyan-300",
-        bg: "bg-cyan-300/10",
-        border: "border-cyan-300/20",
-    },
-    other: {
-        icon: Zap,
-        color: "text-sky-400",
-        bg: "bg-sky-400/10",
-        border: "border-sky-400/20",
-    },
+// ─── Event type config ────────────────────────────────────────────────────────
+
+const EVENT_TYPES: Record<string, { Icon: LucideIcon; label: string; fg: string; bg: string; bd: string }> = {
+  hackathon:   { Icon: Code2,         label: "HACKATHON",   fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",  bd: "rgba(245,158,11,0.45)"  },
+  workshop:    { Icon: Wrench,        label: "WORKSHOP",    fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",   bd: "rgba(0,229,255,0.45)"   },
+  meetup:      { Icon: Users,         label: "MEETUP",      fg: "#22c55e", bg: "rgba(34,197,94,0.10)",   bd: "rgba(34,197,94,0.45)"   },
+  competition: { Icon: Trophy,        label: "COMPETITION", fg: "#5eead4", bg: "rgba(94,234,212,0.10)",  bd: "rgba(94,234,212,0.45)"  },
+  other:       { Icon: CalendarRange, label: "EVENT",       fg: "#38bdf8", bg: "rgba(56,189,248,0.10)",  bd: "rgba(56,189,248,0.45)"  },
 };
 
-function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
+function tc(type: string) { return EVENT_TYPES[type] ?? EVENT_TYPES.other; }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function eventHue(id: string, type: string): number {
+  const base: Record<string, number> = { hackathon: 28, workshop: 192, meetup: 140, competition: 168, other: 210 };
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
+  return (base[type] ?? 200) + (h % 30) - 15;
 }
 
-function formatTime(dateStr: string) {
-    return new Date(dateStr).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
 }
 
-const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-    }),
-};
+function fmtTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
 
-export default function EventsClient({ events }: { events: Event[] }) {
-    const { isFaculty, isModerator, isAuthenticated } = useUser();
-    const router = useRouter();
-    const supabase = createClient();
-    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
-    const [failedImageIds, setFailedImageIds] = useState<string[]>([]);
-    const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+// ─── EventCover SVG ───────────────────────────────────────────────────────────
 
-    const now = new Date();
-    const upcoming = events.filter((e) => new Date(e.starts_at) >= now);
-    const past = events.filter((e) => new Date(e.starts_at) < now);
+function EventCover({ hue = 190, type = "workshop", kicker = "// EVENT", title = "" }: {
+  hue?: number; type?: string; kicker?: string; title?: string;
+}) {
+  const uid  = useId().replace(/:/g, "");
+  const c1   = `hsl(${hue} 65% 14%)`;
+  const c2   = `hsl(${(hue + 30) % 360} 75% 8%)`;
+  const tint = `hsl(${hue} 90% 60%)`;
+  const t    = tc(type);
+  return (
+    <svg viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice" className="w-full h-full block">
+      <defs>
+        <linearGradient id={`ec-g-${uid}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor={c1} />
+          <stop offset="100%" stopColor={c2} />
+        </linearGradient>
+        <pattern id={`ec-s-${uid}`} width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+          <line x1="0" y1="0" x2="0" y2="14" stroke={tint} strokeWidth="1.1" opacity="0.10" />
+        </pattern>
+        <radialGradient id={`ec-r-${uid}`} cx="0.3" cy="0.25" r="0.75">
+          <stop offset="0%"   stopColor={tint} stopOpacity="0.32" />
+          <stop offset="100%" stopColor={tint} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="400" height="260" fill={`url(#ec-g-${uid})`} />
+      <rect width="400" height="260" fill={`url(#ec-s-${uid})`} />
+      <rect width="400" height="260" fill={`url(#ec-r-${uid})`} />
+      <g stroke={tint} fill="none" strokeWidth="1" opacity="0.30">
+        <path d="M0 60 L80 60 L92 72 L180 72" />
+        <path d="M260 200 L320 200 L332 212 L400 212" />
+        <circle cx="80"  cy="60"  r="2.5" fill={tint} />
+        <circle cx="332" cy="212" r="2.5" fill={tint} />
+      </g>
+      <path d="M0 0 H18 M0 0 V18"            stroke={tint} strokeWidth="1.6" opacity="0.85" />
+      <path d="M400 0 H382 M400 0 V18"        stroke={tint} strokeWidth="1.6" opacity="0.6"  />
+      <path d="M0 260 H18 M0 260 V242"        stroke={tint} strokeWidth="1.6" opacity="0.6"  />
+      <path d="M400 260 H382 M400 260 V242"   stroke={tint} strokeWidth="1.6" opacity="0.85" />
+      <g fontFamily="'JetBrains Mono', monospace">
+        <text x="50%" y="44%" textAnchor="middle" fontSize="10" letterSpacing="3" fill={t.fg} opacity="0.95">
+          {kicker.toUpperCase()}
+        </text>
+        <text x="50%" y="54%" textAnchor="middle" fontSize="11" fill="#f0f4ff" opacity="0.55">
+          {title}
+        </text>
+      </g>
+    </svg>
+  );
+}
 
-    const handleDelete = async (id: string, imageUrl: string | null) => {
-        if (!window.confirm("Are you sure you want to delete this event?")) return;
-        setDeletingId(id);
-        try {
-            if (imageUrl) {
-                const urlParts = imageUrl.split('/event-images/');
-                const filename = urlParts.length > 1 ? urlParts[1] : null;
-                if (filename) {
-                    // Fire and forget storage deletion so it doesn't hang the UI if network is slow
-                    supabase.storage.from("event-images").remove([filename]).catch(e => console.error("Storage cleanup failed:", e));
-                }
-            }
-            
-            const { error } = await supabase.from("events").delete().eq("id", id);
-            if (error) throw error;
-            router.refresh();
-        } catch (error) {
-            console.error("Error deleting event:", error);
-            alert("Failed to delete the event. Ensure the SQL delete policies are applied.");
-        } finally {
-            setDeletingId(null);
-        }
-    };
+// ─── Flip card ────────────────────────────────────────────────────────────────
 
-    const isTouchCardInteraction = () =>
-        typeof window !== "undefined" &&
-        window.matchMedia("(hover: none), (pointer: coarse)").matches;
+function EventFlipCard({
+  event, canEdit, isAuthenticated, onEdit, onDelete,
+}: {
+  event: Event;
+  canEdit: boolean;
+  isAuthenticated: boolean;
+  onEdit: (e: Event) => void;
+  onDelete: (e: Event) => void;
+}) {
+  const [flipped,   setFlipped]   = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
 
-    const toggleCardFlip = (id: string) => {
-        if (!isTouchCardInteraction()) return;
-        setFlippedCardId((current) => (current === id ? null : id));
-    };
+  const t   = tc(event.event_type);
+  const hue = eventHue(event.id, event.event_type);
+  const supabase = useMemo(() => createClient(), []);
 
-    const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>, id: string) => {
-        if (!isTouchCardInteraction()) return;
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        toggleCardFlip(id);
-    };
+  const coverUrl = useMemo((): string | null => {
+    const raw = event.cover_image_url;
+    if (!raw) return null;
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    const norm = raw.replace(/^\/+/, "").replace(/^event-images\//, "");
+    return supabase.storage.from("event-images").getPublicUrl(norm).data.publicUrl;
+  }, [event.cover_image_url, supabase]);
 
-    const getCoverImageUrl = (event: Event) => {
-        if (!event.cover_image_url) return null;
-        if (event.cover_image_url.startsWith("http://") || event.cover_image_url.startsWith("https://")) {
-            return event.cover_image_url;
-        }
+  const showImg  = !!coverUrl && !imgFailed;
+  const startFmt = fmtDate(event.starts_at);
+  const endFmt   = fmtDate(event.ends_at);
+  const kicker   = `// ${t.label}`;
 
-        const normalizedPath = event.cover_image_url
-            .replace(/^\/+/, "")
-            .replace(/^event-images\//, "");
+  const regState: "open" | "soon" | "exclusive" =
+    event.is_exclusive && !isAuthenticated ? "exclusive"
+    : event.registration_url               ? "open"
+    :                                        "soon";
 
-        return supabase.storage.from("event-images").getPublicUrl(normalizedPath).data.publicUrl;
-    };
-
-    const renderDeleteButton = (
-        eventId: string,
-        imageUrl: string | null,
-        className?: string
-    ) => (
-        <button
-            onClick={(clickEvent) => {
-                clickEvent.stopPropagation();
-                handleDelete(eventId, imageUrl);
-            }}
-            disabled={deletingId === eventId}
-            className={`event-poster-card__delete ${className ?? ""}`}
-            title="Delete Event"
-            aria-label="Delete event"
+  return (
+    <div
+      className="relative"
+      style={{ perspective: "1000px", maxWidth: 290 }}
+      onMouseEnter={() => setFlipped(true)}
+      onMouseLeave={() => setFlipped(false)}
+    >
+      <div
+        onClick={() => setFlipped((f) => !f)}
+        className="relative w-full cursor-pointer"
+        style={{
+          aspectRatio: "290 / 380",
+          transformStyle: "preserve-3d",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          transition: "transform 600ms cubic-bezier(.5,.05,.2,1)",
+        }}
+      >
+        {/* FRONT */}
+        <div
+          className="absolute inset-0 rounded-md overflow-hidden border"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            borderColor: "rgba(0,229,255,0.18)",
+            background: "#0d1117",
+          } as React.CSSProperties}
         >
-            {deletingId === eventId ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="absolute inset-0">
+            {showImg ? (
+              <img
+                src={coverUrl!}
+                alt={event.title}
+                className="w-full h-full object-cover"
+                onError={() => setImgFailed(true)}
+              />
             ) : (
-                <Trash2 className="h-4 w-4" />
+              <EventCover hue={hue} type={event.event_type} kicker={kicker} title={event.title} />
             )}
-        </button>
-    );
+          </div>
 
-    const renderEditButton = (event: Event, className?: string) => (
-        <button
-            onClick={(clickEvent) => {
-                clickEvent.stopPropagation();
-                setEditingEvent(event);
-                setIsEventModalOpen(true);
-            }}
-            className={`event-poster-card__edit ${className ?? ""}`}
-            title="Edit Event"
-            aria-label="Edit event"
+          {/* type chip */}
+          <span
+            className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em]"
+            style={{ color: t.fg, background: "rgba(7,9,15,0.85)", border: `1px solid ${t.bd}`, backdropFilter: "blur(4px)" }}
+          >
+            <t.Icon size={10} />
+            {t.label}
+          </span>
+
+          {/* corner ticks */}
+          <span className="absolute top-0 left-0    w-2.5 h-2.5 border-t border-l z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+          <span className="absolute top-0 right-0   w-2.5 h-2.5 border-t border-r z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+          <span className="absolute bottom-0 left-0  w-2.5 h-2.5 border-b border-l z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+
+          {/* gradient + title overlay */}
+          <div
+            className="absolute inset-x-0 bottom-0 px-4 pt-12 pb-4 z-10"
+            style={{ background: "linear-gradient(to top, rgba(7,9,15,0.95) 0%, rgba(7,9,15,0.7) 50%, rgba(7,9,15,0) 100%)" }}
+          >
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] leading-none mb-1.5">{startFmt}</div>
+            <div className="font-sans font-bold text-[#f0f4ff] text-[16px] tracking-tight leading-snug line-clamp-2">{event.title}</div>
+            <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#00e5ff]">
+              <span>HOVER OR TAP</span>
+              <RefreshCcw size={10} />
+              <span className="flex-1" />
+              <span className="text-[#4a5568]">FRONT 01/02</span>
+            </div>
+          </div>
+        </div>
+
+        {/* BACK */}
+        <div
+          className="absolute inset-0 rounded-md border overflow-hidden"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            background: "#0d1117",
+            borderColor: "rgba(0,229,255,0.30)",
+            boxShadow: "0 0 0 1px rgba(0,229,255,0.08), 0 12px 28px -14px rgba(0,0,0,0.7)",
+          } as React.CSSProperties}
         >
-            <Pencil className="h-4 w-4" />
-        </button>
-    );
+          <div
+            className="absolute inset-0 pointer-events-none opacity-40"
+            style={{
+              backgroundImage: "linear-gradient(rgba(0,229,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.04) 1px,transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+          />
 
-    return (
-        <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(0,229,255,0.10),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(0,218,243,0.08),transparent_32%)]" />
+          {canEdit && (
+            <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+              <button
+                onClick={(ev) => { ev.stopPropagation(); onEdit(event); }}
+                aria-label="edit"
+                className="grid place-items-center w-7 h-7 rounded-sm border bg-[#07090f]/80 text-[#00e5ff] hover:bg-[#00e5ff]/15 transition-colors"
+                style={{ borderColor: "rgba(0,229,255,0.55)" }}
+              >
+                <Pencil size={12} />
+              </button>
+              <button
+                onClick={(ev) => { ev.stopPropagation(); onDelete(event); }}
+                aria-label="delete"
+                className="grid place-items-center w-7 h-7 rounded-sm border bg-[#07090f]/80 text-[#ef4444] hover:bg-[#ef4444]/15 transition-colors"
+                style={{ borderColor: "rgba(239,68,68,0.55)" }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          )}
 
-            <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
-                <div className="mb-12 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-                    <div>
-                        <h1 className="section-title mb-3 text-2xl sm:text-3xl">Events</h1>
-                        <p className="max-w-lg text-text-secondary">
-                            Hackathons, workshops, and meetups that keep VajraX moving forward.
-                        </p>
-                    </div>
-                    {(isFaculty || isModerator) && (
-                        <button
-                            onClick={() => setIsEventModalOpen(true)}
-                            className="btn-primary w-fit"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Event
-                        </button>
-                    )}
+          <div className="relative h-full flex flex-col p-4">
+            <span
+              className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] self-start"
+              style={{ color: t.fg, background: t.bg, border: `1px solid ${t.bd}` }}
+            >
+              <t.Icon size={11} />
+              {t.label}
+            </span>
+
+            <h3 className="font-sans font-bold text-[#f0f4ff] text-[16.5px] tracking-tight leading-snug mt-3 line-clamp-2">
+              {event.title}
+            </h3>
+
+            <p className="text-[#8b9ab0] text-[12.5px] mt-2 leading-relaxed line-clamp-3">
+              {event.description}
+            </p>
+
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center gap-2 font-mono text-[11px] text-[#8b9ab0] tracking-[0.06em]">
+                <Calendar size={12} className="text-[#00e5ff]/80 shrink-0" />
+                <span className="tabular-nums">
+                  {startFmt}{endFmt && endFmt !== startFmt ? ` → ${endFmt}` : ""}
+                </span>
+              </div>
+              {event.starts_at && (
+                <div className="flex items-center gap-2 font-mono text-[11px] text-[#8b9ab0] tracking-[0.06em]">
+                  <Clock size={12} className="text-[#00e5ff]/80 shrink-0" />
+                  <span className="tabular-nums">
+                    {fmtTime(event.starts_at)}{event.ends_at ? ` – ${fmtTime(event.ends_at)}` : ""}
+                  </span>
                 </div>
-
-                {events.length === 0 ? (
-                    <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
-                        <Calendar className="mx-auto mb-4 h-12 w-12 text-text-muted" />
-                        <h3 className="mb-2 text-lg font-semibold">No events yet</h3>
-                        <p className="text-text-muted text-sm">
-                            Upcoming hackathons and workshops will be listed here.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-12">
-                        {/* Upcoming Events */}
-                        {upcoming.length > 0 && (
-                            <div>
-                                <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold">
-                                    <div className="h-2 w-2 animate-pulse rounded-sm bg-cyan-300" />
-                                    Upcoming
-                                </h2>
-                                <div className="grid grid-cols-1 justify-items-center gap-6 md:grid-cols-2 xl:grid-cols-3">
-                                    {upcoming.map((event, i) => {
-                                        const config =
-                                            eventTypeConfig[event.event_type] ?? eventTypeConfig.other;
-                                        const Icon = config.icon;
-                                        return (
-                                            <motion.div
-                                                key={event.id}
-                                                custom={i}
-                                                initial="hidden"
-                                                animate="visible"
-                                                variants={fadeUp}
-                                                className="group relative w-full max-w-[290px]"
-                                            >
-                                                <article
-                                                    className={`event-poster-card ${flippedCardId === event.id ? "is-flipped" : ""}`}
-                                                    onClick={(clickEvent) => {
-                                                        const target = clickEvent.target as HTMLElement;
-                                                        if (target.closest("a, button")) return;
-                                                        toggleCardFlip(event.id);
-                                                    }}
-                                                    onKeyDown={(keyEvent) => handleCardKeyDown(keyEvent, event.id)}
-                                                    tabIndex={0}
-                                                    aria-label={`${event.title} event card`}
-                                                >
-                                                    <div className="event-poster-card__inner">
-                                                        <div className="event-poster-card__face event-poster-card__face--front">
-                                                            {event.cover_image_url && !failedImageIds.includes(event.id) ? (
-                                                                <img
-                                                                    src={getCoverImageUrl(event) ?? undefined}
-                                                                    alt={event.title}
-                                                                    className="event-poster-card__image"
-                                                                    onError={() =>
-                                                                        setFailedImageIds((current) =>
-                                                                            current.includes(event.id) ? current : [...current, event.id]
-                                                                        )
-                                                                    }
-                                                                />
-                                                            ) : (
-                                                                <div className="event-poster-card__image event-poster-card__image--fallback">
-                                                                    <span>{event.title}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="event-poster-card__face event-poster-card__face--back">
-                                                            {(isFaculty || isModerator) && (
-                                                                <>
-                                                                    {renderEditButton(event)}
-                                                                    {renderDeleteButton(
-                                                                        event.id,
-                                                                        event.cover_image_url,
-                                                                        "event-poster-card__delete--stacked"
-                                                                    )}
-                                                                </>
-                                                            )}
-                                                            <div className="event-poster-card__glow" />
-                                                            <div className="event-poster-card__content">
-                                                                <div className="flex items-start justify-between gap-3">
-                                                                    <span
-                                                                        className={`event-poster-card__badge ${config.bg} ${config.color} border ${config.border}`}
-                                                                    >
-                                                                        <Icon className="h-3.5 w-3.5" />
-                                                                        {event.event_type}
-                                                                    </span>
-                                                                </div>
-
-                                                                <div className="space-y-3">
-                                                                    <h3 className="text-lg font-semibold leading-tight text-text">
-                                                                        {event.title}
-                                                                    </h3>
-                                                                    <p className="line-clamp-3 text-sm leading-6 text-text-secondary">
-                                                                        {event.description}
-                                                                    </p>
-                                                                </div>
-
-                                                                <div className="space-y-3 text-sm">
-                                                                    <div className="event-poster-card__meta event-poster-card__meta--accent">
-                                                                        <Calendar className="h-4 w-4" />
-                                                                        <span>{formatDate(event.starts_at)}</span>
-                                                                    </div>
-                                                                    <div className="event-poster-card__meta event-poster-card__meta--accent">
-                                                                        <Clock className="h-4 w-4" />
-                                                                        <span>{formatTime(event.starts_at)}</span>
-                                                                    </div>
-                                                                    {event.location && (
-                                                                        <div className="event-poster-card__meta text-text-secondary">
-                                                                            <MapPin className="h-4 w-4 text-text-muted" />
-                                                                            <span>{event.location}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-
-                                                                <div className="mt-auto pt-2">
-                                                                    {event.registration_url ? (
-                                                                        event.is_exclusive && !isAuthenticated ? (
-                                                                            <div className="border border-amber-400/20 bg-amber-400/8 px-3 py-3 text-xs font-medium text-amber-300">
-                                                                                Club exclusive event. Login to register.
-                                                                            </div>
-                                                                        ) : (
-                                                                            <a
-                                                                                href={event.registration_url}
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                className="btn-primary inline-flex w-full justify-center text-xs !px-4 !py-2.5"
-                                                                            >
-                                                                                Register
-                                                                                <ExternalLink className="ml-1 h-3 w-3" />
-                                                                            </a>
-                                                                        )
-                                                                    ) : (
-                                                                        <div className="border border-[rgba(140,188,255,0.16)] bg-[rgba(255,255,255,0.03)] px-3 py-3 text-center text-xs text-text-muted">
-                                                                            Registration details coming soon
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </article>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Past Events */}
-                        {past.length > 0 && (
-                            <div>
-                                <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 text-text-muted">
-                                    <div className="h-2 w-2 rounded-sm bg-text-muted" />
-                                    Past Events
-                                </h2>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    {past.map((event, i) => {
-                                        const config =
-                                            eventTypeConfig[event.event_type] ?? eventTypeConfig.other;
-                                        const Icon = config.icon;
-                                        return (
-                                            <motion.div
-                                                key={event.id}
-                                                custom={i}
-                                                initial="hidden"
-                                                whileInView="visible"
-                                                viewport={{ once: true }}
-                                                variants={fadeUp}
-                                                className="glass energy-card rounded-lg p-4 md:p-5 opacity-75 transition-all duration-500 hover:border-cyan-300/20 hover:opacity-100"
-                                            >
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <Icon className={`w-4 h-4 ${config.color}`} />
-                                                    <h3 className="text-sm font-semibold line-clamp-1">
-                                                        {event.title}
-                                                    </h3>
-                                                </div>
-                                                <p className="text-xs text-text-muted">
-                                                    {formatDate(event.starts_at)}
-                                                </p>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
+              )}
+              {event.location && (
+                <div className="flex items-center gap-2 font-mono text-[11px] text-[#8b9ab0] tracking-[0.06em]">
+                  <MapPin size={12} className="text-[#00e5ff]/80 shrink-0" />
+                  <span className="truncate">{event.location}</span>
+                </div>
+              )}
             </div>
 
-            <EventModal
-                isOpen={isEventModalOpen}
-                onClose={() => {
-                    setIsEventModalOpen(false);
-                    setEditingEvent(null);
-                }}
-                onSuccess={() => router.refresh()}
-                event={editingEvent}
-            />
+            <div className="flex-1" />
+
+            <div className="mt-3" onClick={(ev) => ev.stopPropagation()}>
+              {regState === "open" && (
+                <a
+                  href={event.registration_url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
+                >
+                  Register <ExternalLink size={11} />
+                </a>
+              )}
+              {regState === "soon" && (
+                <div className="h-9 px-3 grid place-items-center rounded-sm border border-[rgba(0,229,255,0.12)] bg-[#07090f]/60 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#8b9ab0]">
+                  Registration coming soon
+                </div>
+              )}
+              {regState === "exclusive" && (
+                <div
+                  className="h-9 px-3 flex items-center gap-2 rounded-sm border bg-[#f59e0b]/[0.06]"
+                  style={{ borderColor: "rgba(245,158,11,0.50)" }}
+                >
+                  <Lock size={11} className="text-[#f59e0b] shrink-0" />
+                  <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#f59e0b] flex-1 truncate">
+                    Club exclusive — log in
+                  </span>
+                  <ArrowRight size={11} className="text-[#f59e0b]" />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-[rgba(0,229,255,0.12)] flex items-center justify-between font-mono text-[9.5px] uppercase tracking-[0.18em] text-[#4a5568]">
+              <span>HOVER · TAP TO FLIP</span>
+              <span>BACK 02/02</span>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
+}
+
+// ─── Past event row ───────────────────────────────────────────────────────────
+
+function PastEventRow({ event }: { event: Event }) {
+  const t = tc(event.event_type);
+  return (
+    <button
+      className="group w-full flex items-center gap-3 h-14 px-3 rounded-sm border border-[rgba(0,229,255,0.12)] bg-[#0d1117]/60 transition-all"
+      style={{ opacity: 0.75 }}
+      onMouseEnter={(ev) => { ev.currentTarget.style.opacity = "1"; ev.currentTarget.style.borderColor = "rgba(0,229,255,0.45)"; }}
+      onMouseLeave={(ev) => { ev.currentTarget.style.opacity = "0.75"; ev.currentTarget.style.borderColor = "rgba(0,229,255,0.12)"; }}
+    >
+      <span
+        className="grid place-items-center w-9 h-9 rounded-sm shrink-0"
+        style={{ color: t.fg, background: t.bg, border: `1px solid ${t.bd}` }}
+      >
+        <t.Icon size={14} />
+      </span>
+      <div className="min-w-0 flex-1 text-left">
+        <div className="font-sans font-semibold text-[#f0f4ff] text-[13.5px] tracking-tight truncate">{event.title}</div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#4a5568] mt-0.5">{t.label}</div>
+      </div>
+      <div className="font-mono text-[11px] text-[#8b9ab0] tabular-nums tracking-[0.06em] shrink-0">{fmtDate(event.starts_at)}</div>
+      <ChevronRight size={13} className="text-[#4a5568] group-hover:text-[#00e5ff] transition-colors" />
+    </button>
+  );
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+function EventsEmpty({ canEdit, onAdd }: { canEdit: boolean; onAdd: () => void }) {
+  return (
+    <div className="relative border border-dashed border-[rgba(0,229,255,0.18)] rounded-md bg-[#0d1117]/40 overflow-hidden">
+      <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#00e5ff]/60" />
+      <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#00e5ff]/60" />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,229,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.04) 1px,transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      />
+      <div className="relative text-center py-16 px-6">
+        <div className="mx-auto w-14 h-14 grid place-items-center border border-[rgba(0,229,255,0.18)] rounded-md text-[#4a5568] mb-4 bg-[#07090f]">
+          <CalendarRange size={22} />
+        </div>
+        <h3 className="text-[#f0f4ff] font-bold text-[18px] tracking-tight">No events yet</h3>
+        <p className="text-[#8b9ab0] text-[13px] mt-1.5 max-w-[42ch] mx-auto leading-relaxed">
+          {canEdit ? "Drop in the first event to wake it up." : "Check back after the sprint review."}
+        </p>
+        {canEdit && (
+          <div className="mt-5">
+            <button
+              onClick={onAdd}
+              className="inline-flex items-center gap-2 h-9 px-5 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
+            >
+              <Plus size={13} />
+              Add event
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+export default function EventsClient({ events }: { events: Event[] }) {
+  const { isFaculty, isModerator, isAuthenticated } = useUser();
+  const router = useRouter();
+  const canEdit = isFaculty || isModerator;
+
+  const [isModalOpen,   setIsModalOpen]   = useState(false);
+  const [editingEvent,  setEditingEvent]  = useState<Event | null>(null);
+  const [deletingId,    setDeletingId]    = useState<string | null>(null);
+
+  const now      = new Date();
+  const upcoming = events.filter((e) => new Date(e.starts_at) >= now);
+  const past     = events.filter((e) => new Date(e.starts_at) <  now);
+
+  const openNew  = () => { setEditingEvent(null); setIsModalOpen(true); };
+  const openEdit = (e: Event) => { setEditingEvent(e); setIsModalOpen(true); };
+
+  const handleDelete = async (event: Event) => {
+    if (deletingId) return;
+    if (!window.confirm("Delete this event?")) return;
+    setDeletingId(event.id);
+    const supabase = createClient();
+    try {
+      if (event.cover_image_url) {
+        const parts    = event.cover_image_url.split("/event-images/");
+        const filename = parts.length > 1 ? parts[1] : null;
+        if (filename) supabase.storage.from("event-images").remove([filename]).catch(console.error);
+      }
+      const { error } = await supabase.from("events").delete().eq("id", event.id);
+      if (error) throw error;
+      router.refresh();
+    } catch {
+      alert("Failed to delete event. Check SQL delete policies.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)] bg-[#07090f]">
+      <div className="relative z-10 max-w-[1480px] mx-auto w-full px-6 lg:px-12">
+
+        {/* Header */}
+        <div className="flex items-end justify-between gap-6 mb-10 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-px w-8 bg-[#00e5ff]/60" />
+              <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">// VAJRAX / CALENDAR</span>
+            </div>
+            <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[44px] leading-none">Events</h1>
+            <p className="text-[#8b9ab0] text-[14px] mt-3 max-w-[68ch] leading-relaxed">
+              Workshops, scrimmages, hackathons, meetups. Hover any card to flip and see the details. Club-exclusive events require sign-in.
+            </p>
+          </div>
+          {canEdit && (
+            <button
+              onClick={openNew}
+              className="inline-flex items-center gap-2 h-9 px-5 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
+            >
+              <Plus size={13} />
+              Add Event
+            </button>
+          )}
+        </div>
+
+        {/* UPCOMING */}
+        <section className="mb-14">
+          <div className="flex items-center gap-3 mb-5">
+            <span
+              className="w-[9px] h-[9px] rounded-full bg-[#22c55e] animate-pulse"
+              style={{ boxShadow: "0 0 6px #22c55e" }}
+            />
+            <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">UPCOMING</span>
+            <span className="font-mono text-[10.5px] text-[#4a5568] tracking-[0.18em]">
+              {String(upcoming.length).padStart(2, "0")} ON THE CALENDAR
+            </span>
+          </div>
+
+          {upcoming.length === 0 ? (
+            <EventsEmpty canEdit={canEdit} onAdd={openNew} />
+          ) : (
+            <div
+              className="grid gap-5"
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 290px))" }}
+            >
+              {upcoming.map((event) => (
+                <EventFlipCard
+                  key={event.id}
+                  event={event}
+                  canEdit={canEdit}
+                  isAuthenticated={isAuthenticated}
+                  onEdit={openEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* PAST */}
+        {past.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-5">
+              <span className="w-2 h-2 rounded-sm border border-[rgba(0,229,255,0.18)]" />
+              <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#8b9ab0]">PAST EVENTS</span>
+              <span className="font-mono text-[10.5px] text-[#4a5568] tracking-[0.18em]">
+                {String(past.length).padStart(2, "0")} ARCHIVED
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {past.map((event) => (
+                <PastEventRow key={event.id} event={event} />
+              ))}
+            </div>
+          </section>
+        )}
+
+      </div>
+
+      <EventModal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingEvent(null); }}
+        onSuccess={() => router.refresh()}
+        event={editingEvent}
+      />
+    </div>
+  );
 }

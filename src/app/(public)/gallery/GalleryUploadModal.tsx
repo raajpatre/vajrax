@@ -2,12 +2,17 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { X, Loader2, Image as ImageIcon, Calendar, MapPin, Tag, Link2, Upload } from "lucide-react";
+import {
+    X, Loader2, Image as ImageIcon, Calendar, MapPin, Tag,
+    Link2, Upload, PlayCircle, FileText, Play, Check, Globe,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
 import { Tables } from "@/types/database";
 
 type GalleryItem = Tables<"gallery_items">;
+type MediaType = "photo" | "video" | "article";
 
 interface GalleryUploadModalProps {
     isOpen: boolean;
@@ -16,293 +21,402 @@ interface GalleryUploadModalProps {
     editItem?: GalleryItem | null;
 }
 
-function normalizeImageUrl(raw: string) {
-    const value = raw.trim();
-    if (!value) return "";
-
+function extractYouTubeId(url: string): string | null {
     try {
-        const url = new URL(value);
-
-        if (url.hostname === "drive.google.com") {
-            const fileId = url.searchParams.get("id") || url.pathname.match(/\/file\/d\/([^/]+)/)?.[1];
-            if (fileId) {
-                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`;
-            }
-        }
-
-        return url.toString();
+        const u = new URL(url.trim());
+        if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0] || null;
+        if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
+        return null;
     } catch {
-        return "";
+        return null;
     }
 }
 
-export default function GalleryUploadModal({ isOpen, onClose, onSuccess, editItem = null }: GalleryUploadModalProps) {
+function ytThumbnail(videoId: string) {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+}
+
+async function uploadToCloudinary(file: File, folder: string): Promise<string> {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", folder);
+    const res = await fetch("/api/cloudinary/upload", { method: "POST", body: fd });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error ?? "Upload failed.");
+    return json.url as string;
+}
+
+const MEDIA_TYPES: { key: MediaType; label: string; Icon: LucideIcon }[] = [
+    { key: "photo",   label: "Photo",   Icon: ImageIcon  },
+    { key: "video",   label: "Video",   Icon: PlayCircle },
+    { key: "article", label: "Article", Icon: FileText   },
+];
+
+const TAG_OPTIONS = [
+    "Gallery", "Achievement", "Event", "Build-Log", "Workshop",
+    "Award", "Hackathon", "Announcement", "Project", "Outreach",
+];
+
+const TAG_COLORS = [
+    { hex: "#00e5ff", label: "Cyan"   },
+    { hex: "#f59e0b", label: "Amber"  },
+    { hex: "#a78bfa", label: "Purple" },
+    { hex: "#22c55e", label: "Green"  },
+    { hex: "#ef4444", label: "Red"    },
+    { hex: "#38bdf8", label: "Blue"   },
+    { hex: "#f472b6", label: "Pink"   },
+    { hex: "#ffd700", label: "Gold"   },
+];
+
+// Shared input class
+const inputCls =
+    "w-full bg-[rgba(7,9,15,0.6)] border border-edge rounded-sm px-3 py-2.5 text-fg text-[13px] " +
+    "focus:outline-none focus:border-cyan2/60 transition-colors placeholder:text-fg3";
+
+// $ label
+function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
+    return (
+        <div className="flex items-center justify-between mb-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-fg2">
+                <span className="text-fg3 mr-0.5">$</span> {children}
+            </label>
+            {hint && (
+                <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-fg3">{hint}</span>
+            )}
+        </div>
+    );
+}
+
+export default function GalleryUploadModal({
+    isOpen, onClose, onSuccess, editItem = null,
+}: GalleryUploadModalProps) {
     const { user } = useUser();
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
-    const [tag, setTag] = useState("Gallery");
-    const [locationCity, setLocationCity] = useState("Bengaluru");
+
+    const [mediaType,       setMediaType]       = useState<MediaType>("photo");
+    const [title,           setTitle]           = useState("");
+    const [description,     setDescription]     = useState("");
+    const [date,            setDate]            = useState(() => new Date().toISOString().split("T")[0]);
+    const [tag,             setTag]             = useState("Gallery");
+    const [tagColor,        setTagColor]        = useState<string | null>(null);
+    const [locationCity,    setLocationCity]    = useState("Bengaluru");
     const [locationCountry, setLocationCountry] = useState("India");
-    const [imageSource, setImageSource] = useState<"upload" | "url">("upload");
-    const [imageFile, setImageFile] = useState<File | null>(null);
+
+    // Photo-specific
+    const [imageSource,   setImageSource]   = useState<"upload" | "url">("upload");
+    const [imageFile,     setImageFile]     = useState<File | null>(null);
     const [imageUrlInput, setImageUrlInput] = useState("");
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [imagePreview,  setImagePreview]  = useState<string | null>(null);
+
+    // Video-specific
+    const [youtubeUrl, setPlayUrl] = useState("");
+
+    // Article-specific
+    const [articleUrl,    setArticleUrl]    = useState("");
+    const [thumbFile,     setThumbFile]     = useState<File | null>(null);
+    const [thumbPreview,  setThumbPreview]  = useState<string | null>(null);
+    const [thumbUrlInput, setThumbUrlInput] = useState("");
+    const [thumbSource,   setThumbSource]   = useState<"upload" | "url" | "none">("none");
+
+    const [loading,        setLoading]        = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("");
-    const [error, setError] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [error,          setError]          = useState<string | null>(null);
+
+    const fileInputRef  = useRef<HTMLInputElement>(null);
+    const thumbInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (isOpen) {
-            if (editItem) {
-                setTitle(editItem.title || "");
-                setDescription(editItem.description || "");
-                setDate(editItem.created_at ? new Date(editItem.created_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
-                setTag(editItem.tag || "Gallery");
-                setLocationCity(editItem.location_city || "Bengaluru");
-                setLocationCountry(editItem.location_country || "India");
+        if (!isOpen) return;
+        if (editItem) {
+            setTitle(editItem.title || "");
+            setDescription(editItem.description || "");
+            setDate(editItem.created_at
+                ? new Date(editItem.created_at).toISOString().split("T")[0]
+                : new Date().toISOString().split("T")[0]);
+            setTag(editItem.tag || "Gallery");
+            setTagColor(editItem.tag_color ?? null);
+            setLocationCity(editItem.location_city || "Bengaluru");
+            setLocationCountry(editItem.location_country || "India");
+
+            const hasMedia = !!editItem.media_url;
+            const ytId = hasMedia ? extractYouTubeId(editItem.media_url!) : null;
+            if (ytId) {
+                setMediaType("video");
+                setPlayUrl(editItem.media_url!);
+            } else if (hasMedia) {
+                setMediaType("article");
+                setArticleUrl(editItem.media_url!);
+                setThumbSource(editItem.cover_image_url ? "url" : "none");
+                setThumbUrlInput(editItem.cover_image_url ?? "");
+                setThumbPreview(editItem.cover_image_url ?? null);
+            } else {
+                setMediaType("photo");
                 setImageSource("url");
-                setImageFile(null);
                 setImageUrlInput(editItem.cover_image_url || "");
                 setImagePreview(editItem.cover_image_url || null);
-            } else {
-                setTitle("");
-                setDescription("");
-                setDate(new Date().toISOString().split("T")[0]);
-                setTag("Gallery");
-                setLocationCity("Bengaluru");
-                setLocationCountry("India");
-                setImageSource("upload");
-                setImageFile(null);
-                setImageUrlInput("");
-                setImagePreview(null);
             }
-            setError(null);
-            setLoading(false);
-            setLoadingMessage("");
+        } else {
+            setMediaType("photo");
+            setTitle(""); setDescription("");
+            setDate(new Date().toISOString().split("T")[0]);
+            setTag("Gallery"); setTagColor(null); setLocationCity("Bengaluru"); setLocationCountry("India");
+            setImageSource("upload"); setImageFile(null); setImageUrlInput(""); setImagePreview(null);
+            setPlayUrl("");
+            setArticleUrl(""); setThumbFile(null); setThumbPreview(null); setThumbUrlInput(""); setThumbSource("none");
         }
+        setError(null); setLoading(false); setLoadingMessage("");
     }, [isOpen, editItem]);
 
-    const normalizedImageUrl = useMemo(() => normalizeImageUrl(imageUrlInput), [imageUrlInput]);
-    const hasUploadImage = imageSource === "upload" && !!imageFile;
-    const hasEmbedUrl = imageSource === "url" && !!normalizedImageUrl;
+    const ytId = useMemo(() => extractYouTubeId(youtubeUrl), [youtubeUrl]);
+
+    const canSubmit = useMemo(() => {
+        if (!title.trim()) return false;
+        if (mediaType === "photo") return imageSource === "upload" ? !!imageFile : !!imageUrlInput.trim();
+        if (mediaType === "video") return !!ytId;
+        if (mediaType === "article") return !!articleUrl.trim();
+        return false;
+    }, [title, mediaType, imageSource, imageFile, imageUrlInput, ytId, articleUrl]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setImageSource("upload");
         setImageFile(file);
+        setImageSource("upload");
         setImageUrlInput("");
         const reader = new FileReader();
         reader.onloadend = () => setImagePreview(reader.result as string);
         reader.readAsDataURL(file);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleThumbSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setThumbFile(file);
+        setThumbSource("upload");
+        setThumbUrlInput("");
+        const reader = new FileReader();
+        reader.onloadend = () => setThumbPreview(reader.result as string);
+        reader.readAsDataURL(file);
+    };
+
+    const handleSubmit = async (e: { preventDefault(): void }): Promise<void> => {
         e.preventDefault();
         setError(null);
-
-        if (!title.trim() || !date || (!hasUploadImage && !hasEmbedUrl)) {
-            setError("Title, Date, and an image source are required.");
-            return;
-        }
+        if (!canSubmit) { setError("Please fill in all required fields."); return; }
 
         setLoading(true);
-        setLoadingMessage("Preparing Image...");
         const supabase = createClient();
+        const isoDate = new Date(date).toISOString();
 
         try {
-            let imageUrl = normalizedImageUrl;
+            let coverImageUrl: string | null = null;
+            let mediaUrl: string | null = null;
+            let resolvedTag = tag.trim() || "Gallery";
 
-            if (imageSource === "upload" && imageFile) {
-                // Prevent very large files
-                if (imageFile.size > 10 * 1024 * 1024) {
-                    setError("Image size exceeds 10MB limit. Please choose a smaller image.");
-                    setLoading(false);
-                    return;
+            if (mediaType === "photo") {
+                resolvedTag = tag.trim() || "Gallery";
+                setLoadingMessage("Uploading image to Cloudinary…");
+                if (imageSource === "upload" && imageFile) {
+                    if (imageFile.size > 20 * 1024 * 1024) {
+                        setError("Image exceeds 20 MB limit.");
+                        setLoading(false);
+                        return;
+                    }
+                    coverImageUrl = await uploadToCloudinary(imageFile, "vajrax/gallery");
+                } else {
+                    coverImageUrl = imageUrlInput.trim();
                 }
-
-                setLoadingMessage("Uploading image securely to the cloud... (This may take a moment)");
-                const ext = imageFile.name.split(".").pop();
-                const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-
-                const uploadPromise = supabase.storage
-                    .from("gallery-images")
-                    .upload(filename, imageFile, { contentType: imageFile.type });
-
-                const timeoutPromise = new Promise<{ error: any }>((_, reject) =>
-                    setTimeout(() => reject(new Error("Upload timed out after 5 minutes. Please check your network connection.")), 300000)
-                );
-
-                const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
-
-                if (uploadError) throw new Error(uploadError.message || "Failed to upload image");
-
-                const { data: urlData } = supabase.storage
-                    .from("gallery-images")
-                    .getPublicUrl(filename);
-
-                imageUrl = urlData.publicUrl;
+            } else if (mediaType === "video") {
+                resolvedTag = "Video";
+                mediaUrl = youtubeUrl.trim();
+                coverImageUrl = ytThumbnail(ytId!);
+            } else if (mediaType === "article") {
+                resolvedTag = "Article";
+                mediaUrl = articleUrl.trim();
+                if (thumbSource === "upload" && thumbFile) {
+                    setLoadingMessage("Uploading thumbnail to Cloudinary…");
+                    coverImageUrl = await uploadToCloudinary(thumbFile, "vajrax/gallery");
+                } else if (thumbSource === "url" && thumbUrlInput.trim()) {
+                    coverImageUrl = thumbUrlInput.trim();
+                }
             }
 
-            // Use the selected date string to populate created_at
-            const isoDate = new Date(date).toISOString();
+            setLoadingMessage(editItem ? "Saving changes…" : "Saving to gallery…");
 
-            setLoadingMessage(editItem ? "Saving changes..." : "Saving gallery item to database...");
-            
             if (editItem) {
-                // Update metadata
                 const { error: updateError } = await supabase
                     .from("gallery_items")
                     .update({
                         title: title.trim(),
                         description: description.trim() || null,
-                        cover_image_url: imageUrl,
+                        cover_image_url: coverImageUrl,
+                        media_url: mediaUrl,
                         created_at: isoDate,
-                        tag: tag.trim() || "Gallery",
+                        tag: resolvedTag,
+                        tag_color: tagColor,
                         location_city: locationCity.trim() || "Bengaluru",
                         location_country: locationCountry.trim() || "India",
                     })
                     .eq("id", editItem.id);
-
                 if (updateError) throw updateError;
-
-                // If image changed and previous image was an uploaded file in storage, delete it
-                if (imageUrl !== editItem.cover_image_url) {
-                    const urlParts = editItem.cover_image_url.split('/gallery-images/');
-                    const filename = urlParts.length > 1 ? urlParts[1] : null;
-
-                    if (filename) {
-                        supabase.storage.from("gallery-images").remove([filename]).catch(e => console.error(e));
-                    }
-                }
             } else {
-                // Insert metadata
                 const { error: insertError } = await supabase.from("gallery_items").insert({
                     title: title.trim(),
                     description: description.trim() || null,
-                    cover_image_url: imageUrl,
+                    cover_image_url: coverImageUrl,
+                    media_url: mediaUrl,
                     created_at: isoDate,
-                    tag: tag.trim() || "Gallery",
+                    tag: resolvedTag,
+                    tag_color: tagColor,
                     location_city: locationCity.trim() || "Bengaluru",
                     location_country: locationCountry.trim() || "India",
                     created_by: user?.id || null,
                 });
-
                 if (insertError) throw insertError;
             }
 
-            setTitle("");
-            setDescription("");
-            setTag("Gallery");
-            setLocationCity("Bengaluru");
-            setLocationCountry("India");
-            setImageSource("upload");
-            setImageFile(null);
-            setImageUrlInput("");
-            setImagePreview(null);
             onSuccess();
             onClose();
-        } catch (err: any) {
-            console.error("Upload error:", err);
-            setError(err.message || "An error occurred during upload.");
+        } catch (err: unknown) {
+            console.error("Gallery save error:", err);
+            setError(err instanceof Error ? err.message : "An error occurred.");
         } finally {
             setLoading(false);
+            setLoadingMessage("");
         }
     };
+
+    const statusReady = canSubmit && !loading;
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 overflow-y-auto px-3 pb-3 pt-[calc(var(--nav-height)+0.5rem)] sm:px-6 sm:pb-6 sm:pt-[calc(var(--nav-height)+1rem)]">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 py-6">
+                    {/* Backdrop */}
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="absolute inset-0 backdrop-blur-md"
+                        style={{ background: "rgba(7,9,15,0.88)" }}
                         onClick={loading ? undefined : onClose}
                     />
-                    <div className="relative z-10 flex min-h-full items-start justify-center">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-[24px] shadow-2xl sm:rounded-[30px]"
+
+                    {/* Modal */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.97, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.97, y: 10 }}
+                        transition={{ duration: 0.18 }}
+                        className="relative z-10 w-full max-w-xl border border-edgeStrong rounded-md overflow-hidden corner-ticks"
+                        style={{ background: "rgba(7,9,15,0.98)" }}
+                    >
+                        <span className="ct-tr" />
+                        <span className="ct-bl" />
+
+                        {/* ── HEADER ── */}
+                        <div
+                            className="flex items-center justify-between px-5 py-4 border-b border-edge"
                         >
-                            <div className="flex items-start justify-between gap-4 border-b border-white/8 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
+                            <div className="flex items-center gap-3">
+                                <span style={{
+                                    display: "inline-block", width: 8, height: 8, borderRadius: 999, flexShrink: 0,
+                                    background: "#00e5ff", boxShadow: "0 0 0 2px rgba(0,229,255,0.15), 0 0 10px rgba(0,229,255,0.7)",
+                                }} />
                                 <div>
-                                    <h2 className="text-lg font-bold sm:text-xl">
-                                        {editItem ? "Edit Image Details" : "Add to Gallery"}
+                                    <h2 className="font-sans font-bold text-fg text-[15px] tracking-tight leading-tight">
+                                        {editItem
+                                            ? "Edit gallery item"
+                                            : `New gallery ${mediaType}`}
                                     </h2>
-                                    <p className="mt-1 max-w-[16rem] text-xs text-text-muted sm:max-w-none sm:text-sm">
-                                        {editItem 
-                                            ? "Update the details and image of this gallery moment." 
-                                            : "Upload a new moment with its image, tag, date, and location details."}
+                                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-fg3 mt-0.5">
+                                        GALLERY · {editItem ? "EDIT" : "CREATE"}
                                     </p>
                                 </div>
-                                <button
-                                    onClick={onClose}
-                                    disabled={loading}
-                                    className="p-2 rounded-lg text-text-muted hover:text-foreground hover:bg-white/5 transition-colors disabled:opacity-50"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
                             </div>
+                            <button
+                                onClick={onClose}
+                                disabled={loading}
+                                className="grid place-items-center w-8 h-8 border border-edge rounded-sm text-fg2 hover:text-fg hover:border-cyan2/50 transition-colors disabled:opacity-40"
+                            >
+                                <X size={13} />
+                            </button>
+                        </div>
 
-                            <div className="max-h-[calc(100dvh-var(--nav-height)-1.5rem)] overflow-y-auto px-4 py-4 sm:max-h-[calc(100dvh-var(--nav-height)-3.25rem)] sm:px-6 sm:py-6">
-                                <form onSubmit={handleSubmit} className="grid gap-4 sm:gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+                        {/* ── BODY ── */}
+                        <form onSubmit={handleSubmit}>
+                            <div className="overflow-y-auto px-5 py-5 flex flex-col gap-5" style={{ maxHeight: "calc(100vh - 12rem)" }}>
+
+                                {/* Error */}
                                 {error && (
-                                    <div className="rounded-lg bg-red-400/10 border border-red-400/20 p-3 text-sm text-red-400 lg:col-span-2">
-                                        {error}
+                                    <div
+                                        className="font-mono text-[11px] px-3 py-2.5 rounded-sm border"
+                                        style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.3)", color: "#ef4444" }}
+                                    >
+                                        // ERROR: {error}
                                     </div>
                                 )}
-                                {loading && loadingMessage && !error && (
-                                    <div className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/20 p-3 text-sm text-primary-light lg:col-span-2">
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+
+                                {/* Loading message */}
+                                {loading && loadingMessage && (
+                                    <div
+                                        className="flex items-center gap-2 font-mono text-[11px] px-3 py-2.5 rounded-sm border"
+                                        style={{ background: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)", color: "#00e5ff" }}
+                                    >
+                                        <Loader2 size={11} className="animate-spin" />
                                         {loadingMessage}
                                     </div>
                                 )}
 
-                                <div className="rounded-[22px] border border-cyan-200/10 bg-white/[0.03] p-4 sm:rounded-[24px] sm:p-5 lg:sticky lg:top-0">
-                                    <div className="flex flex-col items-center text-center">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            ref={fileInputRef}
-                                            onChange={handleImageSelect}
-                                            className="hidden"
-                                        />
+                                {/* Media type tabs */}
+                                {!editItem && (
+                                    <div className="grid grid-cols-3 border border-edge rounded-sm overflow-hidden">
+                                        {MEDIA_TYPES.map(({ key, label, Icon }, i) => (
+                                            <button
+                                                key={key}
+                                                type="button"
+                                                onClick={() => setMediaType(key)}
+                                                className={[
+                                                    "flex items-center justify-center gap-1.5 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-all",
+                                                    i < 2 ? "border-r border-edge" : "",
+                                                    mediaType === key
+                                                        ? "text-cyan2"
+                                                        : "text-fg3 hover:text-fg2",
+                                                ].join(" ")}
+                                                style={mediaType === key ? {
+                                                    background: "rgba(0,229,255,0.07)",
+                                                    boxShadow: "inset 0 -2px 0 rgba(0,229,255,0.5)",
+                                                } : {}}
+                                            >
+                                                <Icon size={12} />
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
 
-                                        <div className="mb-3 grid w-full grid-cols-2 rounded-2xl border border-white/8 bg-black/10 p-1 sm:mb-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => setImageSource("upload")}
-                                                className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
-                                                    imageSource === "upload"
-                                                        ? "bg-cyan-300/12 text-cyan-100"
-                                                        : "text-text-muted hover:text-foreground"
-                                                }`}
-                                            >
-                                                <Upload className="h-3.5 w-3.5" />
-                                                Upload
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setImageSource("url");
-                                                    setImageFile(null);
-                                                    setImagePreview(normalizedImageUrl || null);
-                                                }}
-                                                className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
-                                                    imageSource === "url"
-                                                        ? "bg-cyan-300/12 text-cyan-100"
-                                                        : "text-text-muted hover:text-foreground"
-                                                }`}
-                                            >
-                                                <Link2 className="h-3.5 w-3.5" />
-                                                Embed URL
-                                            </button>
+                                {/* ── PHOTO ── */}
+                                {mediaType === "photo" && (
+                                    <div>
+                                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageSelect} className="hidden" />
+
+                                        {/* Source toggle */}
+                                        <div className="flex gap-0 border border-edge rounded-sm overflow-hidden mb-3 w-fit">
+                                            {(["upload", "url"] as const).map((src, i) => (
+                                                <button
+                                                    key={src}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setImageSource(src);
+                                                        if (src === "url") { setImageFile(null); setImagePreview(imageUrlInput || null); }
+                                                    }}
+                                                    className={[
+                                                        "flex items-center gap-1.5 px-4 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.14em] transition-all",
+                                                        i === 0 ? "border-r border-edge" : "",
+                                                        imageSource === src ? "text-cyan2 bg-[rgba(0,229,255,0.07)]" : "text-fg3 hover:text-fg2",
+                                                    ].join(" ")}
+                                                >
+                                                    {src === "upload" ? <Upload size={10} /> : <Link2 size={10} />}
+                                                    {src === "upload" ? "Upload" : "URL"}
+                                                </button>
+                                            ))}
                                         </div>
 
                                         {imageSource === "upload" ? (
@@ -312,182 +426,353 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess, editIte
                                                 className="group w-full"
                                             >
                                                 {imagePreview ? (
-                                                        <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
-                                                        <img
-                                                            src={imagePreview}
-                                                            alt="Preview"
-                                                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                                        />
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                                                            <ImageIcon className="h-8 w-8 text-white" />
+                                                    <div className="relative w-full overflow-hidden rounded-sm border border-edge" style={{ aspectRatio: "16/7" }}>
+                                                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                                                            <Upload size={24} className="text-white" />
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 text-text-muted transition-all group-hover:border-primary/50 group-hover:bg-primary/5 group-hover:text-primary sm:h-40">
-                                                        <ImageIcon className="mb-2 h-8 w-8" />
-                                                        <span className="text-sm font-medium">Click to select an image</span>
+                                                    <div
+                                                        className="w-full flex flex-col items-center justify-center gap-3 rounded-sm transition-all"
+                                                        style={{
+                                                            aspectRatio: "16/7",
+                                                            border: "1.5px dashed rgba(0,229,255,0.25)",
+                                                            background: "rgba(0,229,255,0.02)",
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="grid place-items-center w-12 h-12 rounded-sm transition-all group-hover:bg-[rgba(0,229,255,0.12)]"
+                                                            style={{ background: "rgba(0,229,255,0.07)", border: "1px solid rgba(0,229,255,0.2)" }}
+                                                        >
+                                                            <Upload size={20} className="text-cyan2" />
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <p className="font-sans text-[13px] font-semibold text-fg">Drop image or click to upload</p>
+                                                            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-fg3 mt-1">
+                                                                PNG · JPG · WEBP · UP TO 20MB
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </button>
                                         ) : (
-                                            <div className="w-full space-y-3">
+                                            <div className="flex flex-col gap-2">
                                                 <div className="relative">
-                                                    <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                                                    <Link2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
                                                     <input
                                                         type="url"
                                                         value={imageUrlInput}
-                                                        onChange={(e) => {
-                                                            setImageUrlInput(e.target.value);
-                                                            setImagePreview(normalizeImageUrl(e.target.value) || null);
-                                                            setError(null);
-                                                        }}
-                                                        placeholder="Paste image URL or Google Drive share link"
-                                                        className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-4 text-sm text-white transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                                                        onChange={(e) => { setImageUrlInput(e.target.value); setImagePreview(e.target.value || null); setError(null); }}
+                                                        placeholder="https://res.cloudinary.com/…"
+                                                        className={inputCls + " pl-9"}
                                                     />
                                                 </div>
-
                                                 {imagePreview ? (
-                                                    <div className="relative mx-auto h-32 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_0_30px_rgba(76,201,240,0.08)] sm:h-40">
-                                                        <img
-                                                            src={imagePreview}
-                                                            alt="Preview"
-                                                            className="h-full w-full object-cover"
-                                                            onError={() => {
-                                                                setImagePreview(null);
-                                                                setError("That image URL could not be previewed. For Google Drive, make sure the file is public and use a standard share link.");
-                                                            }}
-                                                        />
+                                                    <div className="relative w-full overflow-hidden rounded-sm border border-edge" style={{ aspectRatio: "16/7" }}>
+                                                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"
+                                                            onError={() => { setImagePreview(null); setError("Could not load image from that URL."); }} />
                                                     </div>
                                                 ) : (
-                                                    <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/70 px-4 text-text-muted sm:h-40">
-                                                        <ImageIcon className="mb-2 h-8 w-8" />
-                                                        <span className="text-sm font-medium">Paste a valid image URL to preview it</span>
+                                                    <div
+                                                        className="w-full flex flex-col items-center justify-center gap-2 rounded-sm"
+                                                        style={{
+                                                            aspectRatio: "16/7",
+                                                            border: "1.5px dashed rgba(0,229,255,0.2)",
+                                                            background: "rgba(0,229,255,0.02)",
+                                                        }}
+                                                    >
+                                                        <ImageIcon size={24} className="text-fg3" />
+                                                        <p className="font-sans text-[12px] text-fg3">Paste image URL to preview</p>
                                                     </div>
                                                 )}
                                             </div>
                                         )}
+                                    </div>
+                                )}
 
-                                        <p className="mt-3 text-sm font-semibold text-foreground sm:mt-4 sm:text-base">Gallery Image</p>
-                                        <p className="mt-1 text-[11px] leading-relaxed text-text-muted sm:text-xs">
-                                            Upload a file or paste an image URL. Google Drive links work best when set to “Anyone with the link can view”.
-                                        </p>
+                                {/* ── VIDEO ── */}
+                                {mediaType === "video" && (
+                                    <div className="flex flex-col gap-3">
+                                        <div className="relative">
+                                            <Play size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#ef4444] pointer-events-none" />
+                                            <input
+                                                type="url"
+                                                value={youtubeUrl}
+                                                onChange={(e) => { setPlayUrl(e.target.value); setError(null); }}
+                                                placeholder="https://youtube.com/watch?v=…"
+                                                className={inputCls + " pl-9"}
+                                            />
+                                        </div>
+                                        {ytId ? (
+                                            <div className="relative w-full overflow-hidden rounded-sm border border-edge" style={{ aspectRatio: "16/9" }}>
+                                                <img src={ytThumbnail(ytId)} alt="YouTube thumbnail" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="grid place-items-center w-12 h-12 rounded-full" style={{ background: "rgba(239,68,68,0.9)" }}>
+                                                        <PlayCircle size={26} className="text-white" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                className="w-full flex flex-col items-center justify-center gap-2 rounded-sm"
+                                                style={{
+                                                    aspectRatio: "16/9",
+                                                    border: "1.5px dashed rgba(239,68,68,0.25)",
+                                                    background: "rgba(239,68,68,0.03)",
+                                                }}
+                                            >
+                                                <Play size={28} style={{ color: "rgba(239,68,68,0.5)" }} />
+                                                <p className="font-sans text-[12px] text-fg3">Paste YouTube URL above</p>
+                                                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-fg3">Public or unlisted · plays inline</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
-                                        <div className="mt-4 w-full rounded-2xl border border-white/8 bg-black/10 px-3 py-2.5 text-left sm:mt-5 sm:px-4 sm:py-3">
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-                                                Display
-                                            </p>
-                                            <p className="mt-1.5 text-xs text-text-secondary sm:mt-2 sm:text-sm">
-                                                This image will appear in the gallery grid and expand inside the lightbox when selected.
-                                            </p>
+                                {/* ── ARTICLE ── */}
+                                {mediaType === "article" && (
+                                    <div className="flex flex-col gap-3">
+                                        <div className="relative">
+                                            <FileText size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a78bfa] pointer-events-none" />
+                                            <input
+                                                type="url"
+                                                value={articleUrl}
+                                                onChange={(e) => { setArticleUrl(e.target.value); setError(null); }}
+                                                placeholder="https://medium.com/…"
+                                                className={inputCls + " pl-9"}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <FieldLabel>Cover image <span className="text-fg3 normal-case font-sans font-normal text-[11px] tracking-normal ml-1">(optional)</span></FieldLabel>
+                                            <input type="file" accept="image/*" ref={thumbInputRef} onChange={handleThumbSelect} className="hidden" />
+                                            <div className="flex gap-0 border border-edge rounded-sm overflow-hidden mb-2 w-fit">
+                                                {(["none", "upload", "url"] as const).map((src, i) => (
+                                                    <button
+                                                        key={src}
+                                                        type="button"
+                                                        onClick={() => { setThumbSource(src); if (src === "none") { setThumbFile(null); setThumbPreview(null); setThumbUrlInput(""); } }}
+                                                        className={[
+                                                            "px-4 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.14em] transition-all",
+                                                            i < 2 ? "border-r border-edge" : "",
+                                                            thumbSource === src ? "text-cyan2 bg-[rgba(0,229,255,0.07)]" : "text-fg3 hover:text-fg2",
+                                                        ].join(" ")}
+                                                    >
+                                                        {src === "none" ? "None" : src === "upload" ? "Upload" : "URL"}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {thumbSource === "upload" && (
+                                                <button type="button" onClick={() => thumbInputRef.current?.click()} className="group w-full">
+                                                    {thumbPreview ? (
+                                                        <div className="relative h-28 w-full overflow-hidden rounded-sm border border-edge">
+                                                            <img src={thumbPreview} alt="Thumbnail" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="h-28 w-full flex flex-col items-center justify-center gap-1.5 rounded-sm transition-all"
+                                                            style={{ border: "1.5px dashed rgba(0,229,255,0.2)", background: "rgba(0,229,255,0.02)" }}
+                                                        >
+                                                            <Upload size={18} className="text-fg3 group-hover:text-cyan2 transition-colors" />
+                                                            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-fg3">Upload thumbnail</span>
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            )}
+                                            {thumbSource === "url" && (
+                                                <input
+                                                    type="url"
+                                                    value={thumbUrlInput}
+                                                    onChange={(e) => { setThumbUrlInput(e.target.value); setThumbPreview(e.target.value || null); }}
+                                                    placeholder="https://…/thumbnail.jpg"
+                                                    className={inputCls}
+                                                />
+                                            )}
                                         </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-                                {/* Title */}
-                                <div className="md:col-span-2">
-                                    <label className="mb-1.5 block text-sm font-medium text-text-secondary">
-                                        Title
-                                    </label>
+                                {/* ── $ TITLE ── */}
+                                <div>
+                                    <FieldLabel>Title</FieldLabel>
                                     <input
                                         type="text"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
                                         required
                                         placeholder="E.g., VajraX Team at TechFest 2025"
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-white transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                                        className={inputCls}
                                     />
                                 </div>
 
+                                {/* ── $ DESCRIPTION ── */}
                                 <div>
-                                    <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-text-secondary">
-                                        <Tag className="w-4 h-4" />
-                                        Tag
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={tag}
-                                        onChange={(e) => setTag(e.target.value)}
-                                        required
-                                        placeholder="Event"
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-white transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-text-secondary">
-                                        <Calendar className="w-4 h-4" />
-                                        Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={date}
-                                        onChange={(e) => setDate(e.target.value)}
-                                        required
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-white transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                                        style={{ colorScheme: "dark" }}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-text-secondary">
-                                        <MapPin className="w-4 h-4" />
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={locationCity}
-                                        onChange={(e) => setLocationCity(e.target.value)}
-                                        required
-                                        placeholder="Bengaluru"
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-white transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-text-secondary">
-                                        Country
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={locationCountry}
-                                        onChange={(e) => setLocationCountry(e.target.value)}
-                                        required
-                                        placeholder="India"
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-white transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                                    />
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className="mb-1.5 block text-sm font-medium text-text-secondary">
-                                        Description (Optional)
-                                    </label>
+                                    <FieldLabel hint="2-LINE PREVIEW IN CARD">Description</FieldLabel>
                                     <textarea
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
-                                        rows={4}
-                                        placeholder="Write a short caption or context..."
-                                        className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-white transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                                        rows={3}
+                                        placeholder="Write a short caption or context…"
+                                        className={inputCls + " resize-none"}
                                     />
-                                        </div>
+                                </div>
 
-                                        <div className="md:col-span-2 flex justify-end pt-2">
-                                            <button
-                                                type="submit"
-                                                disabled={loading || !title.trim() || (!hasUploadImage && !hasEmbedUrl)}
-                                                className="btn-primary w-full md:w-auto md:min-w-[220px] !py-2.5 sm:!py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                {/* ── $ TAG · $ CITY · $ COUNTRY ── */}
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <FieldLabel>
+                                            Tag
+                                            {mediaType !== "photo" && (
+                                                <span className="text-fg3 ml-1 normal-case font-sans font-normal text-[10px] tracking-normal">(auto)</span>
+                                            )}
+                                        </FieldLabel>
+                                        <div className="relative">
+                                            <select
+                                                value={mediaType === "video" ? "Video" : mediaType === "article" ? "Article" : tag}
+                                                onChange={(e) => { if (mediaType === "photo") setTag(e.target.value); }}
+                                                disabled={mediaType !== "photo"}
+                                                className={inputCls + " appearance-none pr-7 disabled:opacity-50 disabled:cursor-not-allowed"}
+                                                style={{ colorScheme: "dark" }}
                                             >
-                                                {loading ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                ) : (
-                                                    editItem ? "Save Changes" : "Upload to Gallery"
-                                                )}
-                                            </button>
+                                                {mediaType !== "photo"
+                                                    ? <option>{mediaType === "video" ? "Video" : "Article"}</option>
+                                                    : TAG_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)
+                                                }
+                                            </select>
+                                            <Tag size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
                                         </div>
                                     </div>
-                                </form>
+                                    <div>
+                                        <FieldLabel>City</FieldLabel>
+                                        <div className="relative">
+                                            <MapPin size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
+                                            <input
+                                                type="text"
+                                                value={locationCity}
+                                                onChange={(e) => setLocationCity(e.target.value)}
+                                                placeholder="Bengaluru"
+                                                className={inputCls + " pl-8"}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <FieldLabel>Country</FieldLabel>
+                                        <div className="relative">
+                                            <Globe size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
+                                            <input
+                                                type="text"
+                                                value={locationCountry}
+                                                onChange={(e) => setLocationCountry(e.target.value)}
+                                                placeholder="India"
+                                                className={inputCls + " pl-8"}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Tag color swatches — photo only */}
+                                {mediaType === "photo" && (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-fg3">Tag color</span>
+                                        {/* None / clear */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setTagColor(null)}
+                                            title="Default"
+                                            className="relative w-5 h-5 rounded-full border-2 transition-all"
+                                            style={{
+                                                borderColor: tagColor === null ? "#f0f4ff" : "rgba(139,154,176,0.3)",
+                                                background: "#0d1117",
+                                            }}
+                                        >
+                                            <span className="absolute inset-0 flex items-center justify-center">
+                                                <span className="block w-2.5 h-px bg-[#8b9ab0] rotate-45" />
+                                            </span>
+                                        </button>
+                                        {TAG_COLORS.map(({ hex, label }) => (
+                                            <button
+                                                key={hex}
+                                                type="button"
+                                                onClick={() => setTagColor(hex)}
+                                                title={label}
+                                                className="w-5 h-5 rounded-full border-2 transition-all hover:scale-110"
+                                                style={{
+                                                    background: hex,
+                                                    borderColor: tagColor === hex ? "#f0f4ff" : "transparent",
+                                                    boxShadow: tagColor === hex ? `0 0 8px ${hex}` : "none",
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* ── $ DATE ── */}
+                                <div>
+                                    <FieldLabel>Date</FieldLabel>
+                                    <div className="relative">
+                                        <Calendar size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
+                                        <input
+                                            type="date"
+                                            value={date}
+                                            onChange={(e) => setDate(e.target.value)}
+                                            required
+                                            className={inputCls + " pl-8"}
+                                            style={{ colorScheme: "dark" }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                        </motion.div>
-                    </div>
+
+                            {/* ── FOOTER ── */}
+                            <div className="flex items-center justify-between px-5 py-4 border-t border-edge">
+                                <div className="flex items-center gap-2">
+                                    <span style={{
+                                        display: "inline-block", width: 6, height: 6, borderRadius: 999, flexShrink: 0,
+                                        background: statusReady ? "#22c55e" : "#f59e0b",
+                                        boxShadow: statusReady
+                                            ? "0 0 0 1px rgba(34,197,94,0.2), 0 0 8px rgba(34,197,94,0.7)"
+                                            : "0 0 0 1px rgba(245,158,11,0.2), 0 0 8px rgba(245,158,11,0.7)",
+                                    }} />
+                                    <span
+                                        className="font-mono text-[10px] uppercase tracking-[0.18em]"
+                                        style={{ color: statusReady ? "#22c55e" : "#f59e0b" }}
+                                    >
+                                        {statusReady ? "READY TO PUBLISH" : "FIELDS PENDING"}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        disabled={loading}
+                                        className="font-sans text-[13px] text-fg2 hover:text-fg transition-colors disabled:opacity-40"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading || !canSubmit}
+                                        className="flex items-center gap-2 h-9 px-5 rounded-sm font-sans text-[13px] font-semibold transition-all disabled:opacity-40"
+                                        style={{
+                                            background: canSubmit ? "rgba(0,229,255,0.10)" : "rgba(0,229,255,0.04)",
+                                            border: "1px solid rgba(0,229,255,0.35)",
+                                            color: "#00e5ff",
+                                        }}
+                                    >
+                                        {loading
+                                            ? <Loader2 size={13} className="animate-spin" />
+                                            : <Check size={13} />
+                                        }
+                                        {loading
+                                            ? (loadingMessage || "Publishing…")
+                                            : editItem ? "Save changes" : `Publish ${mediaType}`
+                                        }
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </motion.div>
                 </div>
             )}
         </AnimatePresence>

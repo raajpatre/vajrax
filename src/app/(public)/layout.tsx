@@ -1,20 +1,9 @@
-import Navbar from "@/components/ui/Navbar";
-import Footer from "@/components/ui/Footer";
-import PublicAmbientBackground from "@/components/ui/PublicAmbientBackground";
+import PublicLayoutShell from "@/components/ui/PublicLayoutShell";
 
 export default function PublicLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    return (
-        <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#050B14]">
-            <PublicAmbientBackground />
-            <Navbar />
-            <main className="relative z-10 flex-1">{children}</main>
-            <div className="relative z-10">
-                <Footer />
-            </div>
-        </div>
-    );
+    return <PublicLayoutShell>{children}</PublicLayoutShell>;
 }
