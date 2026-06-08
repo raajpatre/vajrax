@@ -45,3 +45,5 @@ next-env.d.ts
 
 # scratch
 test-bucket.js
+
+/.claude

@@ -27,18 +27,21 @@ async function createNotification(input: {
     const uniqueUserIds = Array.from(new Set(input.userIds.filter(Boolean)));
     if (uniqueUserIds.length === 0) return;
 
-    const adminSupabase = createAdminClient();
-    const { error } = await adminSupabase.from("notifications").insert(
-        uniqueUserIds.map((userId) => ({
-            user_id: userId,
-            type: input.type,
-            message: input.message,
-            related_entity_id: input.relatedEntityId ?? null,
-        }))
-    );
-
-    if (error) {
-        console.error("Notification insert failed:", error.message);
+    try {
+        const adminSupabase = createAdminClient();
+        const { error } = await adminSupabase.from("notifications").insert(
+            uniqueUserIds.map((userId) => ({
+                user_id: userId,
+                type: input.type,
+                message: input.message,
+                related_entity_id: input.relatedEntityId ?? null,
+            }))
+        );
+        if (error) {
+            console.error("Notification insert failed:", error.message);
+        }
+    } catch (err) {
+        console.error("createNotification threw:", err);
     }
 }
 

@@ -1,16 +1,31 @@
+import type { SheetItemStatus, SheetItemType } from "@/lib/inventory-requests";
+
 export type InventoryHistorySyncMode = "append" | "replace" | "upsert";
 export type GoogleSheetTarget = "history" | "stocks";
 
 export type InventoryHistorySyncRow = {
     syncKey: string;
+    // Routes the row to the consumable vs non-consumable table on the Sheet.
+    itemType: SheetItemType;
     date: string;
     time24h: string;
     requesterName: string;
     requesterEmail: string;
     itemRequested: string;
+    quantity: number;
     decision: "approved" | "rejected";
     approverName: string;
     approverEmail: string;
+    // borrowed / returned / discarded / permanent / given / rejected
+    status: SheetItemStatus;
+    // Condition the unit was in when handed out (non-consumable only).
+    givingCondition: string;
+    // Condition the unit came back in (non-consumable, once returned).
+    returnCondition: string;
+    // When the unit was returned (non-consumable, once returned).
+    returnDate: string;
+    returnTime: string;
+    // Human-readable lifecycle label (kept for the existing flat history view).
     lifecycleStatus: string;
 };
 
@@ -47,7 +62,6 @@ async function postGoogleSheetsPayload(payload: {
     }
 
     const secret = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET?.trim();
-    console.log(`[SheetSync] Sending ${payload.rows.length} rows to ${payload.sheet} (mode: ${payload.mode})`);
     const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {

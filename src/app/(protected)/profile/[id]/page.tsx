@@ -1,114 +1,127 @@
 "use client";
 
-import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { Github, Linkedin } from "lucide-react";
+import {
+    Github,
+    Linkedin,
+    User,
+    Calendar,
+    ShieldCheck,
+    Camera,
+    Loader2,
+    GraduationCap,
+    FolderKanban,
+    CircleCheckBig,
+    Mail,
+    Clock,
+    ExternalLink,
+    Check,
+    X,
+    Pencil,
+    Lock,
+    ChevronDown,
+    BadgeCheck,
+    Cpu,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
 import { Tables } from "@/types/database";
-import {
-    User,
-    Calendar,
-    ShieldCheck,
-    Edit3,
-    Camera,
-    Loader2,
-    Save,
-    X,
-    AlertCircle,
-    GraduationCap,
-    FolderKanban,
-    CircleCheckBig,
-    Sparkles,
-    ArrowUpRight,
-    Mail,
-    Clock,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
+import { getProfileProjectCounts } from "@/actions/profile";
 
 type Profile = Tables<"profiles">;
 
-type ProjectMembership = {
-    project_id: string;
-    project: {
-        status: string;
-    } | null;
-};
-
+/* ── 3D Lanyard (dynamic) ─────────────────────────── */
 const ProfileLanyard = dynamic(() => import("@/components/profile/ProfileLanyard"), {
     ssr: false,
     loading: () => (
-        <div className="flex min-h-[420px] w-full items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.16),rgba(8,20,34,0.58)_42%,rgba(5,14,28,0.84))]">
+        <div
+            className="flex min-h-[420px] w-full items-center justify-center rounded-md border"
+            style={{
+                background: "rgba(13,17,23,0.8)",
+                borderColor: "rgba(0,229,255,0.20)",
+            }}
+        >
             <div className="flex flex-col items-center gap-3 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-cyan-200" />
-                <p className="text-sm font-medium text-cyan-100/85">Loading lanyard...</p>
+                <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#00e5ff" }} />
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: "#8b9ab0" }}>
+                    Loading lanyard...
+                </p>
             </div>
         </div>
     ),
 });
 
-const roleLabels: Record<string, { label: string; cls: string }> = {
-    member: { label: "Member", cls: "badge-member" },
-    president: { label: "President", cls: "badge-president" },
-    vice_president: { label: "Vice President", cls: "badge-vp" },
-    faculty: { label: "Faculty", cls: "badge-faculty" },
-    inventory_manager: { label: "Inventory Manager", cls: "badge-member" },
-    website_manager: { label: "Website Manager", cls: "badge-website-manager" },
-    printing_head: { label: "3D Printing Head", cls: "badge-printing-head" },
+/* ── Role config ──────────────────────────────────── */
+const ROLE_CFG: Record<string, { fg: string; bg: string; bd: string; label: string }> = {
+    member:            { fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)", bd: "rgba(139,154,176,0.40)", label: "MEMBER" },
+    president:         { fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",  bd: "rgba(245,158,11,0.45)",  label: "PRESIDENT" },
+    vice_president:    { fg: "#a78bfa", bg: "rgba(167,139,250,0.10)", bd: "rgba(167,139,250,0.45)", label: "VICE PRESIDENT" },
+    faculty:           { fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",   bd: "rgba(0,229,255,0.45)",   label: "FACULTY" },
+    inventory_manager: { fg: "#22c55e", bg: "rgba(34,197,94,0.10)",   bd: "rgba(34,197,94,0.45)",   label: "INV. MANAGER" },
+    website_manager:   { fg: "#fbbf24", bg: "rgba(251,191,36,0.10)",  bd: "rgba(251,191,36,0.45)",  label: "WEB MANAGER" },
+    printing_head:     { fg: "#f97316", bg: "rgba(249,115,22,0.10)",  bd: "rgba(249,115,22,0.45)",  label: "PRINT HEAD" },
 };
 
-const semesterOptions = Array.from({ length: 8 }, (_, index) => index + 1);
-
-function StatCard({
-    icon,
-    label,
-    value,
-    hint,
-    href,
-    empty = false,
-}: {
-    icon?: ReactNode;
-    label?: string;
-    value?: ReactNode;
-    hint?: string;
-    href?: string;
-    empty?: boolean;
-}) {
-    const content = (
-        <div
-            className={`glass h-full min-h-[128px] p-5 ${empty ? "opacity-0 pointer-events-none select-none" : ""}`}
+function RolePill({ role, large }: { role: string; large?: boolean }) {
+    const c = ROLE_CFG[role] ?? ROLE_CFG.member;
+    return (
+        <span
+            className="inline-flex items-center rounded-sm border font-mono uppercase font-medium"
+            style={{
+                height: large ? 26 : 22,
+                padding: large ? "0 10px" : "0 8px",
+                fontSize: large ? 12 : 10.5,
+                letterSpacing: "0.13em",
+                color: c.fg,
+                background: c.bg,
+                borderColor: c.bd,
+            }}
         >
-            {!empty && (
-                <>
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--ghost-border)] bg-cyan-300/8 text-cyan-100 shadow-[0_0_24px_rgba(76,201,240,0.12)]">
-                            {icon}
-                        </div>
-                        {href && <ArrowUpRight className="h-4 w-4 text-text-muted" />}
-                    </div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</p>
-                    <div className="mt-3 text-xl font-semibold text-foreground">{value}</div>
-                    {hint && <p className="mt-2 text-sm leading-relaxed text-text-secondary">{hint}</p>}
-                </>
-            )}
-        </div>
+            {c.label}
+        </span>
     );
-
-    if (href && !empty) {
-        return (
-            <Link href={href} target="_blank" rel="noreferrer" className="block h-full">
-                {content}
-            </Link>
-        );
-    }
-
-    return content;
 }
 
+/* ── Stat card ────────────────────────────────────── */
+function PrStatCard({
+    label,
+    value,
+    icon: Icon,
+}: {
+    label: string;
+    value: string;
+    icon: LucideIcon;
+}) {
+    return (
+        <div
+            className="rounded-md px-4 py-3 flex flex-col gap-1.5"
+            style={{ background: "#0d1117", border: "1px solid rgba(0,229,255,0.12)" }}
+        >
+            <div className="flex items-center justify-between">
+                <span
+                    className="font-mono text-[9.5px] uppercase tracking-[0.18em]"
+                    style={{ color: "#8b9ab0" }}
+                >
+                    {label}
+                </span>
+                <Icon size={12} style={{ color: "#4a5568" }} />
+            </div>
+            <div
+                className="font-sans font-semibold text-[14px] tracking-tight leading-snug truncate"
+                style={{ color: "#f0f4ff" }}
+            >
+                {value}
+            </div>
+        </div>
+    );
+}
+
+/* ── Edit modal ───────────────────────────────────── */
 function EditProfileModal({
     profile,
     userEmail,
@@ -133,6 +146,16 @@ function EditProfileModal({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [semesterUnavailable, setSemesterUnavailable] = useState(false);
+    const MAX_BIO = 200;
+
+    useEffect(() => {
+        setDisplayName(profile.display_name);
+        setBio(profile.bio || "");
+        setGithubUrl(profile.github_url || "");
+        setLinkedinUrl(profile.linkedin_url || "");
+        setCurrentSemester(profile.current_semester ? String(profile.current_semester) : "");
+        setAvatarPreview(profile.avatar_url);
+    }, [profile]);
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -159,7 +182,6 @@ function EditProfileModal({
             if (avatarFile) {
                 const ext = avatarFile.name.split(".").pop();
                 const path = `${profile.id}/avatar.${ext}`;
-
                 const { error: uploadError } = await supabase.storage
                     .from("avatars")
                     .upload(path, avatarFile, { upsert: true });
@@ -170,10 +192,7 @@ function EditProfileModal({
                     return;
                 }
 
-                const {
-                    data: { publicUrl },
-                } = supabase.storage.from("avatars").getPublicUrl(path);
-
+                const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
                 avatarUrl = publicUrl;
             }
 
@@ -194,7 +213,10 @@ function EditProfileModal({
                     ? baseUpdatePayload
                     : { ...baseUpdatePayload, current_semester: semesterValue };
 
-            const { error: updateError } = await supabase.from("profiles").update(updatePayload).eq("id", profile.id);
+            const { error: updateError } = await supabase
+                .from("profiles")
+                .update(updatePayload)
+                .eq("id", profile.id);
 
             if (updateError) {
                 const isSemesterSchemaError =
@@ -204,7 +226,6 @@ function EditProfileModal({
 
                 if (isSemesterSchemaError) {
                     setSemesterUnavailable(true);
-
                     const { error: fallbackError } = await supabase
                         .from("profiles")
                         .update(baseUpdatePayload)
@@ -213,7 +234,7 @@ function EditProfileModal({
                     if (!fallbackError) {
                         onSaved();
                         setError(
-                            "Your profile changes were saved, but semester could not be stored yet. Run feature-profile-semester.sql on Supabase and then try saving the semester again."
+                            "Changes saved, but semester could not be stored yet. Run feature-profile-semester.sql on Supabase then try again."
                         );
                         setLoading(false);
                         return;
@@ -228,180 +249,363 @@ function EditProfileModal({
             setLoading(false);
             onSaved();
             onClose();
-        } catch (err: any) {
-            setError(err.message || "An unexpected error occurred while saving.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An unexpected error occurred.");
             setLoading(false);
         }
     };
 
+    const initials = profile.display_name
+        .split(" ")
+        .map((p) => p[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto px-4 pb-4 pt-[calc(var(--nav-height)+1rem)] sm:px-6 sm:pb-6">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 flex min-h-full items-start justify-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="glass-strong flex w-full max-w-4xl flex-col overflow-hidden rounded-lg"
+        <div className="fixed inset-0 z-50">
+            <div
+                className="absolute inset-0 backdrop-blur-md"
+                style={{ background: "rgba(7,9,15,0.75)" }}
+                onClick={onClose}
+            />
+            <div className="absolute inset-0 grid place-items-center p-6 pointer-events-none">
+                <div
+                    className="relative w-full max-w-lg pointer-events-auto rounded-md"
+                    style={{
+                        background: "rgba(17,24,32,0.97)",
+                        border: "1px solid rgba(0,229,255,0.28)",
+                        boxShadow: "0 0 0 1px rgba(0,229,255,0.06), 0 32px 80px -24px rgba(0,0,0,0.9)",
+                    }}
                 >
-                    <div className="flex items-center justify-between border-b border-white/8 px-5 py-4 sm:px-6">
-                        <div>
-                            <h3 className="text-lg font-bold">Edit Profile</h3>
-                            <p className="mt-1 text-sm text-text-muted">Update your public profile details without leaving this page.</p>
+                    {/* Cyan top gradient line */}
+                    <div
+                        className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                        style={{
+                            background:
+                                "linear-gradient(90deg,transparent,rgba(0,229,255,0.6),transparent)",
+                        }}
+                    />
+                    {/* Corner ticks */}
+                    <span
+                        className="absolute top-2 right-2 w-3 h-3 pointer-events-none"
+                        style={{
+                            borderTop: "1px solid rgba(0,229,255,0.35)",
+                            borderRight: "1px solid rgba(0,229,255,0.35)",
+                        }}
+                    />
+                    <span
+                        className="absolute bottom-2 left-2 w-3 h-3 pointer-events-none"
+                        style={{
+                            borderBottom: "1px solid rgba(0,229,255,0.35)",
+                            borderLeft: "1px solid rgba(0,229,255,0.35)",
+                        }}
+                    />
+
+                    {/* Header */}
+                    <div
+                        className="px-5 h-12 flex items-center justify-between border-b"
+                        style={{ borderColor: "rgba(0,229,255,0.12)" }}
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <span
+                                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                                style={{ background: "#00e5ff", boxShadow: "0 0 6px #00e5ff" }}
+                            />
+                            <span
+                                className="font-mono text-[11px] uppercase tracking-[0.18em]"
+                                style={{ color: "#f0f4ff" }}
+                            >
+                                EDIT PROFILE
+                            </span>
                         </div>
                         <button
                             onClick={onClose}
-                            className="text-text-muted transition-colors hover:text-foreground"
+                            className="grid place-items-center w-7 h-7 rounded-sm border transition-colors"
+                            style={{ borderColor: "rgba(0,229,255,0.20)", color: "#8b9ab0" }}
+                            onMouseOver={(e) => { e.currentTarget.style.color = "#f0f4ff"; }}
+                            onMouseOut={(e) => { e.currentTarget.style.color = "#8b9ab0"; }}
                         >
-                            <X className="h-5 w-5" />
+                            <X size={14} />
                         </button>
                     </div>
 
-                    <div className="max-h-[calc(100dvh-var(--nav-height)-3.25rem)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
-                        <form onSubmit={handleSave} className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-                    {error && (
-                        <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400 lg:col-span-2">
-                            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="rounded-lg border border-[var(--ghost-border)] bg-white/[0.03] p-5 lg:sticky lg:top-0">
-                        <div className="flex flex-col items-center text-center">
-                            <label className="group relative cursor-pointer">
-                                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-primary/30 bg-primary/20 shadow-[0_0_40px_rgba(0,229,255,0.15)]">
-                                    {avatarPreview ? (
-                                        <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
-                                    ) : (
-                                        <User className="h-10 w-10 text-primary-light" />
-                                    )}
-                                </div>
-                                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                                    <Camera className="h-6 w-6 text-white" />
-                                </div>
-                                <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                            </label>
-                            <p className="mt-4 text-base font-semibold text-foreground">Profile Photo</p>
-                            <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                                Upload a square image for the cleanest avatar crop. Max size 2MB.
-                            </p>
-                            <div className="mt-5 w-full rounded-lg border border-white/8 bg-black/10 px-4 py-3 text-left">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-                                    Visibility
-                                </p>
-                                <p className="mt-2 text-sm text-text-secondary">
-                                    Your registered email is automatically used as your contact email on the Innovators page.
-                                </p>
+                    <form onSubmit={handleSave}>
+                        <div className="p-5 space-y-4 max-h-[calc(100dvh-12rem)] overflow-y-auto">
+                            {/* Avatar */}
+                            <div className="flex justify-center">
+                                <label className="group relative cursor-pointer">
+                                    <div
+                                        className="relative w-20 h-20 rounded-full grid place-items-center font-mono font-bold text-[22px] overflow-hidden transition-opacity group-hover:opacity-70"
+                                        style={{
+                                            background: "rgba(0,229,255,0.10)",
+                                            border: "2px solid rgba(0,229,255,0.55)",
+                                            color: "#00e5ff",
+                                        }}
+                                    >
+                                        {avatarPreview ? (
+                                            <img
+                                                src={avatarPreview}
+                                                alt="Avatar"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            initials
+                                        )}
+                                    </div>
+                                    <div
+                                        className="absolute inset-0 rounded-full grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        style={{ background: "rgba(0,229,255,0.18)" }}
+                                    >
+                                        <Camera size={18} style={{ color: "#00e5ff" }} />
+                                    </div>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleAvatarChange}
+                                        className="hidden"
+                                    />
+                                </label>
                             </div>
-                        </div>
-                    </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div className="md:col-span-2">
-                            <label className="mb-1.5 block text-sm font-medium text-text-secondary">Display Name</label>
-                            <input
-                                type="text"
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
-                                required
-                                className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
-                            />
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <label className="mb-1.5 block text-sm font-medium text-text-secondary">Bio</label>
-                            <textarea
-                                value={bio}
-                                onChange={(e) => setBio(e.target.value)}
-                                rows={4}
-                                maxLength={200}
-                                placeholder="Tell us about yourself..."
-                                className="w-full resize-none rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
-                            />
-                            <p className="mt-1 text-right text-[10px] text-text-muted">{bio.length}/200</p>
-                        </div>
-
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-text-secondary">
-                                Contact Email <span className="text-xs font-normal text-text-muted">(synced with registered email)</span>
-                            </label>
-                            <input
-                                type="email"
-                                value={contactEmail}
-                                readOnly
-                                disabled
-                                className="w-full rounded-lg border border-border bg-surface/50 px-4 py-3 text-sm text-text-muted cursor-not-allowed"
-                            />
-                        </div>
-
-                        {profile.role !== "faculty" ? (
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-text-secondary">Current Semester</label>
-                                <select
-                                    value={currentSemester}
-                                    onChange={(e) => setCurrentSemester(e.target.value)}
-                                    disabled={semesterUnavailable}
-                                    className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                            {/* Error */}
+                            {error && (
+                                <div
+                                    className="flex items-start gap-2 rounded-sm border px-3 py-2 text-[12px]"
+                                    style={{
+                                        color: "#ef4444",
+                                        background: "rgba(239,68,68,0.08)",
+                                        borderColor: "rgba(239,68,68,0.40)",
+                                    }}
                                 >
-                                    <option value="">Select semester</option>
-                                    {semesterOptions.map((semester) => (
-                                        <option key={semester} value={semester}>
-                                            Semester {semester}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        ) : (
-                            <div className="hidden md:block" />
-                        )}
+                                    {error}
+                                </div>
+                            )}
 
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-text-secondary">GitHub URL</label>
-                            <div className="relative">
-                                <Github className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                            {/* Display Name */}
+                            <div>
+                                <div
+                                    className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
+                                    style={{ color: "#8b9ab0" }}
+                                >
+                                    <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> Display Name
+                                </div>
                                 <input
-                                    type="url"
-                                    value={githubUrl}
-                                    onChange={(e) => setGithubUrl(e.target.value)}
-                                    placeholder="https://github.com/username"
-                                    className="w-full rounded-lg border border-border bg-surface py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    type="text"
+                                    value={displayName}
+                                    onChange={(e) => setDisplayName(e.target.value)}
+                                    required
+                                    className="w-full h-9 text-[13px] border rounded-md px-3 outline-none transition-colors"
+                                    style={{
+                                        background: "#0d1117",
+                                        color: "#f0f4ff",
+                                        borderColor: "rgba(0,229,255,0.18)",
+                                    }}
+                                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
+                                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
                                 />
+                            </div>
+
+                            {/* Bio */}
+                            <div>
+                                <div className="flex items-end justify-between mb-1.5">
+                                    <div
+                                        className="font-mono text-[10px] uppercase tracking-[0.16em]"
+                                        style={{ color: "#8b9ab0" }}
+                                    >
+                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> Bio
+                                    </div>
+                                    <span
+                                        className="font-mono text-[10px]"
+                                        style={{ color: bio.length > MAX_BIO ? "#ef4444" : "#4a5568" }}
+                                    >
+                                        {bio.length}/{MAX_BIO}
+                                    </span>
+                                </div>
+                                <textarea
+                                    rows={3}
+                                    value={bio}
+                                    onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO))}
+                                    placeholder="Tell us about yourself..."
+                                    className="w-full text-[13px] border rounded-md px-3 py-2 resize-none leading-relaxed outline-none transition-colors"
+                                    style={{
+                                        background: "#0d1117",
+                                        color: "#f0f4ff",
+                                        borderColor: "rgba(0,229,255,0.18)",
+                                    }}
+                                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
+                                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                />
+                            </div>
+
+                            {/* Semester */}
+                            {profile.role !== "faculty" && (
+                                <div>
+                                    <div
+                                        className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
+                                        style={{ color: "#8b9ab0" }}
+                                    >
+                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> Current Semester
+                                    </div>
+                                    <div className="relative">
+                                        <select
+                                            value={currentSemester}
+                                            onChange={(e) => setCurrentSemester(e.target.value)}
+                                            disabled={semesterUnavailable}
+                                            className="appearance-none w-full h-9 text-[13px] border rounded-md px-3 pr-9 outline-none transition-colors disabled:opacity-50"
+                                            style={{
+                                                background: "#0d1117",
+                                                color: "#f0f4ff",
+                                                borderColor: "rgba(0,229,255,0.18)",
+                                            }}
+                                            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
+                                            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                        >
+                                            <option value="" style={{ background: "#0d1117" }}>Select semester</option>
+                                            {Array.from({ length: 8 }, (_, i) => i + 1).map((s) => (
+                                                <option key={s} value={s} style={{ background: "#0d1117" }}>
+                                                    Semester {s}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <span
+                                            className="absolute inset-y-0 right-0 grid place-items-center w-9 pointer-events-none"
+                                            style={{ color: "#8b9ab0" }}
+                                        >
+                                            <ChevronDown size={14} />
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* GitHub + LinkedIn */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div
+                                        className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
+                                        style={{ color: "#8b9ab0" }}
+                                    >
+                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> GitHub URL
+                                    </div>
+                                    <input
+                                        type="url"
+                                        value={githubUrl}
+                                        onChange={(e) => setGithubUrl(e.target.value)}
+                                        placeholder="https://github.com/..."
+                                        className="w-full h-9 text-[13px] border rounded-md px-3 outline-none transition-colors"
+                                        style={{
+                                            background: "#0d1117",
+                                            color: "#f0f4ff",
+                                            borderColor: "rgba(0,229,255,0.18)",
+                                        }}
+                                        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
+                                        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                    />
+                                </div>
+                                <div>
+                                    <div
+                                        className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
+                                        style={{ color: "#8b9ab0" }}
+                                    >
+                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> LinkedIn URL
+                                    </div>
+                                    <input
+                                        type="url"
+                                        value={linkedinUrl}
+                                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                                        placeholder="https://linkedin.com/in/..."
+                                        className="w-full h-9 text-[13px] border rounded-md px-3 outline-none transition-colors"
+                                        style={{
+                                            background: "#0d1117",
+                                            color: "#f0f4ff",
+                                            borderColor: "rgba(0,229,255,0.18)",
+                                        }}
+                                        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
+                                        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Read-only email */}
+                            <div
+                                className="flex items-center gap-3 px-3 h-9 border rounded-md"
+                                style={{
+                                    background: "rgba(7,9,15,0.6)",
+                                    borderColor: "rgba(0,229,255,0.12)",
+                                }}
+                            >
+                                <Lock size={12} style={{ color: "#4a5568" }} />
+                                <span
+                                    className="font-mono text-[10.5px] uppercase tracking-[0.14em]"
+                                    style={{ color: "#4a5568" }}
+                                >
+                                    EMAIL
+                                </span>
+                                <span
+                                    className="font-mono text-[11.5px] flex-1 truncate"
+                                    style={{ color: "#8b9ab0" }}
+                                >
+                                    {contactEmail}
+                                </span>
+                                <span
+                                    className="font-mono text-[9.5px] uppercase tracking-[0.18em]"
+                                    style={{ color: "#4a5568" }}
+                                >
+                                    READ-ONLY
+                                </span>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-text-secondary">LinkedIn URL</label>
-                            <div className="relative">
-                                <Linkedin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                                <input
-                                    type="url"
-                                    value={linkedinUrl}
-                                    onChange={(e) => setLinkedinUrl(e.target.value)}
-                                    placeholder="https://linkedin.com/in/username"
-                                    className="w-full rounded-lg border border-border bg-surface py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-text-muted transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="md:col-span-2 flex justify-end pt-2">
+                        {/* Footer */}
+                        <div
+                            className="px-5 h-14 flex items-center justify-end gap-2 border-t"
+                            style={{
+                                borderColor: "rgba(0,229,255,0.10)",
+                                background: "rgba(7,9,15,0.40)",
+                            }}
+                        >
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-sm border border-transparent text-[13px] font-medium transition-colors"
+                                style={{ color: "#8b9ab0" }}
+                                onMouseOver={(e) => { e.currentTarget.style.color = "#f0f4ff"; }}
+                                onMouseOut={(e) => { e.currentTarget.style.color = "#8b9ab0"; }}
+                            >
+                                Cancel
+                            </button>
                             <button
                                 type="submit"
                                 disabled={loading || !displayName.trim()}
-                                className="btn-primary w-full md:w-auto md:min-w-[220px] !py-3 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="inline-flex items-center gap-2 h-9 px-4 rounded-sm border font-medium text-[13px] transition-all disabled:opacity-60"
+                                style={{
+                                    background: "#00e5ff",
+                                    color: "#07090f",
+                                    borderColor: "#00e5ff",
+                                    boxShadow: loading ? "none" : "0 0 18px -4px rgba(0,229,255,0.65)",
+                                }}
                             >
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                Save Changes
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        Saving…
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check size={14} />
+                                        Save changes
+                                    </>
+                                )}
                             </button>
                         </div>
-                    </div>
-                </form>
-                    </div>
-                </motion.div>
+                    </form>
+                </div>
             </div>
         </div>
     );
 }
 
+/* ── Page ─────────────────────────────────────────── */
 export default function ProfilePage() {
     const params = useParams();
     const userId = params.id as string;
@@ -418,30 +622,14 @@ export default function ProfilePage() {
 
     const fetchProfile = useCallback(async () => {
         setLoading(true);
-
-        const [{ data: profileData }, { data: memberships }] = await Promise.all([
+        const [{ data: profileData }, counts] = await Promise.all([
             supabase.from("profiles").select("*").eq("id", userId).single(),
-            supabase
-                .from("project_members")
-                .select("project_id, project:projects!project_members_project_id_fkey(status)")
-                .eq("user_id", userId),
+            getProfileProjectCounts(userId),
         ]);
 
         if (profileData) setProfile(profileData);
-
-        const mappedMemberships = ((memberships ?? []) as unknown as ProjectMembership[]).filter(
-            (membership) => membership.project
-        );
-
-        setCurrentProjectCount(
-            mappedMemberships.filter(
-                (membership) =>
-                    membership.project?.status !== "completed" && membership.project?.status !== "archived"
-            ).length
-        );
-        setCompletedProjectCount(
-            mappedMemberships.filter((membership) => membership.project?.status === "completed").length
-        );
+        setCurrentProjectCount(counts.active);
+        setCompletedProjectCount(counts.completed);
         setLoading(false);
     }, [supabase, userId]);
 
@@ -449,166 +637,250 @@ export default function ProfilePage() {
         fetchProfile();
     }, [fetchProfile]);
 
-    if (authLoading || loading) {
-        return <VajraLoader fullPage />;
-    }
+    if (authLoading || loading) return <VajraLoader fullPage />;
 
     if (!profile) {
         return (
             <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-                <User className="mx-auto mb-4 h-16 w-16 text-text-muted" />
-                <h2 className="mb-2 text-xl font-bold">User not found</h2>
-                <p className="text-sm text-text-muted">This profile doesn&apos;t exist.</p>
+                <User className="mx-auto mb-4 h-16 w-16" style={{ color: "#4a5568" }} />
+                <h2 className="mb-2 text-xl font-bold" style={{ color: "#f0f4ff" }}>
+                    User not found
+                </h2>
+                <p className="text-sm" style={{ color: "#8b9ab0" }}>
+                    This profile doesn&apos;t exist.
+                </p>
             </div>
         );
     }
 
-    const role = roleLabels[profile.role] ?? { label: profile.role ?? "Member", cls: "badge-member" };
-    const semesterLabel = profile.current_semester ? `Semester ${profile.current_semester}` : "Not set";
-    const joinedLabel = new Date(profile.created_at).toLocaleDateString("en-US", {
-        month: "long",
+    const joinedLabel = new Date(profile.created_at)
+        .toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+        .toUpperCase();
+    const semesterLabel = profile.current_semester
+        ? `Semester ${profile.current_semester}`
+        : "Not set";
+    const updatedLabel = new Date(profile.updated_at).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
         year: "numeric",
-    });
+    }).toUpperCase();
 
     return (
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(320px,430px)_1fr] lg:items-start">
-                <div className="lg:sticky lg:top-[calc(var(--nav-height)+2rem)]">
-                    <ProfileLanyard
-                        avatarUrl={profile.avatar_url}
-                        displayName={profile.display_name}
-                        roleLabel={role.label}
-                        cameraDistance={20}
-                    />
+        <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+            {/* Grid bg */}
+            <div
+                className="fixed inset-0 pointer-events-none"
+                style={{
+                    backgroundImage:
+                        "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)",
+                    backgroundSize: "40px 40px",
+                }}
+            />
+            {/* Cyan radial glow */}
+            <div
+                className="fixed top-0 left-64 w-[600px] h-[400px] pointer-events-none"
+                style={{ background: "radial-gradient(ellipse,rgba(0,229,255,0.06) 0%,transparent 70%)" }}
+            />
+
+            <div className="relative max-w-5xl mx-auto px-8 pt-12 pb-20">
+                {/* Kicker */}
+                <div className="flex items-center gap-2 mb-8">
+                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
+                    <span
+                        className="font-mono text-[11px] uppercase tracking-[0.24em]"
+                        style={{ color: "#00e5ff" }}
+                    >
+                        // WORKSPACE / PROFILE
+                    </span>
                 </div>
 
-                <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="glass md:col-span-2 xl:col-span-3 p-4 md:p-6">
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                            <div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-                                        {profile.display_name}
-                                    </h1>
-                                    <span className={`badge text-[10px] ${role.cls}`}>{role.label}</span>
-                                </div>
-                                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">
-                                    {profile.bio || "A builder shaping the next generation of robotics at VajraX."}
-                                </p>
-                                {!isOwnProfile && (
-                                    <p className="mt-3 text-xs font-medium uppercase tracking-[0.14em] text-text-muted">
-                                        Read-only member profile
-                                    </p>
-                                )}
-                            </div>
-                            {isOwnProfile && (
-                                <button onClick={() => setShowEdit(true)} className="btn-secondary text-sm !px-4 !py-2.5">
-                                    <Edit3 className="h-4 w-4" />
-                                    Edit Profile
-                                </button>
-                            )}
+                {/* Two-column layout */}
+                <div className="grid gap-10" style={{ gridTemplateColumns: "2fr 3fr" }}>
+                    {/* LEFT — lanyard + edit button */}
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-full">
+                            <ProfileLanyard
+                                avatarUrl={profile.avatar_url}
+                                displayName={profile.display_name}
+                                roleLabel={ROLE_CFG[profile.role ?? "member"]?.label ?? profile.role ?? "MEMBER"}
+                                cameraDistance={20}
+                            />
                         </div>
-                        {(profile.safety_certifications || []).length > 0 && (
-                            <div className="mt-5 flex flex-wrap gap-2">
-                                {profile.safety_certifications.map((cert) => (
-                                    <span
-                                        key={cert}
-                                        className="inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold text-amber-300"
-                                    >
-                                        <ShieldCheck className="h-3 w-3" />
-                                        {cert}
-                                    </span>
-                                ))}
-                            </div>
+                        {isOwnProfile && (
+                            <button
+                                onClick={() => setShowEdit(true)}
+                                className="inline-flex items-center gap-2 h-8 px-3 rounded-sm border text-[12.5px] font-medium transition-colors"
+                                style={{
+                                    color: "#8b9ab0",
+                                    borderColor: "rgba(0,229,255,0.18)",
+                                    background: "transparent",
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.color = "#f0f4ff";
+                                    e.currentTarget.style.borderColor = "rgba(0,229,255,0.40)";
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.color = "#8b9ab0";
+                                    e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)";
+                                }}
+                            >
+                                <Pencil size={13} />
+                                Edit Profile
+                            </button>
+                        )}
+                        {!isOwnProfile && (
+                            <p
+                                className="font-mono text-[10px] uppercase tracking-[0.16em]"
+                                style={{ color: "#4a5568" }}
+                            >
+                                // READ-ONLY MEMBER PROFILE
+                            </p>
                         )}
                     </div>
 
-                    <StatCard
-                        icon={<Calendar className="h-5 w-5" />}
-                        label="Joined VajraX"
-                        value={joinedLabel}
-                        hint="Membership timestamp from the VajraX profile record."
-                    />
+                    {/* RIGHT — info */}
+                    <div className="space-y-6">
+                        {/* Name + role */}
+                        <div>
+                            <div className="flex items-start gap-3 flex-wrap">
+                                <h1
+                                    className="font-sans font-black tracking-tight leading-none"
+                                    style={{ fontSize: 36, color: "#f0f4ff" }}
+                                >
+                                    {profile.display_name}
+                                </h1>
+                                <div className="mt-1.5">
+                                    <RolePill role={profile.role ?? "member"} large />
+                                </div>
+                            </div>
+                            <p
+                                className="text-[14px] mt-3 leading-relaxed max-w-[58ch]"
+                                style={{ color: "#8b9ab0" }}
+                            >
+                                {profile.bio || "A builder shaping the next generation of robotics at VajraX."}
+                            </p>
+                        </div>
 
-                    <StatCard
-                        icon={<Sparkles className="h-5 w-5" />}
-                        label="Assigned Role"
-                        value={role.label}
-                        hint="Club role currently attached to this member profile."
-                    />
+                        {/* Safety certs */}
+                        {(profile.safety_certifications ?? []).length > 0 && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <ShieldCheck size={15} style={{ color: "#f59e0b" }} />
+                                    <span
+                                        className="font-mono text-[10.5px] uppercase tracking-[0.18em]"
+                                        style={{ color: "#8b9ab0" }}
+                                    >
+                                        Safety Certifications
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {profile.safety_certifications.map((cert) => (
+                                        <span
+                                            key={cert}
+                                            className="inline-flex items-center gap-1 h-[22px] px-2 rounded-sm border font-mono text-[10px] uppercase tracking-[0.10em]"
+                                            style={{
+                                                color: "#f59e0b",
+                                                background: "rgba(245,158,11,0.10)",
+                                                borderColor: "rgba(245,158,11,0.45)",
+                                            }}
+                                        >
+                                            {cert}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
-                    {profile.role !== "faculty" ? (
-                        <StatCard
-                            icon={<GraduationCap className="h-5 w-5" />}
-                            label="Current Semester"
-                            value={semesterLabel}
-                        />
-                    ) : (
-                        <StatCard empty />
-                    )}
+                        {/* Stats grid */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <PrStatCard label="Joined VajraX"     value={joinedLabel}                       icon={Calendar} />
+                            <PrStatCard label="Assigned Role"     value={ROLE_CFG[profile.role ?? "member"]?.label ?? profile.role ?? "MEMBER"} icon={BadgeCheck} />
+                            <PrStatCard label="Current Semester"  value={semesterLabel}                     icon={GraduationCap} />
+                            <PrStatCard label="Contact Email"     value={profile.contact_email || "Not added"} icon={Mail} />
+                            <PrStatCard label="Active Projects"   value={String(currentProjectCount)}       icon={Cpu} />
+                            <PrStatCard label="Completed Projects" value={String(completedProjectCount)}    icon={CircleCheckBig} />
+                        </div>
 
-                    <StatCard
-                        icon={<Linkedin className="h-5 w-5" />}
-                        label="LinkedIn"
-                        value={profile.linkedin_url ? "Open profile" : "Not linked"}
-                        hint={profile.linkedin_url ? "Professional presence and updates." : "No LinkedIn URL added yet."}
-                        href={profile.linkedin_url ?? undefined}
-                    />
+                        {/* External links */}
+                        {(profile.github_url || profile.linkedin_url) && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {profile.github_url && (
+                                    <a
+                                        href={profile.github_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-2 h-9 px-3.5 rounded-sm border text-[12.5px] font-medium transition-colors"
+                                        style={{
+                                            color: "#8b9ab0",
+                                            borderColor: "rgba(0,229,255,0.18)",
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.currentTarget.style.color = "#f0f4ff";
+                                            e.currentTarget.style.borderColor = "rgba(0,229,255,0.40)";
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.currentTarget.style.color = "#8b9ab0";
+                                            e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)";
+                                        }}
+                                    >
+                                        <Github size={14} />
+                                        GitHub
+                                        <ExternalLink size={11} style={{ color: "#4a5568" }} />
+                                    </a>
+                                )}
+                                {profile.linkedin_url && (
+                                    <a
+                                        href={profile.linkedin_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-2 h-9 px-3.5 rounded-sm border text-[12.5px] font-medium transition-colors"
+                                        style={{
+                                            color: "#8b9ab0",
+                                            borderColor: "rgba(0,229,255,0.18)",
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.currentTarget.style.color = "#f0f4ff";
+                                            e.currentTarget.style.borderColor = "rgba(0,229,255,0.40)";
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.currentTarget.style.color = "#8b9ab0";
+                                            e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)";
+                                        }}
+                                    >
+                                        <Linkedin size={14} />
+                                        LinkedIn
+                                        <ExternalLink size={11} style={{ color: "#4a5568" }} />
+                                    </a>
+                                )}
+                            </div>
+                        )}
 
-                    <StatCard
-                        icon={<Github className="h-5 w-5" />}
-                        label="GitHub"
-                        value={profile.github_url ? "Open Github Profile" : "Not linked"}
-                        hint={profile.github_url ? "Code, experiments, and open source work." : "No GitHub URL added yet."}
-                        href={profile.github_url ?? undefined}
-                    />
-
-                    <StatCard
-                        icon={<FolderKanban className="h-5 w-5" />}
-                        label="Current Projects"
-                        value={currentProjectCount}
-                        hint="Projects where the member is active and the project is not completed or archived."
-                    />
-
-                    <StatCard
-                        icon={<CircleCheckBig className="h-5 w-5" />}
-                        label="Completed Projects"
-                        value={completedProjectCount}
-                        hint="Projects the member is part of that have reached completed status."
-                    />
-
-                    <StatCard
-                        icon={<Mail className="h-5 w-5" />}
-                        label="Contact Email"
-                        value={profile.contact_email || "Not added"}
-                        hint="Primary email for communication."
-                    />
-
-                    <StatCard
-                        icon={<Clock className="h-5 w-5" />}
-                        label="Profile Updated"
-                        value={new Date(profile.updated_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                        })}
-                        hint="Last time this profile was modified."
-                    />
+                        {/* Update timestamp */}
+                        <div
+                            className="flex items-center gap-2 pt-2 border-t"
+                            style={{ borderColor: "rgba(0,229,255,0.12)" }}
+                        >
+                            <Clock size={11} style={{ color: "#4a5568" }} />
+                            <span
+                                className="font-mono text-[10px] uppercase tracking-[0.16em]"
+                                style={{ color: "#4a5568" }}
+                            >
+                                Profile updated{" "}
+                                <span style={{ color: "#8b9ab0" }}>{updatedLabel}</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <AnimatePresence>
-                {showEdit && profile && (
-                    <EditProfileModal
-                        profile={profile}
-                        userEmail={currentUser?.email}
-                        onClose={() => setShowEdit(false)}
-                        onSaved={() => {
-                            fetchProfile();
-                        }}
-                    />
-                )}
-            </AnimatePresence>
+            {showEdit && profile && (
+                <EditProfileModal
+                    profile={profile}
+                    userEmail={currentUser?.email}
+                    onClose={() => setShowEdit(false)}
+                    onSaved={fetchProfile}
+                />
+            )}
         </div>
     );
 }

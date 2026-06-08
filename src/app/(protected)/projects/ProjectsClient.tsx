@@ -1,168 +1,369 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Tables } from "@/types/database";
-import { Cpu, Filter, FolderPlus } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { FolderOpen, Lightbulb, ArrowRight } from "lucide-react";
+import { Tables } from "@/types/database";
 import { useUser } from "@/lib/hooks/useUser";
 
 type Project = Tables<"projects">;
 
-const statusConfig: Record<string, { class: string; label: string }> = {
-    ongoing: { class: "status-ongoing", label: "Ongoing" },
-    in_progress: { class: "status-ongoing", label: "In Progress" },
-    planning: { class: "status-ongoing", label: "Planning" },
-    completed: { class: "status-completed", label: "Completed" },
-    archived: { class: "status-archived", label: "Archived" },
-    on_hold: { class: "status-archived", label: "On Hold" },
+// ─── Status config ─────────────────────────────────────────────────────────────
+
+const STATUS: Record<string, { label: string; bg: string; text: string }> = {
+  in_progress: { label: "IN PROGRESS", bg: "rgba(245,158,11,0.85)",  text: "#07090f" },
+  ongoing:     { label: "IN PROGRESS", bg: "rgba(245,158,11,0.85)",  text: "#07090f" },
+  completed:   { label: "COMPLETED",   bg: "rgba(34,197,94,0.85)",   text: "#07090f" },
+  archived:    { label: "ARCHIVED",    bg: "rgba(139,154,176,0.85)", text: "#07090f" },
+  on_hold:     { label: "ON HOLD",     bg: "rgba(139,154,176,0.85)", text: "#07090f" },
+  planning:    { label: "PLANNING",    bg: "rgba(0,229,255,0.85)",   text: "#07090f" },
 };
 
-const filterMatchesStatus = (filter: string, status: string) => {
-    if (filter === "all") return true;
-    if (filter === "in_progress") {
-        return ["ongoing", "in_progress", "planning", "on_hold"].includes(status);
-    }
+// ─── Filters ──────────────────────────────────────────────────────────────────
 
-    return status === filter;
-};
+const FILTERS = [
+  { key: "all",         label: "All" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "completed",   label: "Completed" },
+  { key: "archived",    label: "Archived" },
+];
 
-const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-    }),
-};
+function matchesFilter(filter: string, status: string) {
+  if (filter === "all") return true;
+  if (filter === "in_progress") return ["in_progress", "ongoing", "planning"].includes(status);
+  if (filter === "archived")    return ["archived", "on_hold"].includes(status);
+  return status === filter;
+}
+
+// ─── Hue from project id ───────────────────────────────────────────────────────
+
+function projectHue(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
+  return h % 360;
+}
+
+// ─── SVG cover fallback ────────────────────────────────────────────────────────
+
+function ProjectCoverFallback({ hue }: { hue: number }) {
+  const id = useMemo(() => Math.random().toString(36).slice(2), []);
+  const tint = `hsl(${hue} 90% 60%)`;
+  const c1   = `hsl(${hue} 60% 12%)`;
+  const c2   = `hsl(${(hue + 30) % 360} 70% 7%)`;
+  return (
+    <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice" className="w-full h-full block">
+      <defs>
+        <linearGradient id={`pcg-${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={c1} /><stop offset="100%" stopColor={c2} />
+        </linearGradient>
+        <pattern id={`pcs-${id}`} width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+          <line x1="0" y1="0" x2="0" y2="14" stroke={tint} strokeWidth="1.1" opacity="0.09" />
+        </pattern>
+      </defs>
+      <rect width="400" height="225" fill={`url(#pcg-${id})`} />
+      <rect width="400" height="225" fill={`url(#pcs-${id})`} />
+      <g stroke={tint} fill="none" strokeWidth="1" opacity="0.25">
+        <path d="M0 60 L70 60 L82 72 L160 72" />
+        <path d="M260 168 L320 168 L332 180 L400 180" />
+        <circle cx="70"  cy="60"  r="2" fill={tint} />
+        <circle cx="332" cy="180" r="2" fill={tint} />
+      </g>
+      <path d="M0 0 H16 M0 0 V16"       stroke={tint} strokeWidth="1.5" opacity="0.85" />
+      <path d="M400 0 H384 M400 0 V16"  stroke={tint} strokeWidth="1.5" opacity="0.6"  />
+      <path d="M0 225 H16 M0 225 V209"  stroke={tint} strokeWidth="1.5" opacity="0.6"  />
+      <path d="M400 225 H384 M400 225 V209" stroke={tint} strokeWidth="1.5" opacity="0.85" />
+      <g stroke={tint} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"
+         transform="translate(176,98.5)" opacity="0.80">
+        <rect x="0" y="0" width="48" height="48" rx="4" />
+        <rect x="10" y="10" width="28" height="28" rx="2" />
+        <line x1="-8" y1="14" x2="0" y2="14" /><line x1="-8" y1="22" x2="0" y2="22" />
+        <line x1="-8" y1="30" x2="0" y2="30" /><line x1="-8" y1="38" x2="0" y2="38" />
+        <line x1="48" y1="14" x2="56" y2="14" /><line x1="48" y1="22" x2="56" y2="22" />
+        <line x1="48" y1="30" x2="56" y2="30" /><line x1="48" y1="38" x2="56" y2="38" />
+        <line x1="14" y1="-8" x2="14" y2="0" /><line x1="22" y1="-8" x2="22" y2="0" />
+        <line x1="30" y1="-8" x2="30" y2="0" /><line x1="38" y1="-8" x2="38" y2="0" />
+        <line x1="14" y1="48" x2="14" y2="56" /><line x1="22" y1="48" x2="22" y2="56" />
+        <line x1="30" y1="48" x2="30" y2="56" /><line x1="38" y1="48" x2="38" y2="56" />
+      </g>
+    </svg>
+  );
+}
+
+// ─── Tech chip ─────────────────────────────────────────────────────────────────
+
+function TechChip({ label, extra }: { label?: string; extra?: number }) {
+  if (extra) {
+    return (
+      <span className="shrink-0 inline-flex items-center h-5 px-2 rounded-sm border border-[rgba(0,229,255,0.12)] bg-[#07090f]/60 font-mono text-[9.5px] uppercase tracking-[0.08em] text-[#8b9ab0]">
+        +{extra}
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 inline-flex items-center h-5 px-2 rounded-sm border border-[rgba(0,229,255,0.35)] bg-[#07090f]/70 font-mono text-[9.5px] uppercase tracking-[0.08em] text-[#f0f4ff]">
+      {label}
+    </span>
+  );
+}
+
+// ─── Project card ──────────────────────────────────────────────────────────────
+
+const MAX_TAGS = 4;
+
+function ProjectCard({ project, delay, shown }: { project: Project; delay: number; shown: boolean }) {
+  const [hover, setHover] = useState(false);
+  const st = STATUS[project.status] ?? STATUS.planning;
+  const hue = useMemo(() => projectHue(project.id), [project.id]);
+  const tags = project.tech_stack ?? [];
+  const visibleTags = tags.slice(0, MAX_TAGS);
+  const extra = tags.length - MAX_TAGS;
+
+  return (
+    <Link href={`/projects/${project.id}`} className="block">
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        className="relative w-full text-left bg-[#0d1117] rounded-md overflow-hidden"
+        style={{
+          border: `1px solid ${hover ? "rgba(0,229,255,0.32)" : "rgba(0,229,255,0.12)"}`,
+          boxShadow: hover
+            ? "0 0 0 1px rgba(0,229,255,0.12), 0 16px 36px -18px rgba(0,0,0,0.75), 0 0 24px -10px rgba(0,229,255,0.4)"
+            : "none",
+          transform: hover ? "translateY(-2px)" : "translateY(0)",
+          opacity: shown ? 1 : 0,
+          transition: [
+            "border-color 180ms",
+            "box-shadow 220ms",
+            "transform 200ms cubic-bezier(.2,.7,.2,1)",
+            `opacity 450ms ${delay}ms cubic-bezier(.2,.7,.2,1)`,
+          ].join(", "),
+        }}
+      >
+        {/* Cover */}
+        <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
+          <div
+            className="absolute inset-0 transition-transform duration-300"
+            style={{ transform: hover ? "scale(1.025)" : "scale(1)" }}
+          >
+            {project.cover_image_url ? (
+              <img
+                src={project.cover_image_url}
+                alt={project.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <ProjectCoverFallback hue={hue} />
+            )}
+          </div>
+
+          {/* Status badge */}
+          <span
+            className="pointer-events-none absolute top-2.5 right-2.5 inline-flex items-center h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] font-semibold"
+            style={{ color: st.text, background: st.bg, backdropFilter: "blur(4px)" }}
+          >
+            {st.label}
+          </span>
+        </div>
+
+        {/* Body */}
+        <div className="p-3.5">
+          <div className="font-sans font-semibold text-[#f0f4ff] text-[14.5px] tracking-tight leading-snug">{project.title}</div>
+          <p
+            className="text-[#8b9ab0] text-[12.5px] mt-1.5 leading-relaxed"
+            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}
+          >
+            {project.description}
+          </p>
+
+          {visibleTags.length > 0 && (
+            <div className="flex items-center flex-nowrap gap-1 mt-3 overflow-hidden">
+              {visibleTags.map((t) => <TechChip key={t} label={t} />)}
+              {extra > 0 && <TechChip extra={extra} />}
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ─── Filter pills ──────────────────────────────────────────────────────────────
+
+function FilterPills({ value, onChange, counts }: {
+  value: string;
+  onChange: (v: string) => void;
+  counts: Record<string, number>;
+}) {
+  return (
+    <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
+      {FILTERS.map((f) => {
+        const active = value === f.key;
+        return (
+          <button
+            key={f.key}
+            onClick={() => onChange(f.key)}
+            className="shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.16em] whitespace-nowrap transition-all duration-150"
+            style={{
+              color:      active ? "#00e5ff" : "#8b9ab0",
+              background: active ? "rgba(0,229,255,0.10)" : "transparent",
+              border:     `1px solid ${active ? "rgba(0,229,255,0.55)" : "rgba(0,229,255,0.12)"}`,
+              boxShadow:  active ? "0 0 16px -4px rgba(0,229,255,0.45)" : "none",
+            }}
+            onMouseEnter={(e) => { if (!active) { e.currentTarget.style.color = "#f0f4ff"; e.currentTarget.style.borderColor = "rgba(0,229,255,0.30)"; }}}
+            onMouseLeave={(e) => { if (!active) { e.currentTarget.style.color = "#8b9ab0"; e.currentTarget.style.borderColor = "rgba(0,229,255,0.12)"; }}}
+          >
+            <span>{f.label}</span>
+            <span className="font-mono text-[9.5px] tabular-nums" style={{ color: active ? "rgba(0,229,255,0.85)" : "#4a5568" }}>
+              {String(counts[f.key] ?? 0).padStart(2, "0")}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Empty state ───────────────────────────────────────────────────────────────
+
+function ProjectsEmpty({ isFiltered, onClear }: { isFiltered: boolean; onClear: () => void }) {
+  return (
+    <div
+      className="relative border border-dashed rounded-md overflow-hidden corner-ticks"
+      style={{ borderColor: "rgba(0,229,255,0.18)", background: "rgba(13,17,23,0.4)" }}
+    >
+      <span className="ct-tr" /><span className="ct-bl" />
+      <div
+        className="absolute inset-0 opacity-50 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
+      <div className="relative text-center py-16 px-6">
+        <div
+          className="mx-auto w-14 h-14 grid place-items-center rounded-md text-[#4a5568] mb-4"
+          style={{ border: "1px solid rgba(0,229,255,0.12)", background: "#07090f" }}
+        >
+          <FolderOpen size={22} />
+        </div>
+        <h3 className="text-[#f0f4ff] font-bold text-[18px] tracking-tight">No projects found</h3>
+        <p className="text-[#8b9ab0] text-[13px] mt-1.5 max-w-[42ch] mx-auto leading-relaxed">
+          {isFiltered
+            ? "No projects match that filter. Try a different status or clear to see all."
+            : "You haven't been added to any projects yet. Propose one or ask your lead to invite you."}
+        </p>
+        {isFiltered && (
+          <div className="mt-5">
+            <button
+              onClick={onClear}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] transition-colors"
+            >
+              Show all projects
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProjectsClient({ projects }: { projects: Project[] }) {
-    const [filter, setFilter] = useState<string>("all");
-    const { isAuthenticated, isFaculty } = useUser();
-    const filtered = projects.filter((project) => filterMatchesStatus(filter, project.status));
+  const { isFaculty } = useUser();
+  const [filter, setFilter] = useState("all");
+  const [shown,  setShown]  = useState(false);
 
-    return (
-        <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(0,229,255,0.10),transparent_30%),radial-gradient(circle_at_88%_14%,rgba(0,218,243,0.08),transparent_28%)]" />
+  useEffect(() => {
+    const id = setTimeout(() => setShown(true), 60);
+    return () => clearTimeout(id);
+  }, []);
 
-            <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
-                <div className="mb-11 flex flex-col gap-6">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                        <div>
-                            <h1 className="section-title mb-3 text-2xl sm:text-3xl">
-                                {isFaculty ? "Projects" : "My Projects"}
-                            </h1>
-                            <p className="max-w-xl text-text-secondary">
-                                {isFaculty 
-                                    ? "Explore our robotics R&D portfolio, from first prototype to competition-ready systems."
-                                    : "Manage and track the progress of your robotics projects."}
-                            </p>
-                        </div>
-                        {isAuthenticated && (
-                            <Link
-                                href="/projects/request"
-                                className="btn-primary w-fit text-sm !px-5 !py-2.5"
-                            >
-                                <FolderPlus className="h-4 w-4" />
-                                Propose a Project
-                            </Link>
-                        )}
-                    </div>
+  useEffect(() => {
+    setShown(false);
+    const id = setTimeout(() => setShown(true), 60);
+    return () => clearTimeout(id);
+  }, [filter]);
 
-                    <div className="glass inline-flex w-full flex-wrap items-center gap-2 rounded-lg px-3 py-2 sm:w-fit">
-                        <Filter className="h-4 w-4 text-text-muted" />
-                        {["all", "in_progress", "completed", "archived"].map((s) => {
-                            const isActive = filter === s;
-                            return (
-                                <button
-                                    key={s}
-                                    onClick={() => setFilter(s)}
-                                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition-all sm:text-sm ${
-                                        isActive
-                                            ? "border-cyan-300/35 bg-cyan-300/14 text-cyan-100 shadow-[0_0_20px_rgba(0,242,255,0.15)]"
-                                            : "border-transparent text-text-muted hover:border-white/12 hover:bg-white/[0.05] hover:text-text-secondary"
-                                    }`}
-                                >
-                                    {s.replace("_", " ")}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: projects.length };
+    projects.forEach((p) => {
+      // normalize ongoing → in_progress bucket
+      const bucket = p.status === "ongoing" ? "in_progress" : p.status;
+      c[bucket] = (c[bucket] ?? 0) + 1;
+      if (p.status === "on_hold") c.archived = (c.archived ?? 0) + 1;
+    });
+    c.in_progress = (c.in_progress ?? 0);
+    c.completed   = (c.completed   ?? 0);
+    c.archived    = (c.archived    ?? 0);
+    return c;
+  }, [projects]);
 
-                {filtered.length === 0 ? (
-                    <div className="glass p-4 md:p-5 md:p-8 md:p-16 text-center">
-                        <Cpu className="mx-auto mb-4 h-12 w-12 text-text-muted" />
-                        <h3 className="mb-2 text-lg font-semibold">No projects yet</h3>
-                        <p className="text-text-muted text-sm">
-                            Projects will appear here once the club faculty adds them.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {filtered.map((project, i) => (
-                            <Link key={project.id} href={`/projects/${project.id}`} className="block">
-                                <motion.div
-                                    custom={i}
-                                    initial="hidden"
-                                    animate="visible"
-                                    variants={fadeUp}
-                                    className="glass energy-card group relative overflow-hidden rounded-lg border-[var(--ghost-border)] transition-all duration-500 hover:border-cyan-300/32"
-                                >
-                                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                                        <div className="absolute -left-10 top-0 h-24 w-24 rounded-full bg-cyan-300/20 blur-2xl" />
-                                        <div className="absolute -bottom-10 right-0 h-28 w-28 rounded-full bg-primary/20 blur-2xl" />
-                                    </div>
+  const items = useMemo(() => {
+    if (filter === "all") return projects;
+    return projects.filter((p) => matchesFilter(filter, p.status));
+  }, [filter, projects]);
 
-                                    {project.cover_image_url ? (
-                                        <div className="aspect-video overflow-hidden">
-                                            <img
-                                                src={project.cover_image_url}
-                                                alt={project.title}
-                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="flex aspect-video items-center justify-center bg-surface-light/70">
-                                            <Cpu className="h-12 w-12 text-text-muted/30" />
-                                        </div>
-                                    )}
-
-                                    <div className="relative p-5 sm:p-6">
-                                        <div className="mb-3 flex items-start justify-between gap-3">
-                                            <h3 className="line-clamp-1 text-lg font-semibold transition-colors group-hover:text-cyan-100">
-                                                {project.title}
-                                            </h3>
-                                            <span
-                                                className={`badge whitespace-nowrap text-[10px] ${
-                                                    statusConfig[project.status]?.class ?? "status-archived"
-                                                }`}
-                                            >
-                                                {statusConfig[project.status]?.label ?? project.status}
-                                            </span>
-                                        </div>
-                                        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-text-secondary">
-                                            {project.description}
-                                        </p>
-                                        {project.tech_stack && project.tech_stack.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {project.tech_stack.map((tech) => (
-                                                    <span
-                                                        key={tech}
-                                                        className="rounded-md border border-white/10 bg-[#0e223c]/70 px-2 py-0.5 font-mono text-[11px] text-text-muted"
-                                                    >
-                                                        {tech}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            </Link>
-                        ))}
-                    </div>
-                )}
-            </div>
+  return (
+    <div className="px-8 pt-10 pb-16 min-h-screen bg-[#07090f]">
+      {/* Page header */}
+      <div className="flex items-end justify-between gap-6 mb-7 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="h-px w-8 bg-[#00e5ff]/60" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
+              // WORKSPACE / PROJECTS
+            </span>
+          </div>
+          <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[36px] leading-none">
+            {isFaculty ? "Projects" : "My Projects"}
+          </h1>
+          <p className="text-[#8b9ab0] text-[13.5px] mt-2.5 max-w-[64ch] leading-relaxed">
+            {isFaculty
+              ? "Explore our robotics R&D portfolio, from first prototype to competition-ready systems."
+              : "Projects you've been added to or proposed. Click any card to open the workspace."}
+          </p>
         </div>
-    );
+        <Link
+          href="/projects/request"
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b9ab0] border border-[rgba(0,229,255,0.18)] hover:text-[#f0f4ff] hover:border-[rgba(0,229,255,0.40)] transition-colors"
+        >
+          <Lightbulb size={14} />
+          Propose a Project
+          <ArrowRight size={12} />
+        </Link>
+      </div>
+
+      {/* Filters + meta */}
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
+        <FilterPills value={filter} onChange={setFilter} counts={counts} />
+        <div className="flex-1" />
+        <div className="hidden md:flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.18em] text-[#8b9ab0]">
+          <span
+            className="w-[7px] h-[7px] rounded-full bg-[#22c55e] animate-pulse shrink-0"
+            style={{ boxShadow: "0 0 6px rgba(34,197,94,0.7)" }}
+          />
+          <span>
+            {String(items.length).padStart(2, "0")} of {String(projects.length).padStart(2, "0")} showing
+          </span>
+        </div>
+      </div>
+
+      {/* Grid or empty */}
+      {items.length === 0 ? (
+        <ProjectsEmpty isFiltered={filter !== "all"} onClear={() => setFilter("all")} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+          {items.map((p, i) => (
+            <ProjectCard
+              key={p.id}
+              project={p}
+              delay={Math.min(i, 12) * 40}
+              shown={shown}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
