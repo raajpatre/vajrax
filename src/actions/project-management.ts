@@ -80,9 +80,14 @@ export async function deleteProject(
     if (!user) return { ok: false, error: "Not authenticated." };
 
     // Use service role for authorization lookups — RLS may block the user
-    // from reading project_members rows even for their own memberships.
+    // from reading project/project_members rows even for their own records.
     const admin = createAdminClient();
-    const [{ data: membership }, { data: profile }] = await Promise.all([
+    const [{ data: project }, { data: membership }, { data: profile }] = await Promise.all([
+        admin
+            .from("projects")
+            .select("id, created_by")
+            .eq("id", projectId)
+            .maybeSingle(),
         admin
             .from("project_members")
             .select("role")
@@ -96,11 +101,21 @@ export async function deleteProject(
             .maybeSingle(),
     ]);
 
+    if (!project) return { ok: false, error: "Project not found." };
+
     const canDelete =
+        project.created_by === user.id ||
         membership?.role === "lead" ||
         (profile?.role ? PROJECT_MANAGER_ROLES.has(profile.role) : false);
 
     if (!canDelete) return { ok: false, error: "Only the project lead or faculty can delete a project." };
+
+    // Remove child rows first so foreign-key constraints can't block the delete
+    // (these FKs may not have ON DELETE CASCADE configured in the database).
+    await admin.from("project_members").delete().eq("project_id", projectId);
+    await admin.from("project_invites").delete().eq("project_id", projectId);
+    await admin.from("project_updates").delete().eq("project_id", projectId);
+    await admin.from("gallery_items").update({ project_id: null }).eq("project_id", projectId);
 
     const { error } = await admin.from("projects").delete().eq("id", projectId);
     if (error) return { ok: false, error: error.message };
