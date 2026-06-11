@@ -21,6 +21,7 @@ import {
     Settings2,
     ShieldOff,
     Trash2,
+    Upload,
     X,
 } from "lucide-react";
 import Link from "next/link";
@@ -342,6 +343,8 @@ export default function ProjectManagePage() {
     const [savingSettings, setSavingSettings] = useState(false);
     const [settingsSaved, setSettingsSaved] = useState(false);
     const [settingsError, setSettingsError] = useState<string | null>(null);
+    const [coverUploading, setCoverUploading] = useState(false);
+    const coverFileRef = useRef<HTMLInputElement>(null);
 
     // team management
     const [inviteEmail, setInviteEmail] = useState("");
@@ -780,23 +783,78 @@ export default function ProjectManagePage() {
                                 className="font-mono text-[10px] uppercase tracking-[0.18em]"
                                 style={{ color: "#8b9ab0" }}
                             >
-                                Cover Image URL
+                                Cover Image
                             </label>
-                            <div className="relative">
-                                <ImageIcon
-                                    size={14}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                                    style={{ color: "#4a5568" }}
-                                />
-                                <input
-                                    type="text"
-                                    value={settingsCover}
-                                    onChange={(e) => setSettingsCover(e.target.value)}
-                                    placeholder="https:// or Google Drive share link"
-                                    className="w-full h-9 pl-8 pr-3 rounded-sm text-[13px] bg-[#07090f] text-[#f0f4ff] placeholder:text-[#4a5568] focus-cyan transition-colors"
-                                    style={fieldBorder}
-                                />
-                            </div>
+                            <input
+                                ref={coverFileRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="hidden"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setCoverUploading(true);
+                                    try {
+                                        const fd = new FormData();
+                                        fd.append("file", file);
+                                        fd.append("folder", "projects");
+                                        const res = await fetch("/api/cloudinary/upload", { method: "POST", body: fd });
+                                        const json = await res.json();
+                                        if (!res.ok) throw new Error(json.error ?? "Upload failed");
+                                        setSettingsCover(json.url);
+                                    } catch (err) {
+                                        setSettingsError(err instanceof Error ? err.message : "Upload failed");
+                                    } finally {
+                                        setCoverUploading(false);
+                                        e.target.value = "";
+                                    }
+                                }}
+                            />
+                            {settingsCover ? (
+                                <div className="relative rounded-sm overflow-hidden" style={{ border: "1px solid rgba(0,229,255,0.18)" }}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={settingsCover}
+                                        alt="Cover preview"
+                                        className="w-full h-32 object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => coverFileRef.current?.click()}
+                                            disabled={coverUploading}
+                                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm font-mono text-[11px] uppercase tracking-[0.12em] text-[#07090f] disabled:opacity-50 transition-all"
+                                            style={{ background: "#00e5ff" }}
+                                        >
+                                            {coverUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                                            {coverUploading ? "Uploading…" : "Replace"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSettingsCover("")}
+                                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm font-mono text-[11px] uppercase tracking-[0.12em] transition-all"
+                                            style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}
+                                        >
+                                            <X size={12} /> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => coverFileRef.current?.click()}
+                                    disabled={coverUploading}
+                                    className="w-full h-24 rounded-sm font-mono text-[11px] uppercase tracking-[0.12em] flex flex-col items-center justify-center gap-2 disabled:opacity-50 transition-colors hover:border-[rgba(0,229,255,0.35)]"
+                                    style={{ border: "1px dashed rgba(0,229,255,0.18)", color: "#4a5568" }}
+                                >
+                                    {coverUploading ? (
+                                        <Loader2 size={18} className="animate-spin" style={{ color: "#00e5ff" }} />
+                                    ) : (
+                                        <ImageIcon size={18} />
+                                    )}
+                                    {coverUploading ? "Uploading…" : "Click to upload cover image"}
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-1.5">
