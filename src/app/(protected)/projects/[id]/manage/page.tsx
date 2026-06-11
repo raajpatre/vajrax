@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { removeProjectMember } from "@/actions/project-members";
+import { deleteProject } from "@/actions/project-management";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -631,12 +632,12 @@ export default function ProjectManagePage() {
     const handleDelete = async () => {
         if (!confirm("Permanently delete this project? This cannot be undone.")) return;
         setActionLoading("delete");
-        const { error } = await supabase.from("projects").delete().eq("id", id);
-        if (!error) {
+        const result = await deleteProject(id);
+        if (result.ok) {
             router.push("/projects");
         } else {
             setActionLoading(null);
-            alert("Failed to delete project: " + error.message);
+            alert("Failed to delete project: " + result.error);
         }
     };
 
