@@ -18,24 +18,18 @@ export async function removeProjectMember(input: {
         return { ok: false, error: "Not authenticated." };
     }
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
+    const adminSupabase = createAdminClient();
 
-    const { data: project } = await supabase
-        .from("projects")
-        .select("created_by")
-        .eq("id", input.projectId)
-        .maybeSingle();
-
-    const { data: actorMembership } = await supabase
-        .from("project_members")
-        .select("role")
-        .eq("project_id", input.projectId)
-        .eq("user_id", user.id)
-        .maybeSingle();
+    const [{ data: profile }, { data: project }, { data: actorMembership }] = await Promise.all([
+        adminSupabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+        adminSupabase.from("projects").select("created_by").eq("id", input.projectId).maybeSingle(),
+        adminSupabase
+            .from("project_members")
+            .select("role")
+            .eq("project_id", input.projectId)
+            .eq("user_id", user.id)
+            .maybeSingle(),
+    ]);
 
     const isManager =
         project?.created_by === user.id ||
@@ -45,8 +39,6 @@ export async function removeProjectMember(input: {
     if (!isManager) {
         return { ok: false, error: "Not authorized to remove members from this project." };
     }
-
-    const adminSupabase = createAdminClient();
 
     const { data: targetMember } = await adminSupabase
         .from("project_members")
