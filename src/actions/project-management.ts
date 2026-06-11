@@ -79,15 +79,17 @@ export async function deleteProject(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "Not authenticated." };
 
-    // Verify caller is a lead of this project or has club-wide authority
+    // Use service role for authorization lookups — RLS may block the user
+    // from reading project_members rows even for their own memberships.
+    const admin = createAdminClient();
     const [{ data: membership }, { data: profile }] = await Promise.all([
-        supabase
+        admin
             .from("project_members")
             .select("role")
             .eq("project_id", projectId)
             .eq("user_id", user.id)
             .maybeSingle(),
-        supabase
+        admin
             .from("profiles")
             .select("role")
             .eq("id", user.id)
@@ -100,8 +102,6 @@ export async function deleteProject(
 
     if (!canDelete) return { ok: false, error: "Only the project lead or faculty can delete a project." };
 
-    // Use service role to bypass RLS — authorization is checked above
-    const admin = createAdminClient();
     const { error } = await admin.from("projects").delete().eq("id", projectId);
     if (error) return { ok: false, error: error.message };
 
