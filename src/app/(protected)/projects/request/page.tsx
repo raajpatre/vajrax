@@ -188,7 +188,7 @@ export default function ProjectRequestPage() {
                         // WORKSPACE / PROPOSE
                     </span>
                 </div>
-                <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[38px] leading-none">
+                <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] leading-none" style={{ fontSize: "clamp(24px, 5vw, 38px)" }}>
                     Propose a Project
                 </h1>
                 <p className="text-[#8b9ab0] text-[14px] mt-3 leading-relaxed">

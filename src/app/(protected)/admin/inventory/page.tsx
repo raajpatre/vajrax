@@ -830,7 +830,7 @@ export default function InventoryManagement() {
     }
 
     return (
-        <div className="relative max-w-7xl mx-auto px-8 pt-10 pb-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
             {/* Subtle grid overlay */}
             <div
                 className="fixed inset-0 pointer-events-none"

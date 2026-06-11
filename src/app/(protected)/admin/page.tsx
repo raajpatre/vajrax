@@ -604,14 +604,14 @@ export default function AdminDashboard() {
                 }}
             />
             <div
-                className="fixed bottom-0 left-64 w-[500px] h-[400px] pointer-events-none"
+                className="fixed bottom-0 left-0 lg:left-64 w-[500px] h-[400px] pointer-events-none"
                 style={{
                     background:
                         "radial-gradient(ellipse,rgba(167,139,250,0.04) 0%,transparent 70%)",
                 }}
             />
 
-            <div className="relative max-w-6xl mx-auto px-8 pt-10 pb-20">
+            <div className="relative max-w-6xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
                 {/* Page header */}
                 <div className="flex items-start justify-between gap-6 mb-6">
                     <div>
@@ -629,7 +629,7 @@ export default function AdminDashboard() {
                         </div>
                         <h1
                             className="font-sans font-black tracking-tight leading-none"
-                            style={{ fontSize: 34, color: "#f0f4ff" }}
+                            style={{ fontSize: "clamp(22px, 4vw, 34px)", color: "#f0f4ff" }}
                         >
                             Admin Dashboard
                         </h1>
@@ -637,7 +637,7 @@ export default function AdminDashboard() {
                             Club management and oversight.
                         </p>
                     </div>
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 hidden sm:block">
                         <div
                             className="font-mono text-[10.5px] uppercase tracking-[0.16em]"
                             style={{ color: "#4a5568" }}

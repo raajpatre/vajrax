@@ -393,9 +393,8 @@ function RequestDrawer({ req, open, onClose }: {
                 />
             )}
             <div
-                className="fixed top-0 right-0 bottom-0 z-[91] flex flex-col"
+                className="fixed top-0 right-0 bottom-0 z-[91] flex flex-col w-full sm:w-[400px]"
                 style={{
-                    width: 400,
                     background: "#0d1117",
                     borderLeft: "1px solid rgba(0,229,255,0.18)",
                     boxShadow: "-8px 0 32px rgba(0,0,0,0.55)",
@@ -634,7 +633,7 @@ export default function MyRequestsPage() {
     if (userLoading || loading) return <VajraLoader fullPage />;
 
     return (
-        <div className="max-w-5xl mx-auto px-8 pt-10 pb-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16">
             {/* Page header */}
             <div className="mb-7">
                 <div className="flex items-center gap-2 mb-3">
@@ -645,7 +644,7 @@ export default function MyRequestsPage() {
                 </div>
                 <div className="flex items-end justify-between gap-4 flex-wrap">
                     <div>
-                        <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[36px] leading-none">
+                        <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] leading-none" style={{ fontSize: "clamp(24px, 5vw, 36px)" }}>
                             My Requests
                         </h1>
                         <p className="text-[#8b9ab0] text-[13.5px] mt-2">

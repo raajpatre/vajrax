@@ -809,7 +809,7 @@ export default function MemberManagement() {
                 }}
             />
 
-            <div className="relative max-w-3xl mx-auto px-8 pt-10 pb-20">
+            <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
                 {/* Kicker */}
                 <div className="flex items-center gap-2 mb-2">
                     <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
@@ -826,7 +826,7 @@ export default function MemberManagement() {
                     <div>
                         <h1
                             className="font-sans font-black tracking-tight"
-                            style={{ fontSize: 30, color: "#f0f4ff" }}
+                            style={{ fontSize: "clamp(22px, 4vw, 30px)", color: "#f0f4ff" }}
                         >
                             Member Management
                         </h1>

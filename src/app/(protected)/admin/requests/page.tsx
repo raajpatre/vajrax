@@ -930,7 +930,8 @@ function HistoryTable({ entries }: { entries: HistoryEntry[] }) {
             style={{ borderColor: "rgba(0,229,255,0.12)", color: "#4a5568", background: "#0d1117" }}>// no history</div>
     );
     return (
-        <div className="rounded-md overflow-hidden" style={{ border: "1px solid rgba(0,229,255,0.12)" }}>
+        <div className="overflow-x-auto rounded-md" style={{ border: "1px solid rgba(0,229,255,0.12)" }}>
+        <div className="min-w-[560px]">
             <div className="grid border-b px-4 h-9 items-center" style={{ gridTemplateColumns: "1fr 1fr 1.5fr 0.8fr 1fr", background: "rgba(0,229,255,0.05)", borderColor: "rgba(0,229,255,0.12)" }}>
                 {HIST_COLS.map(c => <span key={c} className="font-mono text-[9.5px] uppercase tracking-[0.18em]" style={{ color: "#4a5568" }}>{c}</span>)}
             </div>
@@ -946,6 +947,7 @@ function HistoryTable({ entries }: { entries: HistoryEntry[] }) {
                     <span className="font-mono text-[11px]" style={{ color: "#8b9ab0" }}>{h.approver?.display_name || "Unknown"}</span>
                 </div>
             ))}
+        </div>
         </div>
     );
 }
@@ -1166,7 +1168,7 @@ export default function AdminRequestsPage() {
     return (
         <div className="min-h-screen relative" style={{ background: "#07090f" }}>
         <div className="fixed inset-0 pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
-        <div className="relative max-w-5xl mx-auto px-8 pt-10 pb-20">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
             {/* Page header */}
             <div className="mb-7">
                 <div className="flex items-center gap-2 mb-3">

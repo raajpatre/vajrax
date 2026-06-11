@@ -209,19 +209,6 @@ body {
 }
 .scroll-bounce { animation: scrollBounce 2.2s ease-in-out infinite; }
 
-@keyframes marqueeL {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(var(--marquee-offset, -50%)); }
-}
-
-@keyframes marqueeR {
-  0%   { transform: translateX(var(--marquee-offset, -50%)); }
-  100% { transform: translateX(0); }
-}
-
-.marquee-host:hover .marquee-track {
-  animation-play-state: paused;
-}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }

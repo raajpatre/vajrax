@@ -133,13 +133,22 @@ export async function reviewProjectRequest(input: {
         return { ok: false, error: requestError?.message || "Project request not found." };
     }
 
-    const { error: updateError } = await supabase
+    // Only update if the request is still pending — prevents duplicate project creation
+    // if this action is called twice (e.g. double-click or concurrent request).
+    const { data: updatedRows, error: updateError } = await supabase
         .from("project_requests")
         .update({ status: input.action, reviewed_by: user.id })
-        .eq("id", input.requestId);
+        .eq("id", input.requestId)
+        .eq("status", "pending")
+        .select("id");
 
     if (updateError) {
         return { ok: false, error: updateError.message };
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+        // Request was already reviewed — nothing to do, avoid duplicate project.
+        return { ok: true };
     }
 
     if (input.action === "approved") {
