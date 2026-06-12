@@ -86,7 +86,7 @@ function isStockVisibleToUser(input: { isFaculty: boolean; isModerator: boolean;
 }
 
 function getAvailMeta(item: InventoryItem, canViewExact: boolean) {
-    const isAvail = canViewExact ? item.available_quantity > 0 : item.available_quantity > 2;
+    const isAvail = item.available_quantity > 0;
     return {
         isAvail,
         label: canViewExact
