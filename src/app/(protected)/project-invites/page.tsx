@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@/lib/hooks/useUser";
+import { getMyProjectInvites, respondToProjectInvite } from "@/actions/project-invites";
 import VajraLoader from "@/components/ui/VajraLoader";
 import {
     Mail,
@@ -18,8 +18,8 @@ interface Invite {
     id: string;
     status: string;
     created_at: string;
-    project: { id: string; title: string; description?: string | null; status: string };
-    inviter: { id: string; display_name: string; avatar_url: string | null };
+    project: { id: string; title: string; description?: string | null; status: string } | null;
+    inviter: { id: string; display_name: string; avatar_url: string | null } | null;
 }
 
 /* ── Avatar ───────────────────────────────────────── */
@@ -65,7 +65,11 @@ function PendingCard({
         setTimeout(() => onDecline(invite.id), 520);
     };
 
-    const inviterInitials = invite.inviter.display_name
+    const inviterName = invite.inviter?.display_name ?? "A project lead";
+    const projectId = invite.project?.id ?? "";
+    const projectTitle = invite.project?.title ?? "Untitled project";
+
+    const inviterInitials = inviterName
         .split(" ")
         .map((p) => p[0])
         .join("")
@@ -106,11 +110,11 @@ function PendingCard({
             <div className="px-5 py-4">
                 {/* Project title */}
                 <Link
-                    href={`/projects/${invite.project.id}`}
+                    href={projectId ? `/projects/${projectId}` : "#"}
                     className="inline-block font-sans font-semibold text-[15px] tracking-tight leading-tight mb-2 transition-colors"
                     style={{ color: hovered ? "#00e5ff" : "#f0f4ff" }}
                 >
-                    {invite.project.title}
+                    {projectTitle}
                 </Link>
 
                 {/* Inviter row */}
@@ -119,7 +123,7 @@ function PendingCard({
                     <span className="text-[12.5px]" style={{ color: "#8b9ab0" }}>
                         Invited by{" "}
                         <span className="font-medium" style={{ color: "#f0f4ff" }}>
-                            {invite.inviter.display_name}
+                            {inviterName}
                         </span>
                     </span>
                     <span className="flex-1" />
@@ -254,7 +258,7 @@ function PastRow({ invite }: { invite: Invite }) {
                 className="flex-1 font-sans text-[13.5px] tracking-tight truncate"
                 style={{ color: invite.status === "rejected" ? "#8b9ab0" : "#f0f4ff" }}
             >
-                {invite.project.title}
+                {invite.project?.title ?? "Untitled project"}
             </span>
 
             <span
@@ -377,33 +381,17 @@ function InvSectionHeader({
 /* ── Page ─────────────────────────────────────────── */
 export default function ProjectInvitesPage() {
     const { user, loading: userLoading } = useUser();
-    const supabase = useMemo(() => createClient(), []);
     const [invites, setInvites] = useState<Invite[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchInvites = useCallback(async () => {
         if (!user) return;
-        const { data } = await supabase
-            .from("project_invites")
-            .select(
-                "id, status, created_at, project:projects!project_invites_project_id_fkey(id, title, status), inviter:profiles!project_invites_inviter_id_fkey(id, display_name, avatar_url)"
-            )
-            .eq("invitee_id", user.id)
-            .order("created_at", { ascending: false });
-
-        if (data) {
-            setInvites(
-                data.map((inv) => ({
-                    id: inv.id,
-                    status: inv.status,
-                    created_at: inv.created_at,
-                    project: inv.project as unknown as Invite["project"],
-                    inviter: inv.inviter as unknown as Invite["inviter"],
-                }))
-            );
+        const result = await getMyProjectInvites();
+        if (result.ok) {
+            setInvites(result.invites);
         }
         setLoading(false);
-    }, [user, supabase]);
+    }, [user]);
 
     useEffect(() => {
         if (user) fetchInvites();
@@ -413,16 +401,11 @@ export default function ProjectInvitesPage() {
         const invite = invites.find((i) => i.id === inviteId);
         if (!invite || !user) return;
 
-        await supabase
-            .from("project_invites")
-            .update({ status: "accepted" })
-            .eq("id", inviteId);
-
-        await supabase.from("project_members").insert({
-            project_id: invite.project.id,
-            user_id: user.id,
-            role: "member",
-        });
+        const result = await respondToProjectInvite({ inviteId, action: "accepted" });
+        if (!result.ok) {
+            alert("Failed to accept invite: " + result.error);
+            return;
+        }
 
         setInvites((prev) =>
             prev.map((inv) => (inv.id === inviteId ? { ...inv, status: "accepted" } : inv))
@@ -430,10 +413,11 @@ export default function ProjectInvitesPage() {
     };
 
     const handleDecline = async (inviteId: string) => {
-        await supabase
-            .from("project_invites")
-            .update({ status: "rejected" })
-            .eq("id", inviteId);
+        const result = await respondToProjectInvite({ inviteId, action: "rejected" });
+        if (!result.ok) {
+            alert("Failed to decline invite: " + result.error);
+            return;
+        }
 
         setInvites((prev) =>
             prev.map((inv) => (inv.id === inviteId ? { ...inv, status: "rejected" } : inv))
