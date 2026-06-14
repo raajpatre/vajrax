@@ -516,11 +516,11 @@ export default function ProtectedSidebar() {
                         height: 56,
                         padding: collapsed && !mobileOpen ? "0" : "0 14px",
                         justifyContent: collapsed && !mobileOpen ? "center" : "flex-start",
-                        gap: 10,
+                        gap: 4,
                         borderBottom: "1px solid rgba(0,229,255,0.08)",
                     }}
                 >
-                    <Monogram size={20} />
+                    <Monogram size={32} />
                     {(!collapsed || mobileOpen) && (
                         <div className="leading-none min-w-0 overflow-hidden flex-1">
                             <div

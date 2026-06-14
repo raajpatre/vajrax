@@ -160,8 +160,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8">
           {/* COL 1 — Brand */}
           <div className="md:col-span-4">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <CircuitMark size={22} />
+            <Link href="/" className="inline-flex items-center gap-1">
+              <CircuitMark size={34} />
               <span className="font-sans font-extrabold text-fg text-[22px] tracking-tight leading-none">
                 Vajra<span style={{ color: "#00e5ff" }}>X</span>
               </span>

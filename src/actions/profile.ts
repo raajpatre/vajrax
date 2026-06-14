@@ -10,17 +10,22 @@ export async function getProfileProjectCounts(
 ): Promise<{ active: number; completed: number }> {
     const supabase = createAdminClient();
 
-    // Step 1: get all project IDs for this user (service role bypasses RLS)
-    const { data: memberships, error: memberErr } = await supabase
-        .from("project_members")
-        .select("project_id")
-        .eq("user_id", userId);
+    // Step 1: collect project IDs the user is part of — both as a member AND as
+    // the creator/lead (creators don't always have a project_members row).
+    // Service role bypasses RLS.
+    const [{ data: memberships }, { data: created }] = await Promise.all([
+        supabase.from("project_members").select("project_id").eq("user_id", userId),
+        supabase.from("projects").select("id").eq("created_by", userId),
+    ]);
 
-    if (memberErr || !memberships || memberships.length === 0) {
-        return { active: 0, completed: 0 };
-    }
+    const projectIds = Array.from(
+        new Set([
+            ...(memberships ?? []).map((m) => m.project_id as string),
+            ...(created ?? []).map((p) => p.id as string),
+        ])
+    );
 
-    const projectIds = memberships.map((m) => m.project_id as string);
+    if (projectIds.length === 0) return { active: 0, completed: 0 };
 
     // Step 2: get project statuses for those IDs
     const { data: projects, error: projErr } = await supabase
