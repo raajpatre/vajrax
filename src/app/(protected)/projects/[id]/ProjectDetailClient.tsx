@@ -5,11 +5,13 @@ import { createPortal } from "react-dom";
 import {
     ArrowLeft, Settings2, ExternalLink, X, Plus, Check,
     UserPlus, Loader2, Mail, AlertCircle, CheckCircle2, ImagePlus,
+    Pencil, Trash2, FileCode2, Download, Box, Copy, Paperclip,
 } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { removeProjectMember } from "@/actions/project-members";
+import { updateProjectLog, deleteProjectLog } from "@/actions/project-logs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,12 @@ interface ProjectMember {
     user: { id: string; display_name: string; avatar_url: string | null; username: string | null };
 }
 
+interface Attachment {
+    url: string;
+    name: string;
+    kind: "code" | "stl";
+}
+
 interface ProjectUpdate {
     id: string;
     title: string;
@@ -28,8 +36,29 @@ interface ProjectUpdate {
     source_urls: string[] | null;
     image_urls: string[] | null;
     video_urls: string[] | null;
+    attachments: Attachment[] | null;
     created_at: string | null;
     author: { id: string; display_name: string; avatar_url: string | null };
+}
+
+const LOG_SELECT =
+    "id, title, content, version_tag, source_urls, image_urls, video_urls, attachments, created_at, author:profiles!project_updates_author_id_fkey(id, display_name, avatar_url)";
+
+// Accepted code / 3D-model file extensions for log attachments.
+const CODE_EXTS = new Set([
+    "py","ipynb","c","h","cpp","hpp","cc","cxx","ino","js","jsx","ts","tsx","mjs","cjs",
+    "java","kt","go","rs","rb","php","swift","m","mm","cs","sh","bash","zsh","ps1","lua",
+    "r","jl","dart","html","css","scss","sql","json","yaml","yml","toml","xml","md","txt",
+    "csv","v","vhd","vhdl","gcode","nc","scad","urdf","xacro","launch",
+]);
+const ATTACH_ACCEPT = "." + [...CODE_EXTS, "stl"].join(",.");
+
+function attachmentKind(name: string): "code" | "stl" | null {
+    const dot = name.lastIndexOf(".");
+    const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
+    if (ext === "stl") return "stl";
+    if (CODE_EXTS.has(ext)) return "code";
+    return null;
 }
 
 interface ProjectData {
@@ -198,12 +227,120 @@ function LogThumb({ url, title, onClick }: { url: string; title: string; onClick
     );
 }
 
+// ─── Attachment helpers ─────────────────────────────────────────────────────────
+
+// Force a download (with the original filename) for a Cloudinary raw URL.
+function downloadUrl(url: string, name: string): string {
+    if (url.includes("/upload/")) {
+        return url.replace("/upload/", `/upload/fl_attachment:${encodeURIComponent(name)}/`);
+    }
+    return url;
+}
+
+// ─── Code viewer modal ───────────────────────────────────────────────────────────
+
+function CodeViewer({ attachment, onClose }: { attachment: Attachment; onClose: () => void }) {
+    const [text, setText] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+        window.addEventListener("keydown", fn);
+        return () => window.removeEventListener("keydown", fn);
+    }, [onClose]);
+
+    useEffect(() => {
+        let active = true;
+        fetch(attachment.url)
+            .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+            .then(t => { if (active) setText(t); })
+            .catch(() => { if (active) setError("Could not load file contents. Use download instead."); });
+        return () => { active = false; };
+    }, [attachment.url]);
+
+    const copy = async () => {
+        if (text == null) return;
+        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[110]" style={{ animation: "fadeIn 160ms ease-out" }}>
+            <div className="absolute inset-0 backdrop-blur-md cursor-pointer" style={{ background: "rgba(7,9,15,0.88)" }} onClick={onClose} />
+            <div className="absolute inset-0 grid place-items-center p-4 sm:p-8">
+                <div className="relative w-full max-w-4xl max-h-[85vh] flex flex-col bg-[#0d1117] border border-[rgba(0,229,255,0.28)] rounded-md overflow-hidden corner-ticks shadow-2xl">
+                    <span className="ct-tr" /><span className="ct-bl" />
+                    {/* Header */}
+                    <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[rgba(0,229,255,0.12)] bg-[#111820]">
+                        <FileCode2 size={14} className="text-[#00e5ff] shrink-0" />
+                        <span className="font-mono text-[12px] text-[#f0f4ff] truncate flex-1">{attachment.name}</span>
+                        <button onClick={copy} disabled={text == null}
+                            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-sm border border-[rgba(0,229,255,0.18)] text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.45)] font-mono text-[10px] uppercase tracking-[0.12em] transition-colors disabled:opacity-40">
+                            {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? "Copied" : "Copy"}
+                        </button>
+                        <a href={downloadUrl(attachment.url, attachment.name)} download={attachment.name}
+                            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-sm border border-[rgba(0,229,255,0.18)] text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.45)] font-mono text-[10px] uppercase tracking-[0.12em] transition-colors">
+                            <Download size={11} /> Download
+                        </a>
+                        <button onClick={onClose} className="grid place-items-center w-7 h-7 rounded-sm border border-[rgba(0,229,255,0.12)] text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors">
+                            <X size={13} />
+                        </button>
+                    </div>
+                    {/* Body */}
+                    <div className="flex-1 overflow-auto bg-[#07090f]">
+                        {error ? (
+                            <div className="p-6 font-mono text-[12px] text-[#ef4444]">{error}</div>
+                        ) : text == null ? (
+                            <div className="p-6 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-[#4a5568]">
+                                <Loader2 size={13} className="animate-spin" /> Loading…
+                            </div>
+                        ) : (
+                            <pre className="p-4 text-[12.5px] leading-relaxed text-[#cdd6e4] font-mono whitespace-pre overflow-x-auto"><code>{text}</code></pre>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Attachment chips ────────────────────────────────────────────────────────────
+
+function AttachmentChips({ attachments, onOpenCode }: { attachments: Attachment[]; onOpenCode: (a: Attachment) => void }) {
+    if (attachments.length === 0) return null;
+    return (
+        <div className="flex flex-wrap gap-2 mt-3">
+            {attachments.map((a, i) =>
+                a.kind === "code" ? (
+                    <button key={i} onClick={() => onOpenCode(a)}
+                        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-sm border border-[rgba(0,229,255,0.18)] bg-[#0d1117] text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.45)] font-mono text-[10.5px] transition-colors max-w-[220px]">
+                        <FileCode2 size={12} className="shrink-0" />
+                        <span className="truncate">{a.name}</span>
+                    </button>
+                ) : (
+                    <a key={i} href={downloadUrl(a.url, a.name)} download={a.name}
+                        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-sm border border-[rgba(245,158,11,0.30)] bg-[#0d1117] text-[#8b9ab0] hover:text-[#f59e0b] hover:border-[rgba(245,158,11,0.55)] font-mono text-[10.5px] transition-colors max-w-[220px]">
+                        <Box size={12} className="shrink-0" />
+                        <span className="truncate">{a.name}</span>
+                        <Download size={11} className="shrink-0 opacity-70" />
+                    </a>
+                )
+            )}
+        </div>
+    );
+}
+
 // ─── Timeline entry ────────────────────────────────────────────────────────────
 
-function LogEntry({ update, isFirst, onOpenImg }: {
+function LogEntry({ update, isFirst, canEdit, deleting, onOpenImg, onOpenCode, onEdit, onDelete }: {
     update: ProjectUpdate;
     isFirst: boolean;
+    canEdit: boolean;
+    deleting: boolean;
     onOpenImg: (url: string) => void;
+    onOpenCode: (a: Attachment) => void;
+    onEdit: (u: ProjectUpdate) => void;
+    onDelete: (u: ProjectUpdate) => void;
 }) {
     return (
         <div className="relative pl-8">
@@ -216,14 +353,28 @@ function LogEntry({ update, isFirst, onOpenImg }: {
                 }} />
 
             <div className="pb-8">
-                <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
-                    {update.version_tag && (
-                        <>
-                            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-[#00e5ff]">{update.version_tag}</span>
-                            <span className="text-[#4a5568] font-mono text-[10px]">·</span>
-                        </>
+                <div className="flex items-start gap-2.5 mb-1.5">
+                    <div className="flex items-center gap-2.5 flex-wrap min-w-0 flex-1">
+                        {update.version_tag && (
+                            <>
+                                <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-[#00e5ff]">{update.version_tag}</span>
+                                <span className="text-[#4a5568] font-mono text-[10px]">·</span>
+                            </>
+                        )}
+                        <h3 className="font-sans font-semibold text-[#f0f4ff] text-[14.5px] tracking-tight leading-tight">{update.title}</h3>
+                    </div>
+                    {canEdit && (
+                        <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => onEdit(update)} title="Edit log"
+                                className="grid place-items-center w-6 h-6 rounded-sm border border-[rgba(0,229,255,0.12)] text-[#4a5568] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.45)] transition-colors">
+                                <Pencil size={11} />
+                            </button>
+                            <button onClick={() => onDelete(update)} disabled={deleting} title="Delete log"
+                                className="grid place-items-center w-6 h-6 rounded-sm border border-[rgba(0,229,255,0.12)] text-[#4a5568] hover:text-[#ef4444] hover:border-[rgba(239,68,68,0.50)] transition-colors disabled:opacity-50">
+                                {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                            </button>
+                        </div>
                     )}
-                    <h3 className="font-sans font-semibold text-[#f0f4ff] text-[14.5px] tracking-tight leading-none">{update.title}</h3>
                 </div>
 
                 {update.content && (
@@ -258,6 +409,10 @@ function LogEntry({ update, isFirst, onOpenImg }: {
                     </div>
                 )}
 
+                {update.attachments && update.attachments.length > 0 && (
+                    <AttachmentChips attachments={update.attachments} onOpenCode={onOpenCode} />
+                )}
+
                 <div className="flex items-center gap-4 mt-3 flex-wrap">
                     {update.source_urls && update.source_urls.map((url) => (
                         <a key={url} href={url} target="_blank" rel="noopener noreferrer"
@@ -274,23 +429,43 @@ function LogEntry({ update, isFirst, onOpenImg }: {
     );
 }
 
-// ─── Add Update form ───────────────────────────────────────────────────────────
+// ─── Log form (shared by add + edit) ─────────────────────────────────────────────
 
-function AddUpdateForm({ onSubmit, posting }: {
-    onSubmit: (data: { title: string; content: string; versionTag: string; sourceUrls: string; imageUrls: string; videoUrls: string }) => void;
-    posting: boolean;
+interface LogFormData {
+    title: string;
+    content: string;
+    versionTag: string;
+    sourceUrls: string;
+    imageUrls: string[];
+    videoUrls: string;
+    attachments: Attachment[];
+}
+
+const emptyLogForm: LogFormData = {
+    title: "", content: "", versionTag: "", sourceUrls: "", imageUrls: [], videoUrls: "", attachments: [],
+};
+
+function LogForm({ initial, heading, submitLabel, submitting, onSubmit, onCancel }: {
+    initial: LogFormData;
+    heading: string;
+    submitLabel: string;
+    submitting: boolean;
+    onSubmit: (data: LogFormData) => void;
+    onCancel: () => void;
 }) {
-    const [open, setOpen] = useState(false);
-    const [title,        setTitle]        = useState("");
-    const [content,      setContent]      = useState("");
-    const [versionTag,   setVersionTag]   = useState("");
-    const [sourceUrls,   setSourceUrls]   = useState("");
-    const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+    const [title,        setTitle]        = useState(initial.title);
+    const [content,      setContent]      = useState(initial.content);
+    const [versionTag,   setVersionTag]   = useState(initial.versionTag);
+    const [sourceUrls,   setSourceUrls]   = useState(initial.sourceUrls);
+    const [videoUrls,    setVideoUrls]    = useState(initial.videoUrls);
+    const [uploadedUrls, setUploadedUrls] = useState<string[]>(initial.imageUrls);
+    const [attachments,  setAttachments]  = useState<Attachment[]>(initial.attachments);
     const [uploading,    setUploading]    = useState(false);
-    const [videoUrls,    setVideoUrls]    = useState("");
+    const [attaching,    setAttaching]    = useState(false);
+    const imgInputRef  = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const canSubmit = title.trim().length > 0;
+    const canSubmit = title.trim().length > 0 && !uploading && !attaching;
 
     const handleImageFiles = async (files: FileList) => {
         setUploading(true);
@@ -298,27 +473,178 @@ function AddUpdateForm({ onSubmit, posting }: {
         for (const file of Array.from(files)) {
             const fd = new FormData();
             fd.append("file", file);
-            fd.append("folder", "project-updates");
+            fd.append("folder", "progress-logs");
             try {
                 const res = await fetch("/api/cloudinary/upload", { method: "POST", body: fd });
                 const json = await res.json();
                 if (json.url) results.push(json.url as string);
-            } catch {
-                // silently skip failed uploads
-            }
+            } catch { /* skip */ }
         }
         setUploadedUrls(prev => [...prev, ...results]);
         setUploading(false);
+        if (imgInputRef.current) imgInputRef.current.value = "";
+    };
+
+    const handleAttachFiles = async (files: FileList) => {
+        setAttaching(true);
+        const results: Attachment[] = [];
+        for (const file of Array.from(files)) {
+            const kind = attachmentKind(file.name);
+            if (!kind) continue;
+            const fd = new FormData();
+            fd.append("file", file);
+            fd.append("folder", "project-files");
+            fd.append("kind", "raw");
+            fd.append("filename", file.name);
+            try {
+                const res = await fetch("/api/cloudinary/upload", { method: "POST", body: fd });
+                const json = await res.json();
+                if (json.url) results.push({ url: json.url as string, name: (json.name as string) || file.name, kind });
+            } catch { /* skip */ }
+        }
+        setAttachments(prev => [...prev, ...results]);
+        setAttaching(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!canSubmit) return;
-        onSubmit({ title, content, versionTag, sourceUrls, imageUrls: uploadedUrls.join("\n"), videoUrls });
-        setTitle(""); setContent(""); setVersionTag(""); setSourceUrls(""); setUploadedUrls([]); setVideoUrls("");
-        setOpen(false);
+        onSubmit({ title, content, versionTag, sourceUrls, imageUrls: uploadedUrls, videoUrls, attachments });
     };
+
+    return (
+        <form
+            onSubmit={handleSubmit}
+            className="bg-[#111820] border border-[rgba(0,229,255,0.28)] rounded-md p-4 space-y-3"
+            style={{ animation: "fadeIn 180ms ease-out" }}
+        >
+            <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#00e5ff] mb-1">{heading}</div>
+
+            <div>
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
+                    <span className="text-[#00e5ff]/70">$</span> Title
+                </label>
+                <input value={title} onChange={e => setTitle(e.target.value)} required
+                    placeholder="gRPC server live on pit laptop" className={inputCls} />
+            </div>
+
+            <div>
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
+                    <span className="text-[#00e5ff]/70">$</span> Content
+                </label>
+                <textarea value={content} onChange={e => setContent(e.target.value)} rows={3}
+                    placeholder="Describe what changed and what was tested…" className={textareaCls} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
+                        <span><span className="text-[#00e5ff]/70">$</span> Version Tag</span>
+                        <span className="text-[#4a5568]">OPTIONAL</span>
+                    </label>
+                    <input value={versionTag} onChange={e => setVersionTag(e.target.value)}
+                        placeholder="v0.4-beta" className={inputCls} />
+                </div>
+                <div>
+                    <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
+                        <span><span className="text-[#00e5ff]/70">$</span> Source URL</span>
+                        <span className="text-[#4a5568]">OPTIONAL</span>
+                    </label>
+                    <input value={sourceUrls} onChange={e => setSourceUrls(e.target.value)}
+                        placeholder="https://github.com/…" className={inputCls} />
+                </div>
+            </div>
+
+            <div>
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
+                    <span><span className="text-[#00e5ff]/70">$</span> Images</span>
+                    <span className="text-[#4a5568]">OPTIONAL</span>
+                </label>
+                <input ref={imgInputRef} type="file" accept="image/*" multiple className="hidden"
+                    onChange={e => e.target.files && handleImageFiles(e.target.files)} />
+                <button type="button" onClick={() => imgInputRef.current?.click()} disabled={uploading}
+                    className="inline-flex items-center gap-2 h-8 px-3 border border-dashed border-[rgba(0,229,255,0.25)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.50)] font-mono text-[10px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50">
+                    {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+                    {uploading ? "Uploading…" : "Upload Images"}
+                </button>
+                {uploadedUrls.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {uploadedUrls.map((url, i) => (
+                            <div key={i} className="relative w-16 h-16 rounded-sm overflow-hidden border border-[rgba(0,229,255,0.15)] group">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt="" className="w-full h-full object-cover" />
+                                <button type="button"
+                                    onClick={() => setUploadedUrls(prev => prev.filter((_, j) => j !== i))}
+                                    className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <X size={14} className="text-white" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div>
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
+                    <span><span className="text-[#00e5ff]/70">$</span> Code / STL Files</span>
+                    <span className="text-[#4a5568]">OPTIONAL</span>
+                </label>
+                <input ref={fileInputRef} type="file" accept={ATTACH_ACCEPT} multiple className="hidden"
+                    onChange={e => e.target.files && handleAttachFiles(e.target.files)} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={attaching}
+                    className="inline-flex items-center gap-2 h-8 px-3 border border-dashed border-[rgba(0,229,255,0.25)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.50)] font-mono text-[10px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50">
+                    {attaching ? <Loader2 size={12} className="animate-spin" /> : <Paperclip size={12} />}
+                    {attaching ? "Uploading…" : "Attach Files"}
+                </button>
+                {attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {attachments.map((a, i) => (
+                            <span key={i}
+                                className="inline-flex items-center gap-1.5 h-7 pl-2.5 pr-1.5 rounded-sm border border-[rgba(0,229,255,0.18)] bg-[#0d1117] font-mono text-[10.5px] text-[#8b9ab0] max-w-[220px]">
+                                {a.kind === "stl" ? <Box size={11} className="shrink-0 text-[#f59e0b]" /> : <FileCode2 size={11} className="shrink-0 text-[#00e5ff]" />}
+                                <span className="truncate">{a.name}</span>
+                                <button type="button" onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
+                                    className="grid place-items-center w-4 h-4 rounded-sm text-[#4a5568] hover:text-[#ef4444] transition-colors">
+                                    <X size={11} />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div>
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
+                    <span><span className="text-[#00e5ff]/70">$</span> YouTube Video URL</span>
+                    <span className="text-[#4a5568]">OPTIONAL</span>
+                </label>
+                <input value={videoUrls} onChange={e => setVideoUrls(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=…" className={inputCls} />
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+                <button type="submit" disabled={!canSubmit || submitting}
+                    className="inline-flex items-center gap-2 h-8 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    {submitting ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                    {submitLabel}
+                </button>
+                <button type="button" onClick={onCancel}
+                    className="h-8 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    );
+}
+
+// ─── Add Update form (collapsed button → LogForm) ─────────────────────────────────
+
+function AddUpdateForm({ onSubmit, posting }: {
+    onSubmit: (data: LogFormData) => void;
+    posting: boolean;
+}) {
+    const [open, setOpen] = useState(false);
 
     return (
         <div className="relative pl-8 mb-6">
@@ -333,103 +659,14 @@ function AddUpdateForm({ onSubmit, posting }: {
                     <Plus size={13} /> Log Update
                 </button>
             ) : (
-                <form
-                    onSubmit={handleSubmit}
-                    className="bg-[#111820] border border-[rgba(0,229,255,0.28)] rounded-md p-4 space-y-3"
-                    style={{ animation: "fadeIn 180ms ease-out" }}
-                >
-                    <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#00e5ff] mb-1">// NEW ENTRY</div>
-
-                    <div>
-                        <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
-                            <span className="text-[#00e5ff]/70">$</span> Title
-                        </label>
-                        <input value={title} onChange={e => setTitle(e.target.value)} required
-                            placeholder="gRPC server live on pit laptop"
-                            className={inputCls} />
-                    </div>
-
-                    <div>
-                        <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
-                            <span className="text-[#00e5ff]/70">$</span> Content
-                        </label>
-                        <textarea value={content} onChange={e => setContent(e.target.value)} rows={3}
-                            placeholder="Describe what changed and what was tested…"
-                            className={textareaCls} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                                <span><span className="text-[#00e5ff]/70">$</span> Version Tag</span>
-                                <span className="text-[#4a5568]">OPTIONAL</span>
-                            </label>
-                            <input value={versionTag} onChange={e => setVersionTag(e.target.value)}
-                                placeholder="v0.4-beta"
-                                className={inputCls} />
-                        </div>
-                        <div>
-                            <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                                <span><span className="text-[#00e5ff]/70">$</span> Source URL</span>
-                                <span className="text-[#4a5568]">OPTIONAL</span>
-                            </label>
-                            <input value={sourceUrls} onChange={e => setSourceUrls(e.target.value)}
-                                placeholder="https://github.com/…"
-                                className={inputCls} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                            <span><span className="text-[#00e5ff]/70">$</span> Images</span>
-                            <span className="text-[#4a5568]">OPTIONAL</span>
-                        </label>
-                        <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
-                            onChange={e => e.target.files && handleImageFiles(e.target.files)} />
-                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                            className="inline-flex items-center gap-2 h-8 px-3 border border-dashed border-[rgba(0,229,255,0.25)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.50)] font-mono text-[10px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50">
-                            {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
-                            {uploading ? "Uploading…" : "Upload Images"}
-                        </button>
-                        {uploadedUrls.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {uploadedUrls.map((url, i) => (
-                                    <div key={i} className="relative w-16 h-16 rounded-sm overflow-hidden border border-[rgba(0,229,255,0.15)] group">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={url} alt="" className="w-full h-full object-cover" />
-                                        <button type="button"
-                                            onClick={() => setUploadedUrls(prev => prev.filter((_, j) => j !== i))}
-                                            className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <X size={14} className="text-white" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                            <span><span className="text-[#00e5ff]/70">$</span> YouTube Video URL</span>
-                            <span className="text-[#4a5568]">OPTIONAL</span>
-                        </label>
-                        <input value={videoUrls} onChange={e => setVideoUrls(e.target.value)}
-                            placeholder="https://youtube.com/watch?v=…"
-                            className={inputCls} />
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                        <button type="submit" disabled={!canSubmit || posting}
-                            className="inline-flex items-center gap-2 h-8 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                            {posting ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                            Add Update
-                        </button>
-                        <button type="button" onClick={() => setOpen(false)}
-                            className="h-8 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
+                <LogForm
+                    initial={emptyLogForm}
+                    heading="// NEW ENTRY"
+                    submitLabel="Add Update"
+                    submitting={posting}
+                    onSubmit={(data) => { onSubmit(data); setOpen(false); }}
+                    onCancel={() => setOpen(false)}
+                />
             )}
         </div>
     );
@@ -539,10 +776,14 @@ export default function ProjectDetailClient({
 
             const { data: updData } = await supabase
                 .from("project_updates")
-                .select("id, title, content, version_tag, source_urls, image_urls, video_urls, created_at, author:profiles!project_updates_author_id_fkey(id, display_name, avatar_url)")
+                .select(LOG_SELECT)
                 .eq("project_id", project.id)
                 .order("created_at", { ascending: false });
-            if (updData) setUpdates(updData.map(u => ({ ...u, author: u.author as unknown as ProjectUpdate["author"] })) as unknown as ProjectUpdate[]);
+            if (updData) setUpdates(updData.map(u => ({
+                ...u,
+                attachments: (u.attachments as unknown as Attachment[] | null) ?? null,
+                author: u.author as unknown as ProjectUpdate["author"],
+            })) as unknown as ProjectUpdate[]);
         };
         refetch();
     }, [supabase, project.id]);
@@ -607,16 +848,21 @@ export default function ProjectDetailClient({
         setRemovingId(null);
     };
 
-    // Post update
+    // Post / edit / delete update
     const [postingUpdate, setPostingUpdate] = useState(false);
     const [lightboxUrl,   setLightboxUrl]   = useState<string | null>(null);
+    const [codeView,      setCodeView]      = useState<Attachment | null>(null);
+    const [editingId,     setEditingId]     = useState<string | null>(null);
+    const [savingEdit,    setSavingEdit]    = useState(false);
+    const [deletingId,    setDeletingId]    = useState<string | null>(null);
 
-    const handlePostUpdate = async (data: { title: string; content: string; versionTag: string; sourceUrls: string; imageUrls: string; videoUrls: string }) => {
+    const handlePostUpdate = async (data: LogFormData) => {
         if (!data.title.trim() || !user) return;
         setPostingUpdate(true);
         const sourceUrls = data.sourceUrls.split("\n").map(v => v.trim()).filter(Boolean);
-        const imageUrls  = data.imageUrls.split("\n").map(v => v.trim()).filter(Boolean);
+        const imageUrls  = data.imageUrls.map(v => v.trim()).filter(Boolean);
         const videoUrls  = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
+        const attachments = data.attachments;
 
         const { data: row, error } = await supabase
             .from("project_updates")
@@ -628,23 +874,77 @@ export default function ProjectDetailClient({
                 source_urls: sourceUrls.length > 0 ? sourceUrls : null,
                 image_urls: imageUrls.length > 0 ? imageUrls : null,
                 video_urls: videoUrls.length > 0 ? videoUrls : null,
+                attachments: attachments.length > 0 ? (attachments as unknown as import("@/types/database").Json) : null,
             })
-            .select("id, title, content, version_tag, source_urls, image_urls, video_urls, created_at")
+            .select(LOG_SELECT)
             .single();
 
         if (error) { console.error(error); alert("Failed to post update: " + error.message); setPostingUpdate(false); return; }
 
         if (row) {
-            const { data: authorProfile } = await supabase.from("profiles").select("id, display_name, avatar_url").eq("id", user.id).single();
             const newUpdate: ProjectUpdate = {
-                ...row,
-                video_urls: row.video_urls ?? null,
-                author: authorProfile || { id: user.id, display_name: "You", avatar_url: null },
+                ...(row as unknown as ProjectUpdate),
+                attachments: ((row as { attachments?: unknown }).attachments as Attachment[] | null) ?? null,
+                author: (row as unknown as ProjectUpdate).author ?? { id: user.id, display_name: "You", avatar_url: null },
             };
             setUpdates(prev => [newUpdate, ...prev]);
         }
         setPostingUpdate(false);
     };
+
+    const handleSaveEdit = async (data: LogFormData) => {
+        if (!editingId) return;
+        setSavingEdit(true);
+        const sourceUrls = data.sourceUrls.split("\n").map(v => v.trim()).filter(Boolean);
+        const imageUrls  = data.imageUrls.map(v => v.trim()).filter(Boolean);
+        const videoUrls  = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
+        const attachments = data.attachments;
+
+        const result = await updateProjectLog({
+            logId: editingId,
+            title: data.title.trim(),
+            content: data.content.trim() || null,
+            versionTag: data.versionTag.trim() || null,
+            sourceUrls: sourceUrls.length > 0 ? sourceUrls : null,
+            imageUrls: imageUrls.length > 0 ? imageUrls : null,
+            videoUrls: videoUrls.length > 0 ? videoUrls : null,
+            attachments: attachments.length > 0 ? (attachments as unknown as import("@/types/database").Json) : null,
+        });
+
+        if (!result.ok) { alert("Failed to save: " + result.error); setSavingEdit(false); return; }
+
+        setUpdates(prev => prev.map(u => u.id === editingId ? {
+            ...u,
+            title: data.title.trim(),
+            content: data.content.trim() || null,
+            version_tag: data.versionTag.trim() || null,
+            source_urls: sourceUrls.length > 0 ? sourceUrls : null,
+            image_urls: imageUrls.length > 0 ? imageUrls : null,
+            video_urls: videoUrls.length > 0 ? videoUrls : null,
+            attachments: attachments.length > 0 ? attachments : null,
+        } : u));
+        setSavingEdit(false);
+        setEditingId(null);
+    };
+
+    const handleDeleteLog = async (id: string) => {
+        if (!confirm("Delete this log entry? This cannot be undone.")) return;
+        setDeletingId(id);
+        const result = await deleteProjectLog(id);
+        if (!result.ok) { alert("Failed to delete: " + result.error); setDeletingId(null); return; }
+        setUpdates(prev => prev.filter(u => u.id !== id));
+        setDeletingId(null);
+    };
+
+    const toFormData = (u: ProjectUpdate): LogFormData => ({
+        title: u.title,
+        content: u.content ?? "",
+        versionTag: u.version_tag ?? "",
+        sourceUrls: (u.source_urls ?? []).join("\n"),
+        imageUrls: u.image_urls ?? [],
+        videoUrls: (u.video_urls ?? []).join("\n"),
+        attachments: u.attachments ?? [],
+    });
 
     const hue = useMemo(() => idHue(project.id), [project.id]);
     const st  = STATUS_CFG[project.status] ?? STATUS_CFG.planning;
@@ -739,7 +1039,32 @@ export default function ProjectDetailClient({
                                     </div>
                                 ) : (
                                     updates.map((u, i) => (
-                                        <LogEntry key={u.id} update={u} isFirst={i === 0} onOpenImg={setLightboxUrl} />
+                                        editingId === u.id ? (
+                                            <div key={u.id} className="relative pl-8 mb-6">
+                                                <div className="absolute left-[7px] top-0 bottom-0 w-px bg-[rgba(0,229,255,0.20)]" />
+                                                <div className="absolute left-[3px] top-3 w-[9px] h-[9px] rounded-full border border-[rgba(0,229,255,0.12)] bg-[#0d1117]" />
+                                                <LogForm
+                                                    initial={toFormData(u)}
+                                                    heading="// EDIT ENTRY"
+                                                    submitLabel="Save Changes"
+                                                    submitting={savingEdit}
+                                                    onSubmit={handleSaveEdit}
+                                                    onCancel={() => setEditingId(null)}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <LogEntry
+                                                key={u.id}
+                                                update={u}
+                                                isFirst={i === 0}
+                                                canEdit={!!user && (u.author.id === user.id || canManage)}
+                                                deleting={deletingId === u.id}
+                                                onOpenImg={setLightboxUrl}
+                                                onOpenCode={setCodeView}
+                                                onEdit={(upd) => setEditingId(upd.id)}
+                                                onDelete={(upd) => handleDeleteLog(upd.id)}
+                                            />
+                                        )
                                     ))
                                 )}
                                 {/* Timeline end */}
@@ -839,6 +1164,12 @@ export default function ProjectDetailClient({
             {/* Lightbox */}
             {typeof document !== "undefined" && lightboxUrl && createPortal(
                 <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />,
+                document.body
+            )}
+
+            {/* Code viewer */}
+            {typeof document !== "undefined" && codeView && createPortal(
+                <CodeViewer attachment={codeView} onClose={() => setCodeView(null)} />,
                 document.body
             )}
         </div>

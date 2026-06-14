@@ -904,6 +904,7 @@ export type Database = {
       }
       project_updates: {
         Row: {
+          attachments: Json | null
           author_id: string
           content: string | null
           created_at: string | null
@@ -916,6 +917,7 @@ export type Database = {
           video_urls: string[] | null
         }
         Insert: {
+          attachments?: Json | null
           author_id: string
           content?: string | null
           created_at?: string | null
@@ -928,6 +930,7 @@ export type Database = {
           video_urls?: string[] | null
         }
         Update: {
+          attachments?: Json | null
           author_id?: string
           content?: string | null
           created_at?: string | null
