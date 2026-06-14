@@ -103,6 +103,25 @@ function fmtTs(iso: string | null) {
         + new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
+// ISO → value for <input type="datetime-local"> (local wall-clock "YYYY-MM-DDTHH:mm").
+function toLocalInput(iso: string | null): string {
+    const d = iso ? new Date(iso) : new Date();
+    if (isNaN(d.getTime())) return toLocalInput(null);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+}
+
+// datetime-local value → ISO string (UTC). Returns null if empty/invalid.
+function fromLocalInput(value: string): string | null {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function sortByCreatedDesc(list: ProjectUpdate[]): ProjectUpdate[] {
+    return [...list].sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
+}
+
 function initials(name: string) {
     return name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
 }
@@ -439,10 +458,11 @@ interface LogFormData {
     imageUrls: string[];
     videoUrls: string;
     attachments: Attachment[];
+    createdAt: string; // datetime-local value ("" = use now / server default)
 }
 
 const emptyLogForm: LogFormData = {
-    title: "", content: "", versionTag: "", sourceUrls: "", imageUrls: [], videoUrls: "", attachments: [],
+    title: "", content: "", versionTag: "", sourceUrls: "", imageUrls: [], videoUrls: "", attachments: [], createdAt: "",
 };
 
 function LogForm({ initial, heading, submitLabel, submitting, onSubmit, onCancel }: {
@@ -460,6 +480,7 @@ function LogForm({ initial, heading, submitLabel, submitting, onSubmit, onCancel
     const [videoUrls,    setVideoUrls]    = useState(initial.videoUrls);
     const [uploadedUrls, setUploadedUrls] = useState<string[]>(initial.imageUrls);
     const [attachments,  setAttachments]  = useState<Attachment[]>(initial.attachments);
+    const [createdAt,    setCreatedAt]    = useState(initial.createdAt || toLocalInput(null));
     const [uploading,    setUploading]    = useState(false);
     const [attaching,    setAttaching]    = useState(false);
     const imgInputRef  = useRef<HTMLInputElement>(null);
@@ -510,7 +531,7 @@ function LogForm({ initial, heading, submitLabel, submitting, onSubmit, onCancel
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!canSubmit) return;
-        onSubmit({ title, content, versionTag, sourceUrls, imageUrls: uploadedUrls, videoUrls, attachments });
+        onSubmit({ title, content, versionTag, sourceUrls, imageUrls: uploadedUrls, videoUrls, attachments, createdAt });
     };
 
     return (
@@ -535,6 +556,14 @@ function LogForm({ initial, heading, submitLabel, submitting, onSubmit, onCancel
                 </label>
                 <textarea value={content} onChange={e => setContent(e.target.value)} rows={3}
                     placeholder="Describe what changed and what was tested…" className={textareaCls} />
+            </div>
+
+            <div>
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
+                    <span className="text-[#00e5ff]/70">$</span> Timestamp
+                </label>
+                <input type="datetime-local" value={createdAt} onChange={e => setCreatedAt(e.target.value)}
+                    className={`${inputCls} [color-scheme:dark]`} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -864,6 +893,8 @@ export default function ProjectDetailClient({
         const videoUrls  = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
         const attachments = data.attachments;
 
+        const createdAtIso = fromLocalInput(data.createdAt);
+
         const { data: row, error } = await supabase
             .from("project_updates")
             .insert({
@@ -875,6 +906,7 @@ export default function ProjectDetailClient({
                 image_urls: imageUrls.length > 0 ? imageUrls : null,
                 video_urls: videoUrls.length > 0 ? videoUrls : null,
                 attachments: attachments.length > 0 ? (attachments as unknown as import("@/types/database").Json) : null,
+                ...(createdAtIso ? { created_at: createdAtIso } : {}),
             })
             .select(LOG_SELECT)
             .single();
@@ -887,7 +919,7 @@ export default function ProjectDetailClient({
                 attachments: ((row as { attachments?: unknown }).attachments as Attachment[] | null) ?? null,
                 author: (row as unknown as ProjectUpdate).author ?? { id: user.id, display_name: "You", avatar_url: null },
             };
-            setUpdates(prev => [newUpdate, ...prev]);
+            setUpdates(prev => sortByCreatedDesc([newUpdate, ...prev]));
         }
         setPostingUpdate(false);
     };
@@ -900,6 +932,8 @@ export default function ProjectDetailClient({
         const videoUrls  = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
         const attachments = data.attachments;
 
+        const createdAtIso = fromLocalInput(data.createdAt);
+
         const result = await updateProjectLog({
             logId: editingId,
             title: data.title.trim(),
@@ -909,11 +943,12 @@ export default function ProjectDetailClient({
             imageUrls: imageUrls.length > 0 ? imageUrls : null,
             videoUrls: videoUrls.length > 0 ? videoUrls : null,
             attachments: attachments.length > 0 ? (attachments as unknown as import("@/types/database").Json) : null,
+            createdAt: createdAtIso,
         });
 
         if (!result.ok) { alert("Failed to save: " + result.error); setSavingEdit(false); return; }
 
-        setUpdates(prev => prev.map(u => u.id === editingId ? {
+        setUpdates(prev => sortByCreatedDesc(prev.map(u => u.id === editingId ? {
             ...u,
             title: data.title.trim(),
             content: data.content.trim() || null,
@@ -922,7 +957,8 @@ export default function ProjectDetailClient({
             image_urls: imageUrls.length > 0 ? imageUrls : null,
             video_urls: videoUrls.length > 0 ? videoUrls : null,
             attachments: attachments.length > 0 ? attachments : null,
-        } : u));
+            created_at: createdAtIso ?? u.created_at,
+        } : u)));
         setSavingEdit(false);
         setEditingId(null);
     };
@@ -944,6 +980,7 @@ export default function ProjectDetailClient({
         imageUrls: u.image_urls ?? [],
         videoUrls: (u.video_urls ?? []).join("\n"),
         attachments: u.attachments ?? [],
+        createdAt: toLocalInput(u.created_at),
     });
 
     const hue = useMemo(() => idHue(project.id), [project.id]);

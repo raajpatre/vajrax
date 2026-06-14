@@ -56,6 +56,7 @@ export async function updateProjectLog(input: {
     imageUrls: string[] | null;
     videoUrls: string[] | null;
     attachments: Json | null;
+    createdAt?: string | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -78,6 +79,7 @@ export async function updateProjectLog(input: {
             image_urls: input.imageUrls,
             video_urls: input.videoUrls,
             attachments: input.attachments,
+            ...(input.createdAt ? { created_at: input.createdAt } : {}),
         })
         .eq("id", input.logId);
 
