@@ -11,7 +11,6 @@ import {
     getSheetItemStatus,
     getSyncKeyForRequestDecision,
     getSyncKeyForReturnUnit,
-    isRestockableCondition,
     type GivingCondition,
     type ReturnCondition,
     type ReturnLifecycleStatus,
@@ -655,9 +654,10 @@ export async function logBorrowedEquipmentReturns(
         return { ok: false, error: "One or more selected items were already returned." };
     }
 
-    // Usable returns (perfect / partly damaged) go back into stock; trash is written off.
+    // Only perfect returns go back into available stock. Partly-damaged and trash
+    // units are written off the total (they can't be re-issued).
     const availableIncrement = input.returns.filter((entry) =>
-        isRestockableCondition(entry.condition)
+        entry.condition === "perfect"
     ).length;
     const totalDecrement = input.returns.length - availableIncrement;
     const returnedAt = new Date().toISOString();
