@@ -777,6 +777,58 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
     );
 }
 
+// ─── Contribution bar ───────────────────────────────────────────────────────────
+
+function ContributionBar({ updates }: { updates: ProjectUpdate[] }) {
+    const items = useMemo(() => {
+        const map = new Map<string, { id: string; name: string; count: number }>();
+        for (const u of updates) {
+            const a = u.author;
+            const e = map.get(a.id) ?? { id: a.id, name: a.display_name, count: 0 };
+            e.count++;
+            map.set(a.id, e);
+        }
+        return [...map.values()].sort((x, y) => y.count - x.count);
+    }, [updates]);
+
+    const total = updates.length;
+    if (total === 0) return null;
+
+    return (
+        <div className="border-t border-[rgba(0,229,255,0.12)] pt-5">
+            <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568] mb-3">// CONTRIBUTIONS</div>
+
+            {/* Stacked bar */}
+            <div className="flex w-full h-2.5 rounded-full overflow-hidden border border-[rgba(0,229,255,0.12)] bg-[#07090f]">
+                {items.map((it) => {
+                    const pct = (it.count / total) * 100;
+                    const tint = `hsl(${idHue(it.id)} 90% 60%)`;
+                    return (
+                        <div key={it.id}
+                            title={`${it.name}: ${it.count} log${it.count === 1 ? "" : "s"} (${Math.round(pct)}%)`}
+                            style={{ width: `${pct}%`, background: tint }} />
+                    );
+                })}
+            </div>
+
+            {/* Legend */}
+            <div className="mt-3 space-y-1.5">
+                {items.map((it) => {
+                    const pct = Math.round((it.count / total) * 100);
+                    const tint = `hsl(${idHue(it.id)} 90% 60%)`;
+                    return (
+                        <div key={it.id} className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: tint, boxShadow: `0 0 6px ${tint}80` }} />
+                            <span className="font-mono text-[10.5px] text-[#8b9ab0] truncate flex-1">{it.name}</span>
+                            <span className="font-mono text-[10.5px] text-[#f0f4ff] tabular-nums shrink-0">{it.count} · {pct}%</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function ProjectDetailClient({
@@ -1192,6 +1244,9 @@ export default function ProjectDetailClient({
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Contributions */}
+                            <ContributionBar updates={updates} />
                         </div>
                     </div>
 
