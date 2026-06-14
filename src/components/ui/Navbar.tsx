@@ -79,7 +79,7 @@ function CircuitMark({ size = 18, show = true }: { size?: number; show?: boolean
         height: size + 10,
         opacity: show ? 1 : 0,
         transform: show ? "scale(1) translateX(0)" : "scale(0.6) translateX(-6px)",
-        marginRight: show ? 8 : 0,
+        marginRight: show ? 2 : 0,
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -955,7 +955,7 @@ export default function Navbar() {
         >
           {/* Left: Logo */}
           <Link href="/" className="flex items-center min-w-0 shrink-0" aria-label="VajraX home">
-            <CircuitMark size={18} show={!isScrolled} />
+            <CircuitMark size={28} show={!isScrolled} />
             <span className="font-sans font-extrabold text-fg text-[18px] tracking-tight leading-none">
               Vajra<span style={{ color: "#00e5ff" }}>X</span>
             </span>

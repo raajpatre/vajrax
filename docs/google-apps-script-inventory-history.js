@@ -151,6 +151,9 @@ function processHistoryTab(spreadsheet, config, rows, mode) {
     if (lastRow > 1) {
       sheet.getRange(2, 1, lastRow - 1, config.header.length).clearContent();
       clearHistoryFormatting(sheet, config, lastRow - 1);
+      // Force the clear to commit so the subsequent getLastRow() (used to pick the
+      // append start row) reflects the emptied sheet rather than the stale value.
+      SpreadsheetApp.flush();
     }
   }
 
@@ -285,22 +288,31 @@ function syncStocksSheet(spreadsheet, rows, mode) {
   const sheet = getOrCreateSheet(spreadsheet, STOCKS_SHEET_NAME);
   ensureHeader(sheet, STOCKS_HEADER_ROW);
 
+  const values = rows.map(function (row) {
+    return [
+      row.category || "",
+      row.name || "",
+      Number(row.availableQuantity || 0),
+      Number(row.totalQuantity || 0),
+    ];
+  });
+
   if (mode === "replace") {
+    // Wipe everything below the header, then write the fresh snapshot starting at
+    // row 2. We must NOT rely on getLastRow() after clearContent() — within a single
+    // execution it can return the stale (pre-clear) value, which previously caused
+    // new rows to be written below the cleared region (sheet looked "not updated").
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) {
       sheet.getRange(2, 1, lastRow - 1, STOCKS_HEADER_ROW.length).clearContent();
     }
+    if (values.length > 0) {
+      sheet.getRange(2, 1, values.length, STOCKS_HEADER_ROW.length).setValues(values);
+    }
+    return;
   }
 
-  if (rows.length > 0) {
-    const values = rows.map(function (row) {
-      return [
-        row.category || "",
-        row.name || "",
-        Number(row.availableQuantity || 0),
-        Number(row.totalQuantity || 0),
-      ];
-    });
+  if (values.length > 0) {
     const startRow = sheet.getLastRow() + 1;
     sheet.getRange(startRow, 1, values.length, STOCKS_HEADER_ROW.length).setValues(values);
   }
