@@ -4,3 +4,4 @@
 
 ALTER TABLE project_updates
     ADD COLUMN IF NOT EXISTS attachments jsonb;
+np
