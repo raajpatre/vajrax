@@ -304,16 +304,9 @@ function Monogram({ size = 20 }: { size?: number }) {
             className="relative inline-flex items-center justify-center shrink-0"
             style={{ width: size + 8, height: size + 8 }}
         >
-            <svg width={size + 8} height={size + 8} viewBox="0 0 28 28" fill="none">
-                <rect x="3.5" y="3.5" width="21" height="21" stroke="rgba(0,229,255,0.55)" strokeWidth="1" />
-                <path d="M0 14 H7 M21 14 H28 M14 0 V7 M14 21 V28" stroke="rgba(0,229,255,0.6)" strokeWidth="1" />
-                <circle cx="7"  cy="14" r="1.5" fill="#00e5ff" />
-                <circle cx="21" cy="14" r="1.5" fill="#00e5ff" />
-                <circle cx="14" cy="7"  r="1.5" fill="#00e5ff" />
-                <circle cx="14" cy="21" r="1.5" fill="#00e5ff" />
-                <rect x="10" y="10" width="8" height="8" fill="rgba(0,229,255,0.18)" stroke="#00e5ff" strokeWidth="1.2" />
-                <circle cx="14" cy="14" r="1.6" fill="#00e5ff" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/vajrax-logo.png" alt="VajraX" width={size + 8} height={size + 8} className="shrink-0 object-contain"
+                style={{ filter: "drop-shadow(0 0 10px rgba(0,229,255,0.45))" }} />
         </span>
     );
 }

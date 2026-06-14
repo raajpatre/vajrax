@@ -20,11 +20,6 @@ export const metadata: Metadata = {
   description:
     "The ultimate power in robotics innovation. VajraX is a cutting-edge college robotics club pushing the boundaries of technology.",
   keywords: ["robotics", "college club", "VajraX", "engineering", "technology", "innovation"],
-  icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
-  },
 };
 
 export default function RootLayout({

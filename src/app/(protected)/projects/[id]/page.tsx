@@ -21,7 +21,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
     const { data: updates } = await supabase
         .from("project_updates")
-        .select("id, title, content, version_tag, source_urls, image_urls, created_at, author:profiles!project_updates_author_id_fkey(id, display_name, avatar_url)")
+        .select("id, title, content, version_tag, source_urls, image_urls, video_urls, attachments, created_at, author:profiles!project_updates_author_id_fkey(id, display_name, avatar_url)")
         .eq("project_id", id)
         .order("created_at", { ascending: false });
 

@@ -876,6 +876,42 @@ export async function submitEquipmentCart(input: {
     const reason = input.reason.trim();
     if (!reason) return { ok: false, error: "Reason is required" };
     if (!input.items.length) return { ok: false, error: "Cart is empty" };
+    if (input.items.length > 100) return { ok: false, error: "Too many items in one request." };
+
+    // ── Abuse guard: stop replayed / spammed submissions ─────────────────────
+    // A signature of the cart's contents + reason, so identical replays collapse.
+    const cartSignature = (items: CartItemInput[], r: string) =>
+        items.map((i) => `${i.itemId}:${i.quantity}:${i.requestType}`).sort().join("|") + "::" + r;
+    const incomingSig = cartSignature(input.items, reason);
+
+    const admin = createAdminClient();
+    const windowStart = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentCarts } = await admin
+        .from("equipment_carts")
+        .select("id, reason, status, equipment_cart_items(item_id, quantity, request_type)")
+        .eq("requester_id", user.id)
+        .gte("created_at", windowStart);
+
+    if (recentCarts && recentCarts.length > 0) {
+        // Rate limit: cap distinct submissions per 5-minute window per user.
+        if (recentCarts.length >= 8) {
+            return { ok: false, error: "You're submitting requests too quickly. Please wait a few minutes and try again." };
+        }
+        // Idempotency: an identical request that's still pending already exists —
+        // treat the replay as a no-op success instead of creating another row.
+        const isDuplicate = recentCarts.some((c) => {
+            if (c.status !== "pending") return false;
+            const ciRows = (c.equipment_cart_items ?? []) as Array<{ item_id: string; quantity: number; request_type: string }>;
+            const sig = cartSignature(
+                ciRows.map((ci) => ({ itemId: ci.item_id, quantity: ci.quantity, requestType: ci.request_type as EquipmentRequestType })),
+                c.reason
+            );
+            return sig === incomingSig;
+        });
+        if (isDuplicate) {
+            return { ok: true };
+        }
+    }
 
     // Fetch user profile for safety cert checks
     const { data: profile, error: profileError } = await supabase
