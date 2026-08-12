@@ -176,7 +176,7 @@ export default function Footer() {
               <SocialButton icon={GithubIcon}    label="GitHub"    href="https://github.com/VajraX-NST-BLR" />
               <SocialButton icon={TwitterIcon}   label="Twitter"   href="#" />
               <SocialButton icon={InstagramIcon} label="Instagram" href="#" />
-              <SocialButton icon={Mail}          label="Email"     href="mailto:vajrax@college.edu" />
+              <SocialButton icon={Mail}          label="Email"     href="mailto:vajrax2025@gmail.com" />
             </div>
 
           </div>

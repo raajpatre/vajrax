@@ -122,8 +122,8 @@ export default function ContactPage() {
             </div>
 
             <div className="space-y-3">
-              <InfoCard icon={Mail} label="EMAIL" href="mailto:vajrax@college.edu">
-                <span className="font-mono text-[14px] text-[#f0f4ff]">vajrax@college.edu</span>
+              <InfoCard icon={Mail} label="EMAIL" href="mailto:vajrax2025@gmail.com">
+                <span className="font-mono text-[14px] text-[#f0f4ff]">vajrax2025@gmail.com</span>
               </InfoCard>
 
               <InfoCard icon={MapPin} label="LOCATION">
