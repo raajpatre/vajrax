@@ -271,62 +271,32 @@ function EditProfileModal({
             />
             <div className="absolute inset-0 grid place-items-center p-3 sm:p-6 pointer-events-none">
                 <div
-                    className="relative w-full max-w-lg pointer-events-auto rounded-md"
+                    className="relative w-full max-w-lg bg-[#111820]/90 backdrop-blur-md rounded-md corner-ticks pointer-events-auto"
                     style={{
-                        background: "rgba(17,24,32,0.97)",
                         border: "1px solid rgba(0,229,255,0.28)",
-                        boxShadow: "0 0 0 1px rgba(0,229,255,0.06), 0 32px 80px -24px rgba(0,0,0,0.9)",
+                        boxShadow: "0 0 0 1px rgba(0,229,255,0.06), 0 24px 60px -24px rgba(0,0,0,0.8), 0 0 40px -16px rgba(0,229,255,0.35)",
                     }}
+                    onClick={(e) => e.stopPropagation()}
                 >
-                    {/* Cyan top gradient line */}
+                    <span className="ct-tr" /><span className="ct-bl" />
                     <div
-                        className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                        className="absolute inset-x-0 top-0 h-px pointer-events-none rounded-t-md"
                         style={{
                             background:
                                 "linear-gradient(90deg,transparent,rgba(0,229,255,0.6),transparent)",
                         }}
                     />
-                    {/* Corner ticks */}
-                    <span
-                        className="absolute top-2 right-2 w-3 h-3 pointer-events-none"
-                        style={{
-                            borderTop: "1px solid rgba(0,229,255,0.35)",
-                            borderRight: "1px solid rgba(0,229,255,0.35)",
-                        }}
-                    />
-                    <span
-                        className="absolute bottom-2 left-2 w-3 h-3 pointer-events-none"
-                        style={{
-                            borderBottom: "1px solid rgba(0,229,255,0.35)",
-                            borderLeft: "1px solid rgba(0,229,255,0.35)",
-                        }}
-                    />
 
                     {/* Header */}
-                    <div
-                        className="px-5 h-12 flex items-center justify-between border-b"
-                        style={{ borderColor: "rgba(0,229,255,0.12)" }}
-                    >
-                        <div className="flex items-center gap-2.5">
-                            <span
-                                className="w-1.5 h-1.5 rounded-full animate-pulse"
-                                style={{ background: "#00e5ff", boxShadow: "0 0 6px #00e5ff" }}
-                            />
-                            <span
-                                className="font-mono text-[11px] uppercase tracking-[0.18em]"
-                                style={{ color: "#f0f4ff" }}
-                            >
-                                EDIT PROFILE
-                            </span>
-                        </div>
+                    <div className="flex items-center justify-between px-6 pt-6 pb-2">
+                        <h2 className="flex items-center gap-3 font-sans font-extrabold text-[#f0f4ff] text-[20px] tracking-tight leading-none">
+                            Edit Profile
+                        </h2>
                         <button
                             onClick={onClose}
-                            className="grid place-items-center w-7 h-7 rounded-sm border transition-colors"
-                            style={{ borderColor: "rgba(0,229,255,0.20)", color: "#8b9ab0" }}
-                            onMouseOver={(e) => { e.currentTarget.style.color = "#f0f4ff"; }}
-                            onMouseOut={(e) => { e.currentTarget.style.color = "#8b9ab0"; }}
+                            className="text-[#8b9ab0] hover:text-[#00e5ff] transition-colors"
                         >
-                            <X size={14} />
+                            <X size={20} />
                         </button>
                     </div>
 
@@ -383,219 +353,143 @@ function EditProfileModal({
                             )}
 
                             {/* Display Name */}
-                            <div>
-                                <div
-                                    className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
-                                    style={{ color: "#8b9ab0" }}
-                                >
-                                    <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> Display Name
-                                </div>
+                            <div className="relative group">
                                 <input
                                     type="text"
                                     value={displayName}
                                     onChange={(e) => setDisplayName(e.target.value)}
                                     required
-                                    className="w-full h-9 text-[13px] border rounded-md px-3 outline-none transition-colors"
-                                    style={{
-                                        background: "#0d1117",
-                                        color: "#f0f4ff",
-                                        borderColor: "rgba(0,229,255,0.18)",
-                                    }}
-                                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
-                                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                    placeholder=" "
+                                    className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                                 />
+                                <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                                    <User size={15} />
+                                </span>
+                                <label className="absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                                    Display Name
+                                </label>
                             </div>
 
                             {/* Bio */}
-                            <div>
-                                <div className="flex items-end justify-between mb-1.5">
-                                    <div
-                                        className="font-mono text-[10px] uppercase tracking-[0.16em]"
-                                        style={{ color: "#8b9ab0" }}
-                                    >
-                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> Bio
-                                    </div>
-                                    <span
-                                        className="font-mono text-[10px]"
-                                        style={{ color: bio.length > MAX_BIO ? "#ef4444" : "#4a5568" }}
-                                    >
-                                        {bio.length}/{MAX_BIO}
-                                    </span>
-                                </div>
+                            <div className="relative group mt-2">
                                 <textarea
                                     rows={3}
                                     value={bio}
                                     onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO))}
-                                    placeholder="Tell us about yourself..."
-                                    className="w-full text-[13px] border rounded-md px-3 py-2 resize-none leading-relaxed outline-none transition-colors"
-                                    style={{
-                                        background: "#0d1117",
-                                        color: "#f0f4ff",
-                                        borderColor: "rgba(0,229,255,0.18)",
-                                    }}
-                                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
-                                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                    placeholder=" "
+                                    className="peer w-full bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-3 pt-3 pb-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors resize-none"
                                 />
+                                <span className="absolute left-0 top-0 h-11 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                                    <Pencil size={15} />
+                                </span>
+                                <label className="absolute left-11 top-3 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                                    Bio
+                                </label>
+                                <span
+                                    className="absolute bottom-2 right-2 font-mono text-[10px]"
+                                    style={{ color: bio.length > MAX_BIO ? "#ef4444" : "#4a5568" }}
+                                >
+                                    {bio.length}/{MAX_BIO}
+                                </span>
                             </div>
 
                             {/* Semester */}
                             {profile.role !== "faculty" && (
-                                <div>
-                                    <div
-                                        className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
-                                        style={{ color: "#8b9ab0" }}
+                                <div className="relative group">
+                                    <select
+                                        value={currentSemester}
+                                        onChange={(e) => setCurrentSemester(e.target.value)}
+                                        disabled={semesterUnavailable}
+                                        className={`peer appearance-none w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-9 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors disabled:opacity-50 ${currentSemester ? '' : 'text-transparent'}`}
                                     >
-                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> Current Semester
-                                    </div>
-                                    <div className="relative">
-                                        <select
-                                            value={currentSemester}
-                                            onChange={(e) => setCurrentSemester(e.target.value)}
-                                            disabled={semesterUnavailable}
-                                            className="appearance-none w-full h-9 text-[13px] border rounded-md px-3 pr-9 outline-none transition-colors disabled:opacity-50"
-                                            style={{
-                                                background: "#0d1117",
-                                                color: "#f0f4ff",
-                                                borderColor: "rgba(0,229,255,0.18)",
-                                            }}
-                                            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
-                                            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
-                                        >
-                                            <option value="" style={{ background: "#0d1117" }}>Select semester</option>
-                                            {Array.from({ length: 8 }, (_, i) => i + 1).map((s) => (
-                                                <option key={s} value={s} style={{ background: "#0d1117" }}>
-                                                    Semester {s}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <span
-                                            className="absolute inset-y-0 right-0 grid place-items-center w-9 pointer-events-none"
-                                            style={{ color: "#8b9ab0" }}
-                                        >
-                                            <ChevronDown size={14} />
-                                        </span>
-                                    </div>
+                                        <option value="" style={{ background: "#111820", color: "#f0f4ff" }}></option>
+                                        {Array.from({ length: 8 }, (_, i) => i + 1).map((s) => (
+                                            <option key={s} value={s} style={{ background: "#111820", color: "#f0f4ff" }}>
+                                                Semester {s}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                                        <GraduationCap size={15} />
+                                    </span>
+                                    <label className={`absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 ${currentSemester ? 'top-0 -translate-y-1/2 scale-[0.85] -translate-x-6 bg-[#111820] px-2 text-[#00e5ff]' : 'peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff]'}`}>
+                                        Current Semester
+                                    </label>
+                                    <span className="absolute right-0 top-0 bottom-0 grid place-items-center w-11 pointer-events-none text-[#8b9ab0]">
+                                        <ChevronDown size={15} />
+                                    </span>
                                 </div>
                             )}
 
                             {/* GitHub + LinkedIn */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <div
-                                        className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
-                                        style={{ color: "#8b9ab0" }}
-                                    >
-                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> GitHub URL
-                                    </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="relative group">
                                     <input
                                         type="url"
                                         value={githubUrl}
                                         onChange={(e) => setGithubUrl(e.target.value)}
-                                        placeholder="https://github.com/..."
-                                        className="w-full h-9 text-[13px] border rounded-md px-3 outline-none transition-colors"
-                                        style={{
-                                            background: "#0d1117",
-                                            color: "#f0f4ff",
-                                            borderColor: "rgba(0,229,255,0.18)",
-                                        }}
-                                        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
-                                        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                        placeholder=" "
+                                        className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                                     />
+                                    <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                                        <Github size={15} />
+                                    </span>
+                                    <label className="absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                                        GitHub URL
+                                    </label>
                                 </div>
-                                <div>
-                                    <div
-                                        className="font-mono text-[10px] uppercase tracking-[0.16em] mb-1.5"
-                                        style={{ color: "#8b9ab0" }}
-                                    >
-                                        <span style={{ color: "rgba(0,229,255,0.7)" }}>$</span> LinkedIn URL
-                                    </div>
+                                <div className="relative group">
                                     <input
                                         type="url"
                                         value={linkedinUrl}
                                         onChange={(e) => setLinkedinUrl(e.target.value)}
-                                        placeholder="https://linkedin.com/in/..."
-                                        className="w-full h-9 text-[13px] border rounded-md px-3 outline-none transition-colors"
-                                        style={{
-                                            background: "#0d1117",
-                                            color: "#f0f4ff",
-                                            borderColor: "rgba(0,229,255,0.18)",
-                                        }}
-                                        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)"; }}
-                                        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,229,255,0.18)"; }}
+                                        placeholder=" "
+                                        className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                                     />
+                                    <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                                        <Linkedin size={15} />
+                                    </span>
+                                    <label className="absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                                        LinkedIn URL
+                                    </label>
                                 </div>
                             </div>
 
                             {/* Read-only email */}
-                            <div
-                                className="flex items-center gap-3 px-3 h-9 border rounded-md"
-                                style={{
-                                    background: "rgba(7,9,15,0.6)",
-                                    borderColor: "rgba(0,229,255,0.12)",
-                                }}
-                            >
-                                <Lock size={12} style={{ color: "#4a5568" }} />
-                                <span
-                                    className="font-mono text-[10.5px] uppercase tracking-[0.14em]"
-                                    style={{ color: "#4a5568" }}
-                                >
-                                    EMAIL
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={contactEmail}
+                                    readOnly
+                                    className="w-full h-11 bg-transparent border border-[rgba(0,229,255,0.12)] rounded-md text-[14px] text-[#8b9ab0] pl-11 pr-20 outline-none"
+                                />
+                                <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#4a5568] pointer-events-none">
+                                    <Lock size={15} />
                                 </span>
-                                <span
-                                    className="font-mono text-[11.5px] flex-1 truncate"
-                                    style={{ color: "#8b9ab0" }}
-                                >
-                                    {contactEmail}
-                                </span>
-                                <span
-                                    className="font-mono text-[9.5px] uppercase tracking-[0.18em]"
-                                    style={{ color: "#4a5568" }}
-                                >
-                                    READ-ONLY
+                                <label className="absolute left-11 top-0 -translate-y-1/2 scale-[0.85] -translate-x-6 bg-[#111820] px-2 text-[#4a5568] pointer-events-none">
+                                    Email
+                                </label>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568]">
+                                    Read-Only
                                 </span>
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div
-                            className="px-5 h-14 flex items-center justify-end gap-2 border-t"
-                            style={{
-                                borderColor: "rgba(0,229,255,0.10)",
-                                background: "rgba(7,9,15,0.40)",
-                            }}
-                        >
+                        <div className="px-6 py-4 flex flex-col sm:flex-row items-center gap-3">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-sm border border-transparent text-[13px] font-medium transition-colors"
-                                style={{ color: "#8b9ab0" }}
-                                onMouseOver={(e) => { e.currentTarget.style.color = "#f0f4ff"; }}
-                                onMouseOut={(e) => { e.currentTarget.style.color = "#8b9ab0"; }}
+                                className="w-full sm:w-auto sm:ml-auto h-11 px-6 rounded-md font-medium text-[14px] text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading || !displayName.trim()}
-                                className="inline-flex items-center gap-2 h-9 px-4 rounded-sm border font-medium text-[13px] transition-all disabled:opacity-60"
-                                style={{
-                                    background: "#00e5ff",
-                                    color: "#07090f",
-                                    borderColor: "#00e5ff",
-                                    boxShadow: loading ? "none" : "0 0 18px -4px rgba(0,229,255,0.65)",
-                                }}
+                                className="w-full sm:w-auto h-11 px-6 rounded-md bg-[#00e5ff] text-[#07090f] font-semibold text-[14px] hover:bg-[#00d0e6] transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
                             >
-                                {loading ? (
-                                    <>
-                                        <Loader2 size={14} className="animate-spin" />
-                                        Saving…
-                                    </>
-                                ) : (
-                                    <>
-                                        <Check size={14} />
-                                        Save changes
-                                    </>
-                                )}
+                                {loading ? <><Loader2 size={15} className="animate-spin" /> Saving</> : <><Check size={15} /> Save Changes</>}
                             </button>
                         </div>
                     </form>
@@ -669,13 +563,15 @@ export default function ProfilePage() {
         <div className="min-h-screen relative" style={{ background: "#07090f" }}>
             {/* Grid bg */}
             <div
-                className="fixed inset-0 pointer-events-none"
+                className="fixed inset-0 pointer-events-none animate-grid-pan"
                 style={{
                     backgroundImage:
                         "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)",
                     backgroundSize: "40px 40px",
                 }}
             />
+            {/* Scanlines */}
+            <div className="fixed inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
             {/* Cyan radial glow */}
             <div
                 className="fixed top-0 left-0 lg:left-64 w-[600px] h-[400px] pointer-events-none"
@@ -683,22 +579,13 @@ export default function ProfilePage() {
             />
 
             <div className="relative max-w-5xl mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-16 sm:pb-20">
-                {/* Kicker */}
-                <div className="flex items-center gap-2 mb-6 sm:mb-8">
-                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                    <span
-                        className="font-mono text-[11px] uppercase tracking-[0.24em]"
-                        style={{ color: "#00e5ff" }}
-                    >
-                        // PROFILE
-                    </span>
-                </div>
+
 
                 {/* Stacks on mobile, side-by-side on lg+ */}
                 <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 lg:gap-10">
                     {/* LEFT — lanyard + edit button */}
                     <div className="flex flex-col items-center gap-4">
-                        <div className="w-full max-h-[380px] lg:max-h-none overflow-hidden">
+                        <div className="w-full max-h-[380px] lg:max-h-none overflow-visible pt-12">
                             <ProfileLanyard
                                 avatarUrl={profile.avatar_url}
                                 displayName={profile.display_name}
@@ -728,14 +615,7 @@ export default function ProfilePage() {
                                 Edit Profile
                             </button>
                         )}
-                        {!isOwnProfile && (
-                            <p
-                                className="font-mono text-[10px] uppercase tracking-[0.16em]"
-                                style={{ color: "#4a5568" }}
-                            >
-                                // READ-ONLY MEMBER PROFILE
-                            </p>
-                        )}
+
                     </div>
 
                     {/* RIGHT — info */}

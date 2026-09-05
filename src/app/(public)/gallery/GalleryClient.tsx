@@ -108,7 +108,7 @@ function KindFilters({
   counts: Record<string, number>;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const btnRefs = useRef<Record<string, HTMLLabelElement | null>>({});
   const [bar, setBar] = useState({ x: 0, w: 0, ready: false });
 
   const measureRef = useRef<() => void>(() => {});
@@ -130,45 +130,59 @@ function KindFilters({
   }, []);
 
   return (
-    <div
+    <div 
+      className="cir-tabs max-w-full overflow-x-auto relative" 
       ref={wrapRef}
-      className="relative inline-flex items-center gap-1 p-1 border border-edge rounded-md"
-      style={{ background: "rgba(13,17,23,0.8)", backdropFilter: "blur(8px)" }}
+      style={{ 
+        background: "rgba(13,17,23,0.8)", 
+        backdropFilter: "blur(8px)", 
+        borderColor: "rgba(0,229,255,0.15)",
+        scrollbarWidth: "none", // Firefox
+        msOverflowStyle: "none", // IE/Edge
+      }}
     >
-      <span
-        aria-hidden
-        className="absolute top-1 bottom-1 rounded-sm pointer-events-none"
+      <style>{`
+        .cir-tabs::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* Sliding Pill Background */}
+      <div 
+        className="absolute rounded-full pointer-events-none"
         style={{
-          transform: `translateX(${bar.x - 4}px)`,
+          top: "6px",
+          left: 0,
+          height: "36px",
+          transform: `translateX(${bar.x - 1}px)`,
           width: bar.w,
           opacity: bar.ready ? 1 : 0,
           background: "#00e5ff",
-          boxShadow: "0 0 0 1px rgba(0,229,255,0.5), 0 0 18px -4px rgba(0,229,255,0.85)",
-          transition: "transform 300ms cubic-bezier(.5,.05,.2,1), width 300ms cubic-bezier(.5,.05,.2,1), opacity 200ms",
+          boxShadow: "0 1px 1px rgba(0,229,255,0.06), 0 8px 18px -10px rgba(0,229,255,0.5)",
+          transition: "transform 250ms cubic-bezier(0.22, 1, 0.36, 1), width 250ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms",
         }}
       />
+
       {KIND_FILTERS.map(({ key, label, Icon }) => {
         const active = value === key;
         return (
-          <button
-            key={key}
+          <label 
+            key={key} 
+            className="relative inline-flex mb-0 cursor-pointer z-10" 
+            title={label}
             ref={(el) => { btnRefs.current[key] = el; }}
-            onClick={() => onChange(key)}
-            className="relative h-9 px-3.5 rounded-sm text-[12px] font-medium tracking-tight whitespace-nowrap flex items-center gap-1.5 transition-colors duration-150"
-            style={{ color: active ? "#07090f" : "#8b9ab0" }}
-            onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = "#f0f4ff"; }}
-            onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = "#8b9ab0"; }}
           >
-            <span className="relative z-10 flex items-center gap-1.5">
-              <Icon size={12} />
-              <span>{label}</span>
-              {counts[key] != null && (
-                <span className={`font-mono text-[9.5px] tabular-nums ml-0.5 ${active ? "opacity-60" : "text-fg3"}`}>
-                  {String(counts[key]).padStart(2, "0")}
-                </span>
-              )}
+            <input
+              type="radio"
+              className="cir-tabs__r"
+              name="kindFilter"
+              value={key}
+              checked={active}
+              onChange={() => onChange(key)}
+              aria-label={label}
+            />
+            <span className="cir-tabs__t transition-colors duration-200 !px-4 !bg-transparent">
+              <Icon size={16} />
             </span>
-          </button>
+          </label>
         );
       })}
     </div>
@@ -832,7 +846,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
                 </span>
               </h1>
               <p className="text-fg2 text-[15px] lg:text-[16.5px] mt-6 max-w-[58ch] leading-relaxed">
-                Photos from the floor, video from the field, articles from the people doing the work. The team archive — open, dated, credited.
+                Photos from the floor, video from the field, articles from the people doing the work.
               </p>
             </div>
 
@@ -868,9 +882,8 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
           }}
         >
           <div className="max-w-[1480px] mx-auto px-6 lg:px-12 py-3.5 flex items-center gap-4 flex-wrap">
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-fg2 hidden md:flex items-center gap-2">
-              <Filter size={11} className="text-cyan2" />
-              <span>media type</span>
+            <div className="hidden md:flex items-center" title="Media Type">
+              <Filter size={14} className="text-cyan2" />
             </div>
             <KindFilters value={filter} onChange={setFilter} counts={counts} />
             <div className="flex-1" />

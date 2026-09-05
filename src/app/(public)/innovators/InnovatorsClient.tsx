@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, GithubIcon, Linkedin, Users, LayoutGrid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Tables } from "@/types/database";
 
 type Profile = Tables<"profiles">;
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 // ---- Role palette ----
 const ROLE_COLOR: Record<string, { fg: string; bg: string; bd: string; label: string }> = {
@@ -169,51 +171,70 @@ function TeamCardDesktop({ profile, delay, shown }: { profile: Profile; delay: n
       onClick={() => router.push(`/profile/${profile.id}`)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="relative rounded-md p-4 cursor-pointer"
+      className="relative rounded-md p-[1px] cursor-pointer overflow-hidden"
       style={{
-        border: `1px solid ${hover ? "rgba(0,229,255,0.32)" : "rgba(0,229,255,0.12)"}`,
-        background: hover ? "rgba(13,17,23,0.95)" : "#0d1117",
+        background: "rgba(0,229,255,0.12)",
         boxShadow: hover ? "0 0 0 1px rgba(0,229,255,0.10), 0 12px 28px -16px rgba(0,0,0,0.7)" : "none",
         opacity: shown ? 1 : 0,
         transform: shown ? "translateY(0)" : "translateY(10px)",
-        transition: `border-color 180ms, background 180ms, box-shadow 220ms, opacity 480ms ${delay}ms cubic-bezier(.2,.7,.2,1), transform 480ms ${delay}ms cubic-bezier(.2,.7,.2,1)`,
+        transition: `box-shadow 220ms, opacity 480ms ${delay}ms cubic-bezier(.2,.7,.2,1), transform 480ms ${delay}ms cubic-bezier(.2,.7,.2,1)`,
       }}
     >
-      <div className="flex items-start gap-3">
-        <RosterAvatar profile={profile} size={48} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="font-sans font-semibold text-fg text-[14.5px] tracking-tight leading-tight truncate min-w-0">
-              {profile.display_name}
+      {/* Rotating Background Beam */}
+      <div 
+        className="absolute z-0 top-1/2 left-1/2 pointer-events-none transition-opacity duration-300"
+        style={{
+          width: "100px",
+          height: "800px",
+          marginLeft: "-50px",
+          marginTop: "-400px",
+          backgroundImage: "linear-gradient(180deg, #00e5ff 0%, #00e5ff 40%, rgba(0,229,255,0) 80%)",
+          animation: "spin 3s linear infinite",
+          opacity: hover ? 1 : 0
+        }}
+      />
+
+      {/* Inner dark cover */}
+      <div 
+        className="relative z-10 w-full h-full rounded-[5px] p-4 transition-colors duration-200"
+        style={{ background: "#0d1117" }}
+      >
+        <div className="flex items-start gap-3">
+          <RosterAvatar profile={profile} size={48} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-sans font-semibold text-fg text-[14.5px] tracking-tight leading-tight truncate min-w-0">
+                {profile.display_name}
+              </div>
+              <RoleChip role={profile.role} />
             </div>
-            <RoleChip role={profile.role} />
-          </div>
 
-          <div className="mt-2.5 flex items-center gap-1.5 min-w-0">
-            {profile.contact_email ? (
-              <a
-                href={`mailto:${profile.contact_email}`}
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 text-[12px] text-fg2 hover:text-cyan2 transition-colors min-w-0"
-              >
-                <Mail size={11} className="text-cyan2/80 shrink-0" />
-                <span className="font-mono truncate">{profile.contact_email}</span>
-              </a>
-            ) : (
-              <span />
-            )}
-            <span className="flex-1" />
-            {profile.github_url   && <IconBtn icon={GithubIcon} href={profile.github_url}   label="GitHub"   />}
-            {profile.linkedin_url && <IconBtn icon={Linkedin}   href={profile.linkedin_url} label="LinkedIn" />}
+            <div className="mt-2.5 flex items-center gap-1.5 min-w-0">
+              {profile.contact_email ? (
+                <a
+                  href={`mailto:${profile.contact_email}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 text-[12px] text-fg2 hover:text-cyan2 transition-colors min-w-0"
+                >
+                  <Mail size={11} className="text-cyan2/80 shrink-0" />
+                  <span className="font-mono truncate">{profile.contact_email}</span>
+                </a>
+              ) : (
+                <span />
+              )}
+              <span className="flex-1" />
+              {profile.github_url   && <IconBtn icon={GithubIcon} href={profile.github_url}   label="GitHub"   />}
+              {profile.linkedin_url && <IconBtn icon={Linkedin}   href={profile.linkedin_url} label="LinkedIn" />}
+            </div>
           </div>
         </div>
+
+        {tags.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-edge flex items-center flex-wrap gap-1">
+            {tags.map((t) => <TagChip key={t.name} tag={t} />)}
+          </div>
+        )}
       </div>
-
-      {tags.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-edge flex items-center flex-wrap gap-1">
-          {tags.map((t) => <TagChip key={t.name} tag={t} />)}
-        </div>
-      )}
     </div>
   );
 }
@@ -292,42 +313,90 @@ function RosterFilterPills({
   onChange: (k: FilterKey) => void;
   counts: Record<string, number>;
 }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<Record<string, HTMLLabelElement | null>>({});
+  const [bar, setBar] = useState({ x: 0, w: 0, ready: false });
+
+  const measureRef = useRef<() => void>(() => {});
+  const measure = () => {
+    const el = btnRefs.current[value];
+    const wrap = wrapRef.current;
+    if (!el || !wrap) return;
+    const er = el.getBoundingClientRect();
+    const wr = wrap.getBoundingClientRect();
+    setBar({ x: er.left - wr.left, w: er.width, ready: true });
+  };
+  measureRef.current = measure;
+
+  useIsomorphicLayoutEffect(() => { measure(); }, [value]);
+  useEffect(() => {
+    const ro = new ResizeObserver(() => measureRef.current());
+    if (wrapRef.current) ro.observe(wrapRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+    <div 
+      className="cir-tabs max-w-full overflow-x-auto relative" 
+      ref={wrapRef}
+      style={{ 
+        background: "rgba(13,17,23,0.8)", 
+        backdropFilter: "blur(8px)", 
+        borderColor: "rgba(0,229,255,0.15)",
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+      }}
+    >
+      <style>{`
+        .cir-tabs::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* Sliding Pill Background */}
+      <div 
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          top: "6px",
+          left: 0,
+          height: "36px",
+          transform: `translateX(${bar.x - 1}px)`,
+          width: bar.w,
+          opacity: bar.ready ? 1 : 0,
+          background: "#00e5ff",
+          boxShadow: "0 1px 1px rgba(0,229,255,0.06), 0 8px 18px -10px rgba(0,229,255,0.5)",
+          transition: "transform 250ms cubic-bezier(0.22, 1, 0.36, 1), width 250ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms",
+        }}
+      />
+
       {ROSTER_FILTERS.map((f) => {
         const active = value === f.key;
         return (
-          <button
-            key={f.key}
-            onClick={() => onChange(f.key)}
-            className="group shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.16em] whitespace-nowrap transition-colors"
-            style={{
-              color:      active ? "#00e5ff" : "#8b9ab0",
-              background: active ? "rgba(0,229,255,0.10)" : "transparent",
-              border:     `1px solid ${active ? "rgba(0,229,255,0.55)" : "rgba(0,229,255,0.12)"}`,
-              boxShadow:  active ? "0 0 16px -4px rgba(0,229,255,0.45)" : "none",
-            }}
-            onMouseEnter={(e) => {
-              if (!active) {
-                (e.currentTarget as HTMLElement).style.color = "#f0f4ff";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,229,255,0.30)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!active) {
-                (e.currentTarget as HTMLElement).style.color = "#8b9ab0";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,229,255,0.12)";
-              }
-            }}
+          <label 
+            key={f.key} 
+            className="relative inline-flex mb-0 cursor-pointer z-10" 
+            title={f.label}
+            ref={(el) => { btnRefs.current[f.key] = el; }}
           >
-            <span>{f.label}</span>
-            <span
-              className="font-mono text-[9.5px] tabular-nums tracking-[0.10em]"
-              style={{ color: active ? "rgba(0,229,255,0.85)" : "#4a5568" }}
+            <input
+              type="radio"
+              className="cir-tabs__r"
+              name="rosterFilter"
+              value={f.key}
+              checked={active}
+              onChange={() => onChange(f.key)}
+              aria-label={f.label}
+            />
+            <span 
+              className="cir-tabs__t transition-colors duration-200 !px-4 !bg-transparent flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] whitespace-nowrap"
             >
-              {String(counts[f.key] ?? 0).padStart(2, "0")}
+              <span>{f.label}</span>
+              <span
+                className="font-mono text-[9.5px] tabular-nums tracking-[0.10em] transition-colors duration-200"
+                style={{ color: active ? "rgba(0,0,0,0.6)" : "#4a5568" }}
+              >
+                {String(counts[f.key] ?? 0).padStart(2, "0")}
+              </span>
             </span>
-          </button>
+          </label>
         );
       })}
     </div>
@@ -372,16 +441,100 @@ function RosterEmpty({ onClear }: { onClear: () => void }) {
 }
 
 // =============================================
+// CircuitTrace SVG decorations
+// =============================================
+type CircuitTraceProps = {
+  which?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
+  const paths = [
+    {
+      viewBox: "0 0 600 400",
+      d: [
+        "M 0 200 L 120 200 L 140 220 L 280 220 L 300 240 L 600 240",
+        "M 80 200 L 80 60  M 240 220 L 240 100",
+        "M 380 240 L 380 360",
+      ],
+      nodes: [
+        [120, 200], [280, 220], [80, 60], [240, 100], [380, 360],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 500 400",
+      d: [
+        "M 500 80 L 380 80 L 360 100 L 220 100 L 200 120 L 80 120 L 0 120",
+        "M 360 100 L 360 240",
+        "M 200 120 L 200 300 L 0 300",
+        "M 100 120 L 100 60",
+      ],
+      nodes: [
+        [380, 80], [220, 100], [80, 120], [360, 240], [200, 300], [100, 60],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 400 300",
+      d: [
+        "M 0 50 L 80 50 L 90 60 L 200 60 L 210 70 L 320 70 L 330 80 L 400 80",
+        "M 0 200 L 120 200 L 130 210 L 280 210 L 290 220 L 400 220",
+        "M 200 60 L 200 200 M 290 220 L 290 80",
+      ],
+      nodes: [
+        [80, 50], [200, 60], [320, 70], [120, 200], [280, 210],
+      ] as [number, number][],
+    },
+  ];
+
+  const p = paths[which % paths.length];
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox={p.viewBox}
+      preserveAspectRatio="none"
+      fill="none"
+      stroke="#00e5ff"
+      strokeWidth="1.2"
+    >
+      {p.d.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+      {p.nodes.map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="2.5" fill="#00e5ff" />
+      ))}
+    </svg>
+  );
+}
+
+// =============================================
 // InnovatorsClient
 // =============================================
 export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [shown, setShown]   = useState(false);
+  const [t, setT] = useState(0);
 
   useEffect(() => {
     const id = setTimeout(() => setShown(true), 60);
     return () => clearTimeout(id);
   }, []);
+
+  // Drive the slow circuit-trace drift
+  useEffect(() => {
+    let raf: number;
+    const start = performance.now();
+    const tick = () => {
+        setT((performance.now() - start) / 1000);
+        raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const drift = (k: number): string =>
+      `translate(${Math.sin(t * 0.08 + k) * 6}px, ${Math.cos(t * 0.07 + k * 1.3) * 4}px)`;
 
   useEffect(() => {
     setShown(false);
@@ -401,22 +554,67 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
   }, [profiles, filter]);
 
   return (
-    <div className="min-h-screen bg-base">
-      <main className="max-w-[1480px] mx-auto w-full px-6 lg:px-12 pb-16" style={{ paddingTop: "calc(var(--nav-height) + 3rem)" }}>
+    <div className="relative min-h-screen bg-base overflow-hidden">
+      {/* 40 px grid overlay, masked radially so edges fade out */}
+      <div
+        className="absolute inset-0 pointer-events-none animate-grid-pan"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+            "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage:
+            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+        }}
+      />
+      
+      {/* Radial cyan glows — bottom-left large, top-right smaller */}
+      <div
+        className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0"
+        style={{
+          background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)",
+        }}
+      />
+      <div
+        className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0"
+        style={{
+          background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Scanlines */}
+      <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+      
+      {/* Circuit-trace SVG decorations — 3 shapes, slow sine/cosine drift */}
+      <div
+        className="absolute top-[6%] right-[-4%] w-[42vw] h-[40vh] pointer-events-none z-0"
+        style={{ opacity: 0.06, transform: drift(0) }}
+      >
+        <CircuitTrace which={0} className="w-full h-full" />
+      </div>
+      <div
+        className="absolute bottom-[12%] left-[-4%] w-[36vw] h-[44vh] pointer-events-none z-0"
+        style={{ opacity: 0.06, transform: drift(2) }}
+      >
+        <CircuitTrace which={1} className="w-full h-full" />
+      </div>
+      <div
+        className="absolute top-[44%] right-[10%] w-[26vw] h-[28vh] pointer-events-none z-0"
+        style={{ opacity: 0.05, transform: drift(4) }}
+      >
+        <CircuitTrace which={2} className="w-full h-full" />
+      </div>
+
+      <main className="relative z-10 max-w-[1480px] mx-auto w-full px-6 lg:px-12 pb-16" style={{ paddingTop: "calc(var(--nav-height) + 3rem)" }}>
         {/* ── Section header ── */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="h-px w-8 shrink-0" style={{ background: "rgba(0,229,255,0.6)" }} />
-            <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan2">
-              // VAJRAX / ROSTER · 2026
-            </span>
-          </div>
           <h1 className="font-sans font-extrabold tracking-tight text-fg text-[44px] leading-none">
             Our Innovators
           </h1>
           <p className="text-fg2 text-[14px] mt-3 max-w-[68ch] leading-relaxed">
-            The faculty, committee, and members who keep the workshop moving. Filter by group, ping
-            anyone directly — every email here is real and watched.
+            Powerhouse that fuels the MakerSpace Lab, All Real folks here, feel free to say hi =]
           </p>
         </div>
 
@@ -450,24 +648,12 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
           <RosterEmpty onClear={() => setFilter("all")} />
         ) : (
           <>
-            {/* Desktop: auto-fill landscape cards */}
             <div
-              className="hidden lg:grid gap-4"
-              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}
+              className="grid gap-4"
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))" }}
             >
               {filtered.map((p, i) => (
                 <TeamCardDesktop
-                  key={p.id}
-                  profile={p}
-                  delay={Math.min(i, 16) * 35}
-                  shown={shown}
-                />
-              ))}
-            </div>
-            {/* Mobile/tablet: vertical cards */}
-            <div className="grid lg:hidden grid-cols-1 sm:grid-cols-2 gap-4">
-              {filtered.map((p, i) => (
-                <TeamCardMobile
                   key={p.id}
                   profile={p}
                   delay={Math.min(i, 16) * 35}

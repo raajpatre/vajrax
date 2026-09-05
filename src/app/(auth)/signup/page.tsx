@@ -24,21 +24,67 @@ function CircuitMark() {
   );
 }
 
-function AuthLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
-  return (
-    <div className="flex items-end justify-between mb-1.5">
-      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0]">
-        <span className="text-[#00e5ff]/70">$</span> {children}
-      </span>
-      {hint && <span className="font-mono text-[9.5px] text-[#4a5568] tracking-[0.06em]">{hint}</span>}
-    </div>
-  );
-}
-
-const inputCls =
-  "focus-cyan w-full h-10 bg-[#0d1117] text-[13.5px] text-[#f0f4ff] placeholder:text-[#4a5568] border border-[rgba(0,229,255,0.12)] rounded-md transition-shadow";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+const D3ButtonStyles = `
+  .d3wrapper {
+    position: relative;
+    transform-style: preserve-3d;
+    perspective: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 64px;
+    margin-top: 2rem;
+  }
+  .d3cover {
+    background-color: #07090f;
+    height: 64px;
+    width: 100%;
+    border-radius: 10px;
+    transform: rotateX(13deg);
+    position: absolute;
+    z-index: 1;
+    box-shadow: 0px 1px 1px 1px rgba(0,229,255,0.4);
+    border: 1px solid rgba(0,229,255,0.15);
+  }
+  .d3btn {
+    cursor: pointer;
+    border: none;
+    border-bottom: 2px solid rgba(255,255,255,0.6);
+    background-color: #00e5ff;
+    box-shadow: 0px 4px 0px 0.2px rgba(0,180,200,1);
+    height: 56px;
+    width: calc(100% - 10px);
+    border-radius: 8px;
+    transform: rotateX(13deg);
+    z-index: 2;
+    position: absolute;
+    transition: 80ms;
+    color: #07090f;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .d3btn:hover:not(:disabled) {
+    background-color: #00d0e6;
+  }
+  .d3btn:active:not(:disabled) {
+    box-shadow: 0px 4px 0px 0.2px rgba(0,0,0,0);
+    transform: rotateX(13deg) translateY(4.5px);
+    transition: 80ms;
+  }
+  .d3btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
 
 type SignupState = {
   firstName: string;
@@ -56,6 +102,15 @@ const initialState: SignupState = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SignupPage() {
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: D3ButtonStyles }} />
+      <SignupForm />
+    </>
+  );
+}
+
+function SignupForm() {
   const [form,          setForm]         = useState<SignupState>(initialState);
   const [showPw,        setShowPw]       = useState(false);
   const [loading,       setLoading]      = useState(false);
@@ -116,14 +171,12 @@ export default function SignupPage() {
           <div className="absolute inset-x-0 top-0 h-px pointer-events-none rounded-t-md"
             style={{ background: "linear-gradient(90deg, transparent, rgba(0,229,255,0.6), transparent)" }} />
 
-          <div className="flex items-center justify-between px-6 pt-6">
-            <div className="flex items-center gap-2.5">
-              <CircuitMark />
-              <span className="font-sans font-extrabold text-[#f0f4ff] text-[19px] tracking-tight leading-none">
-                Vajra<span className="text-[#00e5ff]">X</span>
-              </span>
-            </div>
-            <span className="font-mono text-[9.5px] uppercase tracking-[0.20em] text-[#4a5568]">APPLY / SUBMITTED</span>
+          <div className="flex items-center justify-center px-6 pt-8 pb-2">
+            <img 
+              src="/White-WordMark-vajrax.png" 
+              alt="VajraX"
+              className="h-[36px] w-auto object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
+            />
           </div>
 
           <div className="px-8 py-12 text-center">
@@ -186,63 +239,68 @@ export default function SignupPage() {
           style={{ background: "linear-gradient(90deg, transparent, rgba(0,229,255,0.6), transparent)" }} />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6">
-          <div className="flex items-center gap-2.5">
-            <CircuitMark />
-            <span className="font-sans font-extrabold text-[#f0f4ff] text-[19px] tracking-tight leading-none">
-              Vajra<span className="text-[#00e5ff]">X</span>
-            </span>
-          </div>
-          <span className="font-mono text-[9.5px] uppercase tracking-[0.20em] text-[#4a5568]">APPLY / SIGNUP</span>
+        <div className="flex items-center justify-center px-6 pt-8 pb-3">
+          <h1 className="flex items-center gap-3 font-sans font-extrabold text-[#f0f4ff] text-[26px] tracking-tight leading-none">
+            Join
+            <img 
+              src="/White-WordMark-vajrax.png" 
+              alt="VajraX"
+              className="h-[28px] w-auto object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.15)] mt-1"
+            />
+          </h1>
         </div>
 
         {/* Body */}
-        <div className="px-7 pt-5 pb-6">
-          <h1 className="font-sans font-extrabold text-[#f0f4ff] text-[26px] tracking-tight leading-none">Join VajraX</h1>
-          <p className="text-[#8b9ab0] text-[13px] mt-2">Applications are reviewed by faculty.</p>
+        <div className="px-7 pt-6 pb-6">
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <AuthLabel>First name</AuthLabel>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative group">
                 <input
                   type="text"
                   value={form.firstName}
                   onChange={(e) => set("firstName", e.target.value)}
                   required
-                  placeholder="Kavya"
-                  className={`${inputCls} px-3`}
+                  placeholder=" "
+                  className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-4 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                 />
+                <label className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-2 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-2 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                  First name
+                </label>
               </div>
-              <div>
-                <AuthLabel>Last name</AuthLabel>
+              <div className="relative group">
                 <input
                   type="text"
                   value={form.lastName}
                   onChange={(e) => set("lastName", e.target.value)}
                   required
-                  placeholder="Ramanathan"
-                  className={`${inputCls} px-3`}
+                  placeholder=" "
+                  className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-4 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                 />
+                <label className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-2 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-2 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                  Last name
+                </label>
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <AuthLabel hint="REQUIRED">Email</AuthLabel>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 grid place-items-center w-10 text-[#8b9ab0] pointer-events-none border-r border-[rgba(0,229,255,0.12)]">
-                  <Mail size={14} />
-                </span>
+              <div className="relative group">
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => set("email", e.target.value)}
                   required
-                  placeholder="kavya@nst.edu"
-                  className={`${inputCls} pl-12 pr-3`}
+                  placeholder=" "
+                  className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                 />
+                <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                  <Mail size={15} />
+                </span>
+                <label className="absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                  Email Address
+                </label>
               </div>
               <div className="font-mono text-[10px] text-[#4a5568] mt-1.5 tracking-[0.06em] flex items-center gap-1.5">
                 <span className="text-[#00e5ff]/70 text-[9px]">ℹ</span>
@@ -251,63 +309,65 @@ export default function SignupPage() {
             </div>
 
             {/* Password + Semester row */}
-            <div className="grid gap-3" style={{ gridTemplateColumns: "1.4fr 0.6fr" }}>
-              <div>
-                <AuthLabel hint="MIN 6 CHARS">Password</AuthLabel>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 grid place-items-center w-10 text-[#8b9ab0] pointer-events-none border-r border-[rgba(0,229,255,0.12)]">
-                    <Lock size={14} />
-                  </span>
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={form.password}
-                    onChange={(e) => set("password", e.target.value)}
-                    required
-                    minLength={6}
-                    placeholder="••••••••••••"
-                    className={`${inputCls} pl-12 pr-10`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((s) => !s)}
-                    className="absolute inset-y-0 right-0 grid place-items-center w-10 text-[#8b9ab0] hover:text-[#00e5ff] transition-colors"
-                    aria-label="toggle password visibility"
-                  >
-                    {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
+            <div className="grid gap-4" style={{ gridTemplateColumns: "1.4fr 0.6fr" }}>
+              <div className="relative group">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => set("password", e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder=" "
+                  className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-10 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
+                />
+                <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                  <Lock size={15} />
+                </span>
+                <label className="absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPw((s) => !s)}
+                  className="absolute right-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] hover:text-[#00e5ff] transition-colors"
+                  aria-label="toggle password visibility"
+                >
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
               </div>
-              <div>
-                <AuthLabel>Semester</AuthLabel>
-                <div className="relative">
-                  <select
-                    value={form.currentSemester}
-                    onChange={(e) => set("currentSemester", e.target.value)}
-                    required
-                    className={`${inputCls} appearance-none px-3 pr-9 cursor-pointer`}
-                  >
-                    {["1","2","3","4","5","6","7","8"].map((s) => (
-                      <option key={s} value={s} className="bg-[#0d1117]">Sem {s}</option>
-                    ))}
-                  </select>
-                  <span className="absolute inset-y-0 right-0 grid place-items-center w-9 text-[#8b9ab0] pointer-events-none">
-                    <ChevronDown size={14} />
-                  </span>
-                </div>
+              <div className="relative group">
+                <select
+                  value={form.currentSemester}
+                  onChange={(e) => set("currentSemester", e.target.value)}
+                  required
+                  className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-4 pr-9 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors appearance-none cursor-pointer"
+                >
+                  {["1","2","3","4","5","6","7","8"].map((s) => (
+                    <option key={s} value={s} className="bg-[#0d1117]">Sem {s}</option>
+                  ))}
+                </select>
+                <span className="absolute inset-y-0 right-0 grid place-items-center w-9 text-[#8b9ab0] pointer-events-none">
+                  <ChevronDown size={14} />
+                </span>
+                <label className="absolute left-4 top-0 -translate-y-1/2 text-[#8b9ab0] text-[14px] scale-[0.85] -translate-x-2 bg-[#111820] px-2 text-[#00e5ff] pointer-events-none transition-all duration-200">
+                  Semester
+                </label>
               </div>
             </div>
 
             {/* Purpose */}
-            <div>
-              <AuthLabel hint="WHAT DRIVES YOU">Purpose</AuthLabel>
+            <div className="relative group">
               <textarea
                 rows={4}
                 value={form.purpose}
                 onChange={(e) => set("purpose", e.target.value)}
                 required
-                placeholder="Tell us what you want to build, learn, or contribute at VajraX."
-                className="focus-cyan w-full bg-[#0d1117] text-[13.5px] text-[#f0f4ff] placeholder:text-[#4a5568] border border-[rgba(0,229,255,0.12)] rounded-md transition-shadow px-3 py-2.5 resize-none leading-relaxed"
+                placeholder=" "
+                className="peer w-full bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-4 py-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors resize-none leading-relaxed"
               />
+              <label className="absolute left-4 top-3 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-2 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-2 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                Purpose
+              </label>
             </div>
 
             {error && (
@@ -320,17 +380,20 @@ export default function SignupPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 flex items-center justify-center gap-2 rounded-sm font-mono text-[12px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <><Loader2 size={14} className="animate-spin" /> Submitting application</>
-              ) : (
-                <>Submit Application <ArrowRight size={13} /></>
-              )}
-            </button>
+            <div className="d3wrapper">
+              <div className="d3cover" />
+              <button
+                type="submit"
+                disabled={loading}
+                className="d3btn font-mono"
+              >
+                {loading ? (
+                  <><Loader2 size={14} className="animate-spin" /> Submitting application</>
+                ) : (
+                  <>Submit Application <ArrowRight size={13} /></>
+                )}
+              </button>
+            </div>
           </form>
 
           <div className="mt-5 pt-5 border-t border-[rgba(0,229,255,0.12)] text-center">

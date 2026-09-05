@@ -352,7 +352,7 @@ export default function ProfileLanyard({
     }, [avatarUrl, displayName, roleLabel]);
 
     return (
-        <div className="relative aspect-[5/6] min-h-[420px] w-full overflow-hidden rounded-[30px] border border-cyan-200/16 bg-[radial-gradient(circle_at_top,rgba(123,97,255,0.16),rgba(8,20,34,0.58)_42%,rgba(5,14,28,0.84))] shadow-[0_24px_70px_rgba(2,8,20,0.42)]">
+        <div className="relative aspect-[5/6] min-h-[420px] w-full overflow-visible">
             {!cardTexture && <LanyardLoader />}
             {loadError && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#07101c]/85 p-6 text-center">

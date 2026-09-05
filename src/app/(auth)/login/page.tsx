@@ -26,23 +26,65 @@ function CircuitMark() {
   );
 }
 
-function AuthLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
-  return (
-    <div className="flex items-end justify-between mb-1.5">
-      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0]">
-        <span className="text-[#00e5ff]/70">$</span> {children}
-      </span>
-      {hint && <span className="font-mono text-[9.5px] text-[#4a5568] tracking-[0.06em]">{hint}</span>}
-    </div>
-  );
-}
-
-function FieldWrap({ children }: { children: React.ReactNode }) {
-  return <div className="relative">{children}</div>;
-}
-
-const inputCls =
-  "focus-cyan w-full h-10 bg-[#0d1117] text-[13.5px] text-[#f0f4ff] placeholder:text-[#4a5568] border border-[rgba(0,229,255,0.12)] rounded-md transition-shadow";
+const D3ButtonStyles = `
+  .d3wrapper {
+    position: relative;
+    transform-style: preserve-3d;
+    perspective: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 64px;
+    margin-top: 2rem;
+  }
+  .d3cover {
+    background-color: #07090f;
+    height: 64px;
+    width: 100%;
+    border-radius: 10px;
+    transform: rotateX(13deg);
+    position: absolute;
+    z-index: 1;
+    box-shadow: 0px 1px 1px 1px rgba(0,229,255,0.4);
+    border: 1px solid rgba(0,229,255,0.15);
+  }
+  .d3btn {
+    cursor: pointer;
+    border: none;
+    border-bottom: 2px solid rgba(255,255,255,0.6);
+    background-color: #00e5ff;
+    box-shadow: 0px 4px 0px 0.2px rgba(0,180,200,1);
+    height: 56px;
+    width: calc(100% - 10px);
+    border-radius: 8px;
+    transform: rotateX(13deg);
+    z-index: 2;
+    position: absolute;
+    transition: 80ms;
+    color: #07090f;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .d3btn:hover:not(:disabled) {
+    background-color: #00d0e6;
+  }
+  .d3btn:active:not(:disabled) {
+    box-shadow: 0px 4px 0px 0.2px rgba(0,0,0,0);
+    transform: rotateX(13deg) translateY(4.5px);
+    transition: 80ms;
+  }
+  .d3btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
 
 // ─── Login form ───────────────────────────────────────────────────────────────
 
@@ -86,77 +128,68 @@ function LoginForm() {
         />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6">
-          <div className="flex items-center gap-2.5">
-            <CircuitMark />
-            <span className="font-sans font-extrabold text-[#f0f4ff] text-[19px] tracking-tight leading-none">
-              Vajra<span className="text-[#00e5ff]">X</span>
-            </span>
-          </div>
-          <span className="font-mono text-[9.5px] uppercase tracking-[0.20em] text-[#4a5568]">ACCESS / LOGIN</span>
+        <div className="flex items-center justify-center px-6 pt-8 pb-3">
+          <h1 className="flex items-center gap-3 font-sans font-extrabold text-[#f0f4ff] text-[26px] tracking-tight leading-none">
+            Sign In to
+            <img 
+              src="/White-WordMark-vajrax.png" 
+              alt="VajraX"
+              className="h-[28px] w-auto object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.15)] mt-1"
+            />
+          </h1>
         </div>
 
         {/* Body */}
-        <div className="px-6 pt-5 pb-6">
-          <h1 className="font-sans font-extrabold text-[#f0f4ff] text-[26px] tracking-tight leading-none">Sign In</h1>
-          <p className="text-[#8b9ab0] text-[13px] mt-2">Welcome back.</p>
+        <div className="px-6 pt-6 pb-6">
 
-          <form onSubmit={handleLogin} className="mt-6 space-y-4">
+          <form onSubmit={handleLogin} className="space-y-5">
             {/* Email */}
-            <div>
-              <AuthLabel hint="REQUIRED">Email</AuthLabel>
-              <FieldWrap>
-                <span className="absolute inset-y-0 left-0 grid place-items-center w-10 text-[#8b9ab0] pointer-events-none border-r border-[rgba(0,229,255,0.12)]">
-                  <Mail size={14} />
-                </span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="kavya@vajrax.io"
-                  className={`${inputCls} pl-12 pr-3`}
-                />
-              </FieldWrap>
+            <div className="relative group">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder=" "
+                className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
+              />
+              <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                <Mail size={15} />
+              </span>
+              <label className="absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                Email Address
+              </label>
             </div>
 
             {/* Password */}
-            <div>
-              <AuthLabel hint="REQUIRED">Password</AuthLabel>
-              <FieldWrap>
-                <span className="absolute inset-y-0 left-0 grid place-items-center w-10 text-[#8b9ab0] pointer-events-none border-r border-[rgba(0,229,255,0.12)]">
-                  <Lock size={14} />
-                </span>
-                <input
-                  type={showPw ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••••••"
-                  className={`${inputCls} pl-12 pr-10`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((s) => !s)}
-                  className="absolute inset-y-0 right-0 grid place-items-center w-10 text-[#8b9ab0] hover:text-[#00e5ff] transition-colors"
-                  aria-label="toggle password visibility"
-                >
-                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </FieldWrap>
-              <div className="flex justify-end mt-1.5">
-                <span
-                  className="font-mono text-[10.5px] uppercase tracking-[0.10em] text-[#4a5568] cursor-help"
-                  title="Password reset is not yet available"
-                >
-                  Forgot credentials?
-                </span>
-              </div>
+            <div className="relative group">
+              <input
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder=" "
+                className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-11 pr-10 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
+              />
+              <span className="absolute left-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors">
+                <Lock size={15} />
+              </span>
+              <label className="absolute left-11 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-6 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-6 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowPw((s) => !s)}
+                className="absolute right-0 top-0 bottom-0 grid place-items-center w-11 text-[#8b9ab0] hover:text-[#00e5ff] transition-colors"
+                aria-label="toggle password visibility"
+              >
+                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
             </div>
 
             {error && (
               <div
-                className="flex items-start gap-2.5 px-3 py-2.5 rounded-md border"
+                className="flex items-start gap-2.5 px-3 py-2.5 rounded-md border mt-3"
                 style={{ borderColor: "rgba(239,68,68,0.45)", background: "rgba(239,68,68,0.08)" }}
               >
                 <AlertCircle size={15} className="text-[#ef4444] shrink-0 mt-px" />
@@ -164,17 +197,20 @@ function LoginForm() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 flex items-center justify-center gap-2 rounded-sm font-mono text-[12px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <><Loader2 size={14} className="animate-spin" /> Authenticating</>
-              ) : (
-                <>Sign In <ArrowRight size={13} /></>
-              )}
-            </button>
+            <div className="d3wrapper">
+              <div className="d3cover" />
+              <button
+                type="submit"
+                disabled={loading}
+                className="d3btn font-mono"
+              >
+                {loading ? (
+                  <><Loader2 size={14} className="animate-spin" /> Authenticating</>
+                ) : (
+                  <>Sign In <ArrowRight size={13} /></>
+                )}
+              </button>
+            </div>
           </form>
 
           <div className="mt-5 pt-5 border-t border-[rgba(0,229,255,0.12)] text-center">
@@ -201,6 +237,7 @@ export default function LoginPage() {
         </div>
       }
     >
+      <style dangerouslySetInnerHTML={{ __html: D3ButtonStyles }} />
       <LoginForm />
     </Suspense>
   );

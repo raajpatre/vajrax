@@ -667,9 +667,22 @@ export default function AdminSponsorsPage() {
 
     return (
         <div
-            className="min-h-screen px-6 py-8 lg:px-10"
+            className="min-h-screen relative"
             style={{ background: "#07090f" }}
         >
+            {/* Grid bg */}
+            <div
+                className="fixed inset-0 pointer-events-none animate-grid-pan"
+                style={{
+                    backgroundImage:
+                        "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)",
+                    backgroundSize: "40px 40px",
+                }}
+            />
+            {/* Scanlines */}
+            <div className="fixed inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
+
+            <div className="relative z-10 px-6 py-8 lg:px-10">
             {/* Header */}
             <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                 <div>
@@ -798,6 +811,7 @@ export default function AdminSponsorsPage() {
             </AnimatePresence>
 
             <Toast toasts={toasts} />
+            </div>
         </div>
     );
 }

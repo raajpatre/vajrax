@@ -3,6 +3,7 @@ import {
   ArrowUpRight, Zap, UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { GlobePulse } from "@/components/ui/DynamicGlobePulse";
 
 export const metadata = {
   title: "Contact — VajraX",
@@ -58,40 +59,177 @@ function InfoCard({
   );
 }
 
-// ─── SocialRow ────────────────────────────────────────────────────────────────
+// ─── SocialsCard ──────────────────────────────────────────────────────────────
 
-function SocialRow({
-  icon: Icon, name, handle, href = "#",
-}: {
-  icon: LucideIcon; name: string; handle?: string; href?: string;
-}) {
+const SocialCardStyles = `
+  .social-card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #0d1117;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 20px -5px rgba(0,229,255,0.05);
+    transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  
+  .social-card:hover {
+    transform: scale(1.02);
+    border-color: rgba(0, 229, 255, 0.5);
+    box-shadow: 0 0 35px -5px rgba(0,229,255,0.25);
+  }
+
+  .cta-card {
+    transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    border: 1px solid rgba(0, 229, 255, 0.45);
+    box-shadow: 0 0 0 1px rgba(0,229,255,0.10), 0 0 28px -10px rgba(0,229,255,0.45);
+  }
+  
+  .cta-card:hover {
+    transform: scale(1.02);
+    border-color: rgba(0, 229, 255, 0.65);
+    box-shadow: 0 0 0 1px rgba(0,229,255,0.20), 0 0 45px -10px rgba(0,229,255,0.65);
+  }
+
+  .social-card-bg {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 100% 0%, rgba(0,229,255,0.15) 0%, transparent 70%);
+  }
+
+  .social-logo {
+    position: absolute;
+    right: 50%;
+    bottom: 50%;
+    transform: translate(50%, 50%);
+    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    font-size: 26px;
+    font-weight: 700;
+    color: #f0f4ff;
+    letter-spacing: 2px;
+    pointer-events: none;
+    z-index: 20;
+  }
+  
+  .social-card:hover .social-logo {
+    right: 24px;
+    bottom: calc(100% - 34px);
+    transform: translate(0, 0);
+    letter-spacing: 0px;
+    font-size: 18px;
+    color: #00e5ff;
+  }
+
+  .sc-box {
+    position: absolute;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    background: rgba(0, 229, 255, 0.05);
+    border-top: 1px solid rgba(0, 229, 255, 0.4);
+    border-right: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 10% 13% 42% 0% / 10% 12% 75% 0%;
+    transform-origin: bottom left;
+    transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .sc-box::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: all 0.5s ease-in-out;
+    z-index: -1;
+  }
+
+  .social-card:hover .sc-box {
+    bottom: -1px;
+    left: -1px;
+  }
+  
+  .sc-box:hover .sc-icon {
+    color: #ffffff;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
+    transform: scale(1.1);
+  }
+
+  .sc-icon {
+    color: rgba(255, 255, 255, 0.6);
+    transition: all 0.4s ease;
+  }
+
+  /* Box 1 - GitHub */
+  .sc-box1 {
+    width: 85%; height: 85%;
+    bottom: -85%; left: -85%;
+    z-index: 10;
+  }
+  .sc-box1::before {
+    background: radial-gradient(circle at 30% 107%, rgba(0,229,255,0.15) 0%, rgba(0,100,255,0.05) 60%, transparent 90%);
+  }
+  .social-card:hover .sc-box1::before { opacity: 1; }
+
+  /* Box 2 - Twitter */
+  .sc-box2 {
+    width: 65%; height: 65%;
+    bottom: -65%; left: -65%;
+    transition-delay: 0.1s;
+    z-index: 11;
+  }
+  .sc-box2::before {
+    background: radial-gradient(circle at 30% 107%, rgba(0,229,255,0.25) 0%, rgba(0,150,255,0.1) 90%);
+  }
+  .social-card:hover .sc-box2::before { opacity: 1; }
+
+  /* Box 3 - Instagram */
+  .sc-box3 {
+    width: 45%; height: 45%;
+    bottom: -45%; left: -45%;
+    transition-delay: 0.2s;
+    z-index: 12;
+  }
+  .sc-box3::before {
+    background: radial-gradient(circle at 30% 107%, rgba(0,229,255,0.35) 0%, rgba(0,200,255,0.15) 90%);
+  }
+  .social-card:hover .sc-box3::before { opacity: 1; }
+
+  /* Box 4 - LinkedIn */
+  .sc-box4 {
+    width: 25%; height: 25%;
+    bottom: -25%; left: -25%;
+    transition-delay: 0.3s;
+    z-index: 13;
+  }
+  .sc-box4::before {
+    background: radial-gradient(circle at 30% 107%, rgba(0,229,255,0.5) 0%, rgba(0,229,255,0.2) 90%);
+  }
+  .social-card:hover .sc-box4::before { opacity: 1; }
+`;
+
+function SocialsCard() {
   return (
-    <a
-      href={href}
-      target={href !== "#" ? "_blank" : undefined}
-      rel="noopener noreferrer"
-      className="group relative flex items-center gap-3 h-12 pl-3 pr-4 border-b border-[rgba(0,229,255,0.12)] last:border-0 transition-colors"
-    >
-      <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-sm bg-transparent group-hover:bg-[#00e5ff] transition-all duration-150 group-hover:shadow-[0_0_8px_rgba(0,229,255,0.85)]" />
-
-      <span className="grid place-items-center w-8 h-8 rounded-sm border border-[rgba(0,229,255,0.12)] text-[#8b9ab0] group-hover:text-[#00e5ff] group-hover:border-[rgba(0,229,255,0.45)] transition-colors shrink-0">
-        <Icon size={14} />
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <div className="font-sans font-semibold text-[13.5px] tracking-tight text-[#f0f4ff] group-hover:text-[#00e5ff] transition-colors">
-          {name}
-        </div>
-        {handle && (
-          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#4a5568] mt-0.5 truncate">{handle}</div>
-        )}
-      </div>
-
-      <ArrowUpRight
-        size={13}
-        className="text-[#8b9ab0] group-hover:text-[#00e5ff] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-150 shrink-0"
-      />
-    </a>
+    <div className="social-card">
+      <div className="social-card-bg" />
+      <div className="social-logo font-sans text-center whitespace-nowrap">Our Socials</div>
+      
+      <a href="https://github.com/VajraX-NST-BLR" target="_blank" rel="noopener noreferrer" className="sc-box sc-box1">
+        <GithubIcon size={22} className="sc-icon" />
+      </a>
+      <a href="#" target="_blank" rel="noopener noreferrer" className="sc-box sc-box2">
+        <TwitterIcon size={22} className="sc-icon" />
+      </a>
+      <a href="https://www.instagram.com/vajraxclub/" target="_blank" rel="noopener noreferrer" className="sc-box sc-box3">
+        <InstagramIcon size={22} className="sc-icon" />
+      </a>
+      <a href="https://www.linkedin.com/company/vajrax-club/" target="_blank" rel="noopener noreferrer" className="sc-box sc-box4">
+        <LinkedinIcon size={22} className="sc-icon" />
+      </a>
+    </div>
   );
 }
 
@@ -102,131 +240,64 @@ export default function ContactPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)] bg-[#07090f]">
+      <style dangerouslySetInnerHTML={{ __html: SocialCardStyles }} />
       <div className="relative z-10 max-w-[1480px] mx-auto w-full px-6 lg:px-12">
 
-        {/* Kicker */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className="h-px w-8 bg-[#00e5ff]/60" />
-          <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">// VAJRAX / CONTACT</span>
-        </div>
+        {/* Kicker Removed */}
 
         <div className="grid grid-cols-12 gap-10 mt-2">
 
           {/* LEFT — contact info */}
           <div className="col-span-12 lg:col-span-7">
-            <div className="mb-7">
-              <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] leading-none" style={{ fontSize: "clamp(28px, 5vw, 44px)" }}>Contact</h1>
-              <p className="text-[#8b9ab0] text-[14px] mt-3 max-w-[58ch] leading-relaxed">
-                Mail us, find us, or just drop by during lab hours. Most replies under 24 hours.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <InfoCard icon={Mail} label="EMAIL" href="mailto:vajrax2025@gmail.com">
-                <span className="font-mono text-[14px] text-[#f0f4ff]">vajrax2025@gmail.com</span>
-              </InfoCard>
-
-              <InfoCard icon={MapPin} label="LOCATION">
-                <span className="font-sans font-medium">MakerSpace Lab, Basement P3 Block</span>
-                <span className="text-[#8b9ab0] block mt-1">Newton School of Technology</span>
-                <span className="font-mono text-[11.5px] text-[#4a5568] block mt-1 tracking-[0.06em]">
-                  Bengaluru · Karnataka · India
-                </span>
-              </InfoCard>
-
-              <InfoCard icon={Clock} label="LAB HOURS">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 font-mono text-[12.5px] mt-0.5">
-                  <span className="text-[#8b9ab0]">MON — FRI</span>
-                  <span className="text-[#f0f4ff] tabular-nums">06:00 — 21:00</span>
-                  <span className="text-[#8b9ab0]">WEEKENDS</span>
-                  <span className="text-[#4a5568] italic">closed</span>
+            <div className="w-full max-w-[600px] mx-auto lg:mx-0 relative">
+              <div className="absolute top-0 left-0 z-10 pointer-events-none pr-4">
+                <div className="font-mono text-[11px] text-[#00e5ff] uppercase tracking-[0.2em] mb-1.5">HQ Location</div>
+                <div className="font-sans font-medium text-[#8b9ab0] text-[15px] leading-relaxed max-w-[400px]">
+                  <span className="text-[#f0f4ff]">Building No. P3</span>, Sattva Global City, Mysore Road, Remco Housing Society, Rajarajeshwari Nagar, Bengaluru, India - 560059
                 </div>
-              </InfoCard>
-            </div>
+              </div>
 
-            {/* status row */}
-            <div className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.18em]">
-              <span className="inline-flex items-center gap-2">
-                {labOpen ? (
-                  <>
-                    <span
-                      className="w-[7px] h-[7px] rounded-full bg-[#22c55e] animate-pulse"
-                      style={{ boxShadow: "0 0 5px #22c55e" }}
-                    />
-                    <span className="text-[#22c55e]">LAB OPEN</span>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      className="w-[7px] h-[7px] rounded-full bg-[#ef4444] animate-pulse"
-                      style={{ boxShadow: "0 0 5px #ef4444" }}
-                    />
-                    <span className="text-[#ef4444]">LAB CLOSED</span>
-                  </>
-                )}
-              </span>
+              <a 
+                href="https://maps.app.goo.gl/wNZ7tnsyNgo8Sf7Z8" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block relative aspect-square w-full pt-28 cursor-pointer transition-transform hover:scale-[1.02] active:scale-95"
+              >
+                <GlobePulse 
+                  markers={[
+                    { id: "pulse-blr", location: [12.9716, 77.5946], delay: 0 }
+                  ]}
+                  speed={0.005}
+                />
+              </a>
             </div>
           </div>
 
           {/* RIGHT — social + CTA */}
           <div className="col-span-12 lg:col-span-5">
-            <div className="mb-5">
-              <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#00e5ff] mb-2">// SOCIAL</div>
-              <h2 className="font-sans font-bold text-[#f0f4ff] text-[26px] tracking-tight leading-none">Connect</h2>
-              <p className="text-[#8b9ab0] text-[13px] mt-2 max-w-[40ch] leading-relaxed">
-                Follow the build logs, behind-the-scenes, and shop-floor moments.
-              </p>
-            </div>
+            <div className="w-full max-w-[340px] sm:max-w-sm mx-auto lg:max-w-none lg:mx-0">
+              <SocialsCard />
 
-            <div className="bg-[#0d1117] border border-[rgba(0,229,255,0.12)] rounded-md overflow-hidden corner-ticks relative">
-              <span className="ct-tr" /><span className="ct-bl" />
-              <SocialRow icon={GithubIcon}    name="GitHub"    handle="VajraX-NST-BLR"   href="https://github.com/VajraX-NST-BLR" />
-              <SocialRow icon={TwitterIcon}   name="Twitter"   handle="@vajrax"           href="#" />
-              <SocialRow icon={InstagramIcon} name="Instagram" handle="@vajrax.workshop"  href="#" />
-              <SocialRow icon={LinkedinIcon}  name="LinkedIn"  handle="VajraX Collective" href="#" />
-            </div>
-
-            {/* divider */}
-            <div className="my-7 relative flex items-center gap-4">
-              <span className="h-px flex-1 bg-[rgba(0,229,255,0.12)]" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#4a5568]">// JOIN</span>
-              <span className="h-px flex-1 bg-[rgba(0,229,255,0.12)]" />
-            </div>
-
-            {/* CTA card */}
-            <div
-              className="relative p-5 rounded-md bg-[#0d1117] corner-ticks overflow-hidden"
-              style={{
-                border: "1px solid rgba(0,229,255,0.45)",
-                boxShadow: "0 0 0 1px rgba(0,229,255,0.10), 0 0 28px -10px rgba(0,229,255,0.45)",
-              }}
-            >
-              <span className="ct-tr" /><span className="ct-bl" />
+              {/* CTA card */}
               <div
-                className="absolute -inset-x-8 -top-20 h-40 pointer-events-none"
-                style={{ background: "radial-gradient(40% 60% at 50% 100%, rgba(0,229,255,0.18) 0%, transparent 70%)" }}
-              />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap size={14} className="text-[#00e5ff]" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#00e5ff]">
-                    2027 COHORT · APPLICATIONS OPEN
-                  </span>
-                </div>
-                <h3 className="font-sans font-extrabold text-[#f0f4ff] text-[22px] tracking-tight leading-tight">
-                  Want to join VajraX?
-                </h3>
-                <p className="text-[#8b9ab0] text-[13px] mt-2 leading-relaxed max-w-[40ch]">
-                  Twice-yearly recruitment across all six sub-teams. No prior robotics experience required.
-                </p>
-                <div className="mt-5">
-                  <a
-                    href="/signup"
-                    className="inline-flex items-center gap-2 h-9 px-5 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
-                  >
-                    <UserPlus size={13} />
-                    Apply Now
-                  </a>
+                className="relative mt-7 p-6 lg:p-10 rounded-[20px] bg-[#0d1117] overflow-hidden cta-card min-w-0"
+              >
+                <div className="relative flex flex-col items-center text-center lg:items-start lg:text-left">
+                  <h3 className="font-sans font-extrabold text-[#f0f4ff] text-[20px] sm:text-[22px] lg:text-[24px] tracking-tight leading-tight">
+                    Want to join VajraX?
+                  </h3>
+                  <p className="text-[#8b9ab0] text-[13px] lg:text-[14px] mt-2 lg:mt-3 leading-relaxed max-w-[40ch]">
+                    No prior experience required, but the zeal and curiosity for further experience ⚡️
+                  </p>
+                  <div className="mt-8">
+                    <a
+                      href="/signup"
+                      className="inline-flex items-center gap-2 h-9 px-5 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
+                    >
+                      <UserPlus size={13} />
+                      Apply Now
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

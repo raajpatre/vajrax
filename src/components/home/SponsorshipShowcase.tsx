@@ -48,12 +48,14 @@ function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
                     {sponsor.name}
                 </span>
             )}
-            <span
-                className="font-mono text-[9px] uppercase tracking-[0.22em]"
-                style={{ color: fg }}
-            >
-                {sponsor.tier}
-            </span>
+            {sponsor.tier !== "Platinum" && (
+                <span
+                    className="font-mono text-[9px] uppercase tracking-[0.22em]"
+                    style={{ color: fg }}
+                >
+                    {sponsor.tier}
+                </span>
+            )}
         </div>
     );
 
@@ -79,18 +81,20 @@ function TierRow({ label, sponsors, color }: { label: string; sponsors: Sponsor[
     return (
         <div className="space-y-3">
             {/* Tier divider */}
-            <div className="flex items-center gap-3">
-                <span
-                    className="font-mono text-[10px] uppercase tracking-[0.22em] shrink-0"
-                    style={{ color }}
-                >
-                    {label}
-                </span>
-                <div className="flex-1 h-px" style={{ background: `${color}22` }} />
-                <span className="font-mono text-[10px]" style={{ color: "#4a5568" }}>
-                    {String(sponsors.length).padStart(2, "0")}
-                </span>
-            </div>
+            {label && (
+                <div className="flex items-center gap-3">
+                    <span
+                        className="font-mono text-[10px] uppercase tracking-[0.22em] shrink-0"
+                        style={{ color }}
+                    >
+                        {label}
+                    </span>
+                    <div className="flex-1 h-px" style={{ background: `${color}22` }} />
+                    <span className="font-mono text-[10px]" style={{ color: "#4a5568" }}>
+                        {String(sponsors.length).padStart(2, "0")}
+                    </span>
+                </div>
+            )}
             {/* Responsive grid — grows as more sponsors are added */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                 {sponsors.map((s) => (
@@ -120,19 +124,6 @@ export default function SponsorshipShowcase({ sponsors }: SponsorshipShowcasePro
                 {/* Header */}
                 <div className="flex items-end justify-between flex-wrap gap-4">
                     <div>
-                        <motion.div
-                            initial={{ opacity: 0, y: 16 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-60px" }}
-                            transition={{ duration: 0.55 }}
-                            className="flex items-center gap-2 mb-3"
-                        >
-                            <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                            <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
-                                // supported by
-                            </span>
-                        </motion.div>
-
                         <motion.h2
                             initial={{ opacity: 0, y: 16 }}
                             whileInView={{ opacity: 1, y: 0 }}
@@ -141,7 +132,7 @@ export default function SponsorshipShowcase({ sponsors }: SponsorshipShowcasePro
                             className="font-extrabold tracking-tight leading-none text-[#f0f4ff]"
                             style={{ fontSize: "clamp(24px, 2.4vw, 34px)" }}
                         >
-                            The hands holding the workshop up.
+                            We don't build alone.
                         </motion.h2>
 
                         <motion.p
@@ -152,8 +143,8 @@ export default function SponsorshipShowcase({ sponsors }: SponsorshipShowcasePro
                             className="mt-3 max-w-[60ch] leading-relaxed"
                             style={{ fontSize: 13.5, color: "#8b9ab0" }}
                         >
-                            Hardware, materials, time, and tooling — from companies who think a
-                            student team with an arbor press deserves real backing.
+                            Machines, materials, hours, and shop space — backed by companies that get why a
+                            student team with an arbor press is worth betting on.
                         </motion.p>
                     </div>
                 </div>
@@ -171,7 +162,7 @@ export default function SponsorshipShowcase({ sponsors }: SponsorshipShowcasePro
                     </div>
                 ) : (
                     <div className="space-y-8">
-                        <TierRow label="Platinum" sponsors={platinum} color={TIER_FG.Platinum} />
+                        <TierRow label=""         sponsors={platinum} color={TIER_FG.Platinum} />
                         <TierRow label="Gold"     sponsors={gold}     color={TIER_FG.Gold}     />
                         <TierRow label="Silver"   sponsors={silver}   color={TIER_FG.Silver}   />
                     </div>
@@ -179,23 +170,17 @@ export default function SponsorshipShowcase({ sponsors }: SponsorshipShowcasePro
 
                 {/* Sponsorship CTA */}
                 <div
-                    className="flex items-center justify-between pt-6"
+                    className="flex items-center justify-end pt-6"
                     style={{ borderTop: "1px solid rgba(0,229,255,0.08)" }}
                 >
-                    <span
-                        className="font-mono text-[10.5px] uppercase tracking-[0.18em]"
-                        style={{ color: "#4a5568" }}
-                    >
-                        // sponsorship inquiries
-                    </span>
                     <a
-                        href="mailto:vajrax@newton.edu.in"
-                        className="btn-secondary inline-flex items-center gap-2 !text-xs"
+                        href="mailto:vajrax2025@gmail.com"
+                        className="cir-btn"
                     >
                         Become a sponsor
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                        <svg className="cir-btn__arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                             <path
-                                d="M2 7h10M7 2l5 5-5 5"
+                                d="M3 11L11 3M11 3H5M11 3V9"
                                 stroke="currentColor"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"

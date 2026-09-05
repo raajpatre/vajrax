@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition, useMemo, useId } from "react";
+import { useState, useEffect, useCallback, useTransition, useMemo, useId, useRef, useLayoutEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
@@ -37,7 +37,9 @@ import { Tables } from "@/types/database";
 import { submitEquipmentCart } from "@/actions/equipment-requests";
 import { syncInventoryStocksToGoogleSheets } from "@/actions/inventory-history";
 
-type InventoryItem = Tables<"inventory_items">;
+export interface InventoryItem extends Tables<"inventory_items"> { }
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface CartItem {
     item: InventoryItem;
@@ -354,44 +356,92 @@ function InvCard({ item, inCart, canManage, canViewExact, onAdd, onEdit, onDelet
 function InvFilterPills({ value, onChange, counts }: {
     value: string; onChange: (k: string) => void; counts: Record<string, number>;
 }) {
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const btnRefs = useRef<Record<string, HTMLLabelElement | null>>({});
+    const [bar, setBar] = useState({ x: 0, w: 0, ready: false });
+
+    const measureRef = useRef<() => void>(() => {});
+    const measure = () => {
+        const el = btnRefs.current[value];
+        const wrap = wrapRef.current;
+        if (!el || !wrap) return;
+        const er = el.getBoundingClientRect();
+        const wr = wrap.getBoundingClientRect();
+        setBar({ x: er.left - wr.left, w: er.width, ready: true });
+    };
+    measureRef.current = measure;
+
+    useIsomorphicLayoutEffect(() => { measure(); }, [value]);
+    useEffect(() => {
+        const ro = new ResizeObserver(() => measureRef.current());
+        if (wrapRef.current) ro.observe(wrapRef.current);
+        return () => ro.disconnect();
+    }, []);
+
     return (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-nowrap" style={{ scrollbarWidth: "thin" }}>
+        <div 
+            className="cir-tabs max-w-full overflow-x-auto relative" 
+            ref={wrapRef}
+            style={{ 
+                background: "rgba(13,17,23,0.8)", 
+                backdropFilter: "blur(8px)", 
+                borderColor: "rgba(0,229,255,0.15)",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+            }}
+        >
+            <style>{`
+                .cir-tabs::-webkit-scrollbar { display: none; }
+            `}</style>
+
+            {/* Sliding Pill Background */}
+            <div 
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                    top: "6px",
+                    left: 0,
+                    height: "36px",
+                    transform: `translateX(${bar.x - 1}px)`,
+                    width: bar.w,
+                    opacity: bar.ready ? 1 : 0,
+                    background: "#00e5ff",
+                    boxShadow: "0 1px 1px rgba(0,229,255,0.06), 0 8px 18px -10px rgba(0,229,255,0.5)",
+                    transition: "transform 250ms cubic-bezier(0.22, 1, 0.36, 1), width 250ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms",
+                }}
+            />
+
             {CATEGORIES.map(f => {
                 const active = value === f.key;
                 const Icon = f.Icon;
                 return (
-                    <button
-                        key={f.key}
-                        onClick={() => onChange(f.key)}
-                        className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] whitespace-nowrap transition-all duration-150"
-                        style={{
-                            color: active ? "#00e5ff" : "#8b9ab0",
-                            background: active ? "rgba(0,229,255,0.10)" : "transparent",
-                            border: `1px solid ${active ? "rgba(0,229,255,0.55)" : "rgba(0,229,255,0.12)"}`,
-                            boxShadow: active ? "0 0 16px -4px rgba(0,229,255,0.45)" : "none",
-                        }}
-                        onMouseEnter={e => {
-                            if (!active) {
-                                (e.currentTarget as HTMLButtonElement).style.color = "#f0f4ff";
-                                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,229,255,0.30)";
-                            }
-                        }}
-                        onMouseLeave={e => {
-                            if (!active) {
-                                (e.currentTarget as HTMLButtonElement).style.color = "#8b9ab0";
-                                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,229,255,0.12)";
-                            }
-                        }}
+                    <label 
+                        key={f.key} 
+                        className="relative inline-flex mb-0 cursor-pointer z-10" 
+                        title={f.label}
+                        ref={(el) => { btnRefs.current[f.key] = el; }}
                     >
-                        <Icon size={12} />
-                        <span>{f.label}</span>
-                        <span
-                            className="font-mono text-[9.5px] tabular-nums"
-                            style={{ color: active ? "rgba(0,229,255,0.8)" : "#4a5568" }}
+                        <input
+                            type="radio"
+                            className="cir-tabs__r"
+                            name="invCatFilter"
+                            value={f.key}
+                            checked={active}
+                            onChange={() => onChange(f.key)}
+                            aria-label={f.label}
+                        />
+                        <span 
+                            className="cir-tabs__t transition-colors duration-200 !px-4 !bg-transparent flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] whitespace-nowrap"
                         >
-                            {String(counts[f.key] ?? 0).padStart(2, "0")}
+                            <Icon size={12} />
+                            <span>{f.label}</span>
+                            <span
+                                className="font-mono text-[9.5px] tabular-nums transition-colors duration-200"
+                                style={{ color: active ? "rgba(0,0,0,0.6)" : "#4a5568" }}
+                            >
+                                {String(counts[f.key] ?? 0).padStart(2, "0")}
+                            </span>
                         </span>
-                    </button>
+                    </label>
                 );
             })}
         </div>
@@ -445,8 +495,7 @@ function AddToCartModal({ item, onClose, onConfirm }: {
                         </div>
                         <button
                             onClick={onClose}
-                            className="grid place-items-center w-8 h-8 rounded-sm border text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
-                            style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                            className="grid place-items-center w-8 h-8 rounded-sm border border-[rgba(0,229,255,0.14)] text-[#8b9ab0] hover:text-white transition-all hover:bg-[#ef4444] hover:border-[#ef4444]"
                         >
                             <X size={14} />
                         </button>
@@ -454,16 +503,16 @@ function AddToCartModal({ item, onClose, onConfirm }: {
 
                     <div className="p-5 space-y-4">
                         <div>
-                            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] mb-2">// QUANTITY</div>
+                            <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b9ab0] mb-2">QUANTITY</div>
                             <div className="flex items-center gap-4">
                                 <QtyStepper value={qty} onChange={setQty} min={1} max={item.available_quantity} />
-                                <span className="font-mono text-[11px] text-[#4a5568] tracking-[0.10em]">
+                                <span className="font-mono text-[11px] text-[#8b9ab0] tracking-[0.10em]">
                                     {item.available_quantity} available
                                 </span>
                             </div>
                         </div>
                         <div>
-                            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] mb-2">// USAGE TYPE</div>
+                            <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b9ab0] mb-2">USAGE TYPE</div>
                             <UsageToggle value={usage} onChange={setUsage} />
                         </div>
                         {item.required_safety_certification && (
@@ -552,8 +601,7 @@ function CartDrawer({ open, onClose, cart, onUpdateQty, onChangeType, onRemove, 
                     )}
                     <button
                         onClick={onClose}
-                        className="grid place-items-center w-8 h-8 rounded-sm border text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
-                        style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                        className="grid place-items-center w-8 h-8 rounded-sm border border-[rgba(0,229,255,0.14)] text-[#8b9ab0] hover:text-white transition-all hover:bg-[#ef4444] hover:border-[#ef4444]"
                     >
                         <X size={14} />
                     </button>
@@ -621,8 +669,8 @@ function CartDrawer({ open, onClose, cart, onUpdateQty, onChangeType, onRemove, 
                             </div>
                         )}
                         <div>
-                            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] mb-1.5">
-                                // REASON <span className="text-[#ef4444]">*</span>
+                            <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b9ab0] mb-1.5">
+                                REASON <span className="text-[#ef4444]">*</span>
                             </div>
                             <textarea
                                 rows={3}
@@ -748,8 +796,7 @@ function ItemModal({ item, onClose, onSaved }: {
                         </div>
                         <button
                             onClick={onClose}
-                            className="grid place-items-center w-8 h-8 rounded-sm border text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
-                            style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                            className="grid place-items-center w-8 h-8 rounded-sm border border-[rgba(0,229,255,0.14)] text-[#8b9ab0] hover:text-white transition-all hover:bg-[#ef4444] hover:border-[#ef4444]"
                         >
                             <X size={14} />
                         </button>
@@ -957,6 +1004,21 @@ export default function InventoryPage() {
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
+    const [t, setT] = useState(0);
+    useEffect(() => {
+        let raf: number;
+        const start = performance.now();
+        const tick = () => {
+            setT((performance.now() - start) / 1000);
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    const drift = (k: number): string =>
+        `translate(${Math.sin(t * 0.08 + k) * 6}px, ${Math.cos(t * 0.07 + k * 1.3) * 4}px)`;
+
     useEffect(() => { setCart(loadCart()); }, []);
     useEffect(() => { saveCart(cart); }, [cart]);
 
@@ -1044,15 +1106,62 @@ export default function InventoryPage() {
     if (userLoading || loading) return <VajraLoader fullPage />;
 
     return (
-        <div className="max-w-6xl mx-auto px-8 pt-8 pb-16">
-            {/* Page header */}
+        <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+            {/* Grid Background */}
+            <div
+                className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                style={{
+                    backgroundImage:
+                        "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                        "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                    backgroundSize: "40px 40px",
+                    maskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    WebkitMaskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                }}
+            />
+            
+            {/* Radial cyan glows — bottom-left large, top-right smaller */}
+            <div
+                className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)",
+                }}
+            />
+            <div
+                className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)",
+                }}
+            />
+
+            {/* Scanlines */}
+            <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+            
+            {/* Circuit-trace SVG decorations — 3 shapes, slow sine/cosine drift */}
+            <div
+                className="absolute top-[6%] right-[-4%] w-[42vw] h-[40vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(0) }}
+            >
+                <CircuitTrace which={0} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute bottom-[12%] left-[-4%] w-[36vw] h-[44vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(2) }}
+            >
+                <CircuitTrace which={1} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute top-[44%] right-[10%] w-[26vw] h-[28vh] pointer-events-none z-0"
+                style={{ opacity: 0.05, transform: drift(4) }}
+            >
+                <CircuitTrace which={2} className="w-full h-full" />
+            </div>
+
+            <div className="relative z-10 max-w-6xl mx-auto px-8 pt-8 pb-16">
+                {/* Page header */}
             <div className="mb-7">
-                <div className="flex items-center gap-2 mb-3">
-                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
-                        // WORKSPACE / VAULT
-                    </span>
-                </div>
                 <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[36px] leading-none">
                     Inventory
                 </h1>
@@ -1244,5 +1353,72 @@ export default function InventoryPage() {
                 />
             )}
         </div>
+        </div>
     );
+}
+
+// ─── CircuitTrace ─────────────────────────────────────────────────────────────
+type CircuitTraceProps = {
+  which?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
+  const paths = [
+    {
+      viewBox: "0 0 600 400",
+      d: [
+        "M 0 200 L 120 200 L 140 220 L 280 220 L 300 240 L 600 240",
+        "M 80 200 L 80 60  M 240 220 L 240 100",
+        "M 380 240 L 380 360",
+      ],
+      nodes: [
+        [120, 200], [280, 220], [80, 60], [240, 100], [380, 360],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 500 400",
+      d: [
+        "M 500 80 L 380 80 L 360 100 L 220 100 L 200 120 L 80 120 L 0 120",
+        "M 360 100 L 360 240",
+        "M 200 120 L 200 300 L 0 300",
+        "M 100 120 L 100 60",
+      ],
+      nodes: [
+        [380, 80], [220, 100], [80, 120], [360, 240], [200, 300], [100, 60],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 400 300",
+      d: [
+        "M 0 50 L 80 50 L 90 60 L 200 60 L 210 70 L 320 70 L 330 80 L 400 80",
+        "M 0 200 L 120 200 L 130 210 L 280 210 L 290 220 L 400 220",
+        "M 200 60 L 200 200 M 290 220 L 290 80",
+      ],
+      nodes: [
+        [80, 50], [200, 60], [320, 70], [120, 200], [280, 210],
+      ] as [number, number][],
+    },
+  ];
+
+  const p = paths[which % paths.length];
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox={p.viewBox}
+      preserveAspectRatio="none"
+      fill="none"
+      stroke="#00e5ff"
+      strokeWidth="1.2"
+    >
+      {p.d.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+      {p.nodes.map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="2.5" fill="#00e5ff" />
+      ))}
+    </svg>
+  );
 }

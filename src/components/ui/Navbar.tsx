@@ -504,6 +504,118 @@ function NotificationDropdown({
 }
 
 // =============================================
+// MobilePublicDropdown
+// =============================================
+function MobilePublicDropdown({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [activeBubble, setActiveBubble] = useState<string | null>(null);
+  const [renderOpen, setRenderOpen] = useState(open);
+  const [showElements, setShowElements] = useState(open);
+
+  useEffect(() => {
+    if (open) {
+      setRenderOpen(true);
+      // Wait for mount, then trigger transition
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setShowElements(true);
+        });
+      });
+    } else {
+      setActiveBubble(null);
+      setShowElements(false);
+      const t = setTimeout(() => setRenderOpen(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  if (!renderOpen) return null;
+
+  const items = [
+    { key: "gallery", label: "Gallery", href: "/gallery", icon: "/gallery-svgrepo-com.svg" },
+    { key: "events", label: "Events", href: "/events", icon: "/calendar-svgrepo-com.svg" },
+    { key: "innovators", label: "Our Innovators", href: "/innovators", icon: "/users-svgrepo-com.svg" },
+    { key: "contact", label: "Contact", href: "/contact", icon: "/contact-svgrepo-com.svg" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[70] md:hidden">
+      {/* Backdrop */}
+      <div
+        className={`absolute inset-0 cursor-pointer transition-opacity duration-300 ${
+          showElements ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ background: "rgba(7,9,15,0.85)", backdropFilter: "blur(8px)" }}
+        onClick={onClose}
+      />
+      {/* Dropdown Container */}
+      <div 
+        className="absolute top-[64px] right-4 p-2 flex flex-col items-end gap-3 pointer-events-none"
+      >
+        {items.map((item, i) => {
+          const isActive = activeBubble === item.key;
+          const delay = showElements ? i * 75 : (items.length - 1 - i) * 75;
+          return (
+            <div 
+              key={item.key}
+              className={`relative flex justify-center items-center font-bold pointer-events-auto transition-all duration-300 ease-out ${
+                showElements ? "translate-x-0 opacity-100" : "translate-x-12 opacity-0"
+              }`}
+              style={{ transitionDelay: `${delay}ms` }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isActive) {
+                  router.push(item.href);
+                  onClose();
+                } else {
+                  setActiveBubble(item.key);
+                }
+              }}
+            >
+              {/* Icon bubble */}
+              <div
+                className={`shadow-md flex items-center p-3.5 rounded-full cursor-pointer duration-300 transition-all ${
+                  isActive 
+                    ? "bg-[rgba(0,229,255,0.10)] border border-cyan2/50 gap-2 shadow-[0_0_20px_rgba(0,229,255,0.15)]" 
+                    : "bg-[#0d1117] border border-edge gap-0 hover:border-cyan2/30"
+                }`}
+              >
+                <img 
+                  src={item.icon} 
+                  alt={item.label} 
+                  className="w-[22px] h-[22px] object-contain shrink-0"
+                  style={{ 
+                    filter: isActive 
+                      ? "brightness(0) saturate(100%) invert(77%) sepia(87%) saturate(2975%) hue-rotate(137deg) brightness(101%) contrast(106%)" 
+                      : "invert(1) opacity(0.7)",
+                    transition: "filter 0.3s ease" 
+                  }} 
+                />
+                <span 
+                  className={`duration-300 whitespace-nowrap overflow-hidden transition-all ${
+                    isActive 
+                      ? "text-[14px] text-cyan2 max-w-[150px] opacity-100" 
+                      : "text-[0px] max-w-0 opacity-0"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// =============================================
 // MobileDrawer
 // =============================================
 function MobileDrawer({
@@ -562,17 +674,26 @@ function MobileDrawer({
           style={{ background: "rgba(7,9,15,0.6)" }}
         >
           <div className="flex items-center">
-            <CircuitMark size={18} show />
-            <span className="font-sans font-extrabold text-fg text-[17px] tracking-tight leading-none">
-              Vajra<span style={{ color: "#00e5ff" }}>X</span>
-            </span>
+            <img 
+              src="/White-WordMark-vajrax.png" 
+              alt="VajraX"
+              className="h-5 w-auto object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
+            />
           </div>
-          <button
-            onClick={onClose}
-            className="grid place-items-center w-9 h-9 border border-edge rounded-sm text-fg2 hover:text-fg hover:border-cyan2/45 transition-colors"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center justify-center relative cursor-pointer w-9 h-9" onClick={onClose}>
+            <input
+              type="checkbox"
+              id="drawer-label-check"
+              className="label-check"
+              checked={open}
+              readOnly
+            />
+            <label htmlFor="drawer-label-check" className="hamburger-label !m-0 pointer-events-none" style={{ transform: "scale(0.35)", transformOrigin: "center" }}>
+              <div className="line1"></div>
+              <div className="line2"></div>
+              <div className="line3"></div>
+            </label>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -938,7 +1059,7 @@ export default function Navbar() {
             marginTop: isScrolled ? 8 : 4,
             maxWidth: isScrolled ? 1024 : "100%",
             paddingLeft: isScrolled ? 16 : 24,
-            paddingRight: isScrolled ? 8 : 24,
+            paddingRight: isScrolled ? 16 : 24,
             background: isScrolled ? "rgba(13,17,23,0.78)" : "transparent",
             border: isScrolled
               ? "1px solid rgba(0,229,255,0.20)"
@@ -955,17 +1076,11 @@ export default function Navbar() {
         >
           {/* Left: Logo */}
           <Link href="/" className="flex items-center min-w-0 shrink-0" aria-label="VajraX home">
-            <CircuitMark size={28} show={!isScrolled} />
-            <span className="font-sans font-extrabold text-fg text-[18px] tracking-tight leading-none">
-              Vajra<span style={{ color: "#00e5ff" }}>X</span>
-            </span>
-            {isScrolled && (
-              <span className="hidden md:inline-flex ml-3 pl-3 border-l border-edge">
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-fg3">
-                  robotics.club / 2026
-                </span>
-              </span>
-            )}
+            <img 
+              src="/White-WordMark-vajrax.png" 
+              alt="VajraX"
+              className="h-[22px] md:h-6 w-auto object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
+            />
           </Link>
 
           {/* Center: Desktop nav links */}
@@ -1038,31 +1153,45 @@ export default function Navbar() {
             </div>
 
             {/* Mobile hamburger */}
-            <button
-              onClick={() => setIsMobileOpen(true)}
-              className="md:hidden grid place-items-center w-10 h-10 rounded-sm border border-edge text-fg hover:border-cyan2/45 hover:bg-cyan2/[0.06] transition-colors"
-              aria-label="Open menu"
-            >
-              <Menu size={18} />
-            </button>
+            <div className="md:hidden flex items-center justify-center relative cursor-pointer w-10 h-10">
+              <input
+                type="checkbox"
+                id="label-check"
+                className={`label-check ${!isAuthenticated ? "arrow-mode" : ""}`}
+                checked={isMobileOpen}
+                onChange={(e) => setIsMobileOpen(e.target.checked)}
+              />
+              <label htmlFor="label-check" className="hamburger-label !m-0 cursor-pointer" style={{ transform: "scale(0.35)", transformOrigin: "center" }}>
+                <div className="line1"></div>
+                <div className="line2"></div>
+                <div className="line3"></div>
+              </label>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile drawer */}
-      <MobileDrawer
-        open={isMobileOpen}
-        onClose={() => setIsMobileOpen(false)}
-        isAuthenticated={isAuthenticated}
-        profile={profile}
-        user={user}
-        unreadCount={unreadCount}
-        isFaculty={isFaculty}
-        isModerator={isModerator}
-        isInventoryManager={isInventoryManager}
-        pathname={pathname}
-        onSignOut={handleSignOut}
-      />
+      {/* Mobile drawer / dropdown */}
+      {isAuthenticated ? (
+        <MobileDrawer
+          open={isMobileOpen}
+          onClose={() => setIsMobileOpen(false)}
+          isAuthenticated={isAuthenticated}
+          profile={profile}
+          user={user}
+          unreadCount={unreadCount}
+          isFaculty={isFaculty}
+          isModerator={isModerator}
+          isInventoryManager={isInventoryManager}
+          pathname={pathname}
+          onSignOut={handleSignOut}
+        />
+      ) : (
+        <MobilePublicDropdown
+          open={isMobileOpen}
+          onClose={() => setIsMobileOpen(false)}
+        />
+      )}
     </>
   );
 }
