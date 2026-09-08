@@ -15,7 +15,9 @@ import {
     ChevronRight,
     CheckCheck,
     ArrowRight,
+    FileText,
 } from "lucide-react";
+import { getNotificationHref } from "@/lib/notifications";
 
 /* ─── Types ───────────────────────────────────────────────────────── */
 
@@ -47,13 +49,15 @@ const NOTIF_CONFIG: Record<string, NotifConfig> = {
     inventory_request_received: { label: "EQUIPMENT REQUEST", fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",  bd: "rgba(245,158,11,0.40)",  barBg: "#f59e0b", Icon: Package,      navHref: () => "/admin/requests"          },
     equipment_request_approved: { label: "REQUEST APPROVED",  fg: "#22c55e", bg: "rgba(34,197,94,0.10)",   bd: "rgba(34,197,94,0.40)",   barBg: "#22c55e", Icon: CheckCircle2, navHref: () => "/my-requests"             },
     equipment_request_rejected: { label: "REQUEST REJECTED",  fg: "#ef4444", bg: "rgba(239,68,68,0.10)",   bd: "rgba(239,68,68,0.40)",   barBg: "#ef4444", Icon: XCircle,      navHref: () => "/my-requests"             },
+    project_invite_received:    { label: "PROJECT INVITE",    fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",   bd: "rgba(0,229,255,0.40)",   barBg: "#00e5ff", Icon: FolderGit2,   navHref: () => "/project-invites"         },
+    mom_published:              { label: "MINUTES OF MEETING", fg: "#38bdf8", bg: "rgba(56,189,248,0.10)",  bd: "rgba(56,189,248,0.40)",  barBg: "#38bdf8", Icon: FileText,     navHref: (relatedId) => relatedId ? `/mom/${relatedId}` : "/mom" },
 };
 
 const DEFAULT_CONFIG: NotifConfig = {
     label: "NOTIFICATION",
     fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)", bd: "rgba(139,154,176,0.35)", barBg: "#4a5568",
     Icon: Bell,
-    navHref: () => null,
+    navHref: (relatedId) => null,
 };
 
 function getConfig(type: string): NotifConfig {
@@ -144,7 +148,7 @@ function NotifCard({
     const [hover, setHover] = useState(false);
     const cfg = getConfig(notif.type);
     const Icon = cfg.Icon;
-    const href = cfg.navHref(notif.related_entity_id);
+    const href = cfg.navHref(notif.related_entity_id) ?? getNotificationHref(notif.type, notif.related_entity_id);
 
     const handleClick = async () => {
         if (!notif.is_read) await onMarkRead(notif.id);
@@ -352,8 +356,8 @@ export default function NotificationsPage() {
 
     const handleNavigate = useCallback((notif: Notification) => {
         const cfg = getConfig(notif.type);
-        const href = cfg.navHref(notif.related_entity_id);
-        if (href) router.push(href);
+        const href = cfg.navHref(notif.related_entity_id) ?? getNotificationHref(notif.type, notif.related_entity_id);
+        if (href && href !== "/") router.push(href);
     }, [router]);
 
     const unreadCount = useMemo(() => notifications.filter(n => !n.is_read).length, [notifications]);

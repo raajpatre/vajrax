@@ -49,9 +49,19 @@ const ROLE_DISPLAY: Record<string, { label: string; color: string }> = {
   president:         { label: "PRESIDENT", color: "#f59e0b" },
   vice_president:    { label: "VP",        color: "#a78bfa" },
   faculty:           { label: "FACULTY",   color: "#00e5ff" },
-  website_manager:   { label: "WEB MGR",   color: "#22c55e" },
-  printing_head:     { label: "PRINT",     color: "#f59e0b" },
+  project_manager:   { label: "PROJ MGR",  color: "#ec4899" },
   inventory_manager: { label: "INVENTORY", color: "#5eead4" },
+  lead_developer:    { label: "LEAD DEV",  color: "#fbbf24" },
+  printing_head:     { label: "PRINT",     color: "#f97316" },
+  social_media_head: { label: "SOCIAL HD", color: "#ef4444" },
+  social_media_co_head: { label: "SOCIAL CO", color: "#ef4444" },
+  sponsorship_head:  { label: "SPONSOR HD", color: "#10b981" },
+  workshop_head:     { label: "WORKSHOP",  color: "#6366f1" },
+  mechanics_head:    { label: "MECH HD",   color: "#8b5cf6" },
+  cad_head:          { label: "CAD HD",    color: "#f97316" },
+  electronics_head:  { label: "ELEC HD",   color: "#06b6d4" },
+  procurement_head:  { label: "PROCURE",   color: "#14b8a6" },
+  makerspace_head:   { label: "MAKER",     color: "#ef4444" },
 };
 
 // ---- Notification type → dot color ----
@@ -63,6 +73,7 @@ const NOTIF_COLOR: Record<string, string> = {
   project_request_approved:     "#22c55e",
   equipment_request_rejected:   "#ef4444",
   project_request_rejected:     "#ef4444",
+  mom_published:                "#38bdf8",
 };
 
 type NotificationRow = Tables<"notifications">;
@@ -653,7 +664,8 @@ function MobileDrawer({
         .join("")
         .toUpperCase()
     : "?";
-  const roleInfo = ROLE_DISPLAY[profile?.role ?? "member"] ?? ROLE_DISPLAY.member;
+  const primaryRole = profile?.roles && profile.roles.length > 0 ? profile.roles[0] : profile?.role ?? "member";
+  const roleInfo = ROLE_DISPLAY[primaryRole] ?? ROLE_DISPLAY.member;
 
   return (
     <div className="fixed inset-0 z-[80]">
@@ -1022,7 +1034,8 @@ export default function Navbar() {
     );
     setIsNotifOpen(false);
     await supabase.from("notifications").update({ is_read: true }).eq("id", notification.id);
-    router.push(getNotificationHref(notification.type));
+    const href = getNotificationHref(notification.type, notification.related_entity_id);
+    if (href && href !== "/") router.push(href);
   };
 
   // Active link key from pathname

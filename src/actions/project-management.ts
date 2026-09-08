@@ -9,6 +9,7 @@ const PROJECT_MANAGER_ROLES = new Set<Database["public"]["Enums"]["user_role"]>(
     "faculty",
     "president",
     "vice_president",
+    "project_manager",
 ]);
 
 export async function updateProjectHeroImage(input: {
@@ -32,7 +33,7 @@ export async function updateProjectHeroImage(input: {
             .maybeSingle(),
         supabase
             .from("profiles")
-            .select("role")
+            .select("role, roles")
             .eq("id", user.id)
             .maybeSingle(),
         supabase
@@ -50,7 +51,7 @@ export async function updateProjectHeroImage(input: {
     const canManage =
         project.created_by === user.id ||
         membership?.role === "lead" ||
-        (profile?.role ? PROJECT_MANAGER_ROLES.has(profile.role) : false);
+        (profile?.roles ? profile.roles.some((r) => PROJECT_MANAGER_ROLES.has(r as Database["public"]["Enums"]["user_role"])) : false);
 
     if (!canManage) {
         return { ok: false, error: "Not authorized to update this project." };
@@ -96,7 +97,7 @@ export async function deleteProject(
             .maybeSingle(),
         admin
             .from("profiles")
-            .select("role")
+            .select("role, roles")
             .eq("id", user.id)
             .maybeSingle(),
     ]);
@@ -106,7 +107,7 @@ export async function deleteProject(
     const canDelete =
         project.created_by === user.id ||
         membership?.role === "lead" ||
-        (profile?.role ? PROJECT_MANAGER_ROLES.has(profile.role) : false);
+        (profile?.roles ? profile.roles.some((r: string) => PROJECT_MANAGER_ROLES.has(r as Database["public"]["Enums"]["user_role"])) : false);
 
     if (!canDelete) return { ok: false, error: "Only the project lead or faculty can delete a project." };
 

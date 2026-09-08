@@ -58,13 +58,23 @@ const ProfileLanyard = dynamic(() => import("@/components/profile/ProfileLanyard
 
 /* ── Role config ──────────────────────────────────── */
 const ROLE_CFG: Record<string, { fg: string; bg: string; bd: string; label: string }> = {
-    member:            { fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)", bd: "rgba(139,154,176,0.40)", label: "MEMBER" },
-    president:         { fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",  bd: "rgba(245,158,11,0.45)",  label: "PRESIDENT" },
-    vice_president:    { fg: "#a78bfa", bg: "rgba(167,139,250,0.10)", bd: "rgba(167,139,250,0.45)", label: "VICE PRESIDENT" },
-    faculty:           { fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",   bd: "rgba(0,229,255,0.45)",   label: "FACULTY" },
-    inventory_manager: { fg: "#22c55e", bg: "rgba(34,197,94,0.10)",   bd: "rgba(34,197,94,0.45)",   label: "INV. MANAGER" },
-    website_manager:   { fg: "#fbbf24", bg: "rgba(251,191,36,0.10)",  bd: "rgba(251,191,36,0.45)",  label: "WEB MANAGER" },
-    printing_head:     { fg: "#f97316", bg: "rgba(249,115,22,0.10)",  bd: "rgba(249,115,22,0.45)",  label: "PRINT HEAD" },
+    member:               { fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)", bd: "rgba(139,154,176,0.40)", label: "MEMBER" },
+    faculty:              { fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",   bd: "rgba(0,229,255,0.45)",   label: "FACULTY" },
+    president:            { fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",  bd: "rgba(245,158,11,0.45)",  label: "PRESIDENT" },
+    vice_president:       { fg: "#a78bfa", bg: "rgba(167,139,250,0.10)", bd: "rgba(167,139,250,0.45)", label: "VICE PRESIDENT" },
+    project_manager:      { fg: "#ec4899", bg: "rgba(236,72,153,0.10)",  bd: "rgba(236,72,153,0.45)",  label: "PROJECT MANAGER" },
+    inventory_manager:    { fg: "#22c55e", bg: "rgba(34,197,94,0.10)",   bd: "rgba(34,197,94,0.45)",   label: "INV. MANAGER" },
+    lead_developer:       { fg: "#fbbf24", bg: "rgba(251,191,36,0.10)",  bd: "rgba(251,191,36,0.45)",  label: "LEAD DEVELOPER" },
+    printing_head:        { fg: "#f97316", bg: "rgba(249,115,22,0.10)",  bd: "rgba(249,115,22,0.45)",  label: "PRINT HEAD" },
+    social_media_head:    { fg: "#ef4444", bg: "rgba(239,68,68,0.10)",   bd: "rgba(239,68,68,0.45)",   label: "SOCIAL MEDIA HEAD" },
+    social_media_co_head: { fg: "#ef4444", bg: "rgba(239,68,68,0.08)",   bd: "rgba(239,68,68,0.30)",   label: "SOCIAL MEDIA CO-HEAD" },
+    sponsorship_head:     { fg: "#10b981", bg: "rgba(16,185,129,0.10)",  bd: "rgba(16,185,129,0.45)",  label: "SPONSORSHIP HEAD" },
+    workshop_head:        { fg: "#6366f1", bg: "rgba(99,102,241,0.10)",  bd: "rgba(99,102,241,0.45)",  label: "WORKSHOP HEAD" },
+    mechanics_head:       { fg: "#8b5cf6", bg: "rgba(139,92,246,0.10)",  bd: "rgba(139,92,246,0.45)",  label: "MECHANICS HEAD" },
+    cad_head:             { fg: "#f97316", bg: "rgba(249,115,22,0.10)",  bd: "rgba(249,115,22,0.45)",  label: "CAD HEAD" },
+    electronics_head:     { fg: "#06b6d4", bg: "rgba(6,182,212,0.10)",   bd: "rgba(6,182,212,0.45)",   label: "ELECTRONICS HEAD" },
+    procurement_head:     { fg: "#14b8a6", bg: "rgba(20,184,166,0.10)",  bd: "rgba(20,184,166,0.45)",  label: "PROCUREMENT HEAD" },
+    makerspace_head:      { fg: "#ef4444", bg: "rgba(239,68,68,0.10)",   bd: "rgba(239,68,68,0.45)",   label: "MAKERSPACE HEAD" },
 };
 
 function RolePill({ role, large }: { role: string; large?: boolean }) {
@@ -205,11 +215,12 @@ function EditProfileModal({
                 avatar_url: avatarUrl,
             };
 
+            const isFaculty = (profile.roles ?? []).includes("faculty");
             const semesterValue =
-                profile.role === "faculty" ? null : currentSemester ? Number(currentSemester) : null;
+                isFaculty ? null : currentSemester ? Number(currentSemester) : null;
 
             const updatePayload =
-                profile.role === "faculty"
+                isFaculty
                     ? baseUpdatePayload
                     : { ...baseUpdatePayload, current_semester: semesterValue };
 
@@ -220,7 +231,7 @@ function EditProfileModal({
 
             if (updateError) {
                 const isSemesterSchemaError =
-                    profile.role !== "faculty" &&
+                    !isFaculty &&
                     updateError.message?.includes("current_semester") &&
                     updateError.message?.includes("schema cache");
 
@@ -589,7 +600,7 @@ export default function ProfilePage() {
                             <ProfileLanyard
                                 avatarUrl={profile.avatar_url}
                                 displayName={profile.display_name}
-                                roleLabel={ROLE_CFG[profile.role ?? "member"]?.label ?? profile.role ?? "MEMBER"}
+                                roleLabel={ROLE_CFG[profile.roles && profile.roles.length > 0 ? profile.roles[0] : profile.role]?.label ?? profile.role ?? "MEMBER"}
                                 cameraDistance={20}
                             />
                         </div>
@@ -629,8 +640,10 @@ export default function ProfilePage() {
                                 >
                                     {profile.display_name}
                                 </h1>
-                                <div className="mt-1.5">
-                                    <RolePill role={profile.role ?? "member"} large />
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {(profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role]).map((r) => (
+                                        <RolePill key={r} role={r ?? "member"} large />
+                                    ))}
                                 </div>
                             </div>
                             <p

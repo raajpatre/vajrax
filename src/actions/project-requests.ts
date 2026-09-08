@@ -115,11 +115,12 @@ export async function reviewProjectRequest(input: {
 
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, roles")
         .eq("id", user.id)
         .single();
 
-    if (profileError || !profile || !PROJECT_APPROVER_ROLES.has(profile.role)) {
+    const isApprover = profile && (profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role]).some((r) => PROJECT_APPROVER_ROLES.has(r as Database["public"]["Enums"]["user_role"]));
+    if (profileError || !isApprover) {
         return { ok: false, error: "Not authorized" };
     }
 

@@ -8,9 +8,9 @@ export default async function AdminRegistrationsPage({ params }: { params: Promi
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    const adminRoles = ["faculty", "president", "vice_president", "website_manager"];
-    if (!adminRoles.includes(profile?.role ?? "")) redirect("/");
+    const { data: profile } = await supabase.from("profiles").select("roles").eq("id", user.id).single();
+    const adminRoles = ["faculty", "president", "vice_president", "lead_developer"];
+    if (!(profile?.roles ?? []).some(r => adminRoles.includes(r))) redirect("/");
 
     const { data: event } = await supabase.from("events").select("id, title, registration_mode, team_size_min, team_size_max, custom_fields").eq("id", id).single();
     if (!event) notFound();

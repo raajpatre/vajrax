@@ -9,9 +9,9 @@ export default async function AdminEventsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    const adminRoles = ["faculty", "president", "vice_president", "website_manager"];
-    if (!adminRoles.includes(profile?.role ?? "")) redirect("/");
+    const { data: profile } = await supabase.from("profiles").select("roles").eq("id", user.id).single();
+    const adminRoles = ["faculty", "president", "vice_president", "lead_developer"];
+    if (!(profile?.roles ?? []).some(r => adminRoles.includes(r))) redirect("/");
 
     const { data: events } = await supabase
         .from("events")

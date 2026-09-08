@@ -1,7 +1,9 @@
 export const APPLICANT_REVIEW_ROLES = ["faculty", "president", "vice_president"] as const;
 
-export function isApplicantReviewer(role: string | null | undefined) {
-    return !!role && APPLICANT_REVIEW_ROLES.includes(role as (typeof APPLICANT_REVIEW_ROLES)[number]);
+export function isApplicantReviewer(roles: string | string[] | null | undefined) {
+    if (!roles) return false;
+    const rolesArray = Array.isArray(roles) ? roles : [roles];
+    return rolesArray.some((role) => APPLICANT_REVIEW_ROLES.includes(role as (typeof APPLICANT_REVIEW_ROLES)[number]));
 }
 
 export function normalizeApplicantEmail(email: string) {

@@ -26,15 +26,26 @@ type MemberRole =
     | "vice_president"
     | "faculty"
     | "inventory_manager"
-    | "website_manager"
-    | "printing_head";
+    | "lead_developer"
+    | "project_manager"
+    | "printing_head"
+    | "social_media_head"
+    | "social_media_co_head"
+    | "sponsorship_head"
+    | "workshop_head"
+    | "mechanics_head"
+    | "cad_head"
+    | "electronics_head"
+    | "procurement_head"
+    | "makerspace_head";
 
 interface MemberProfile {
     id: string;
     display_name: string;
     avatar_url: string | null;
     contact_email: string | null;
-    role: MemberRole;
+    role: MemberRole; // primary role
+    roles: MemberRole[];
     custom_tags: string[] | null;
     safety_certifications: string[];
     created_at: string;
@@ -71,17 +82,30 @@ const TC_COLORS = [
 
 /* ── role config ──────────────────────────────────────────── */
 const ROLE_CFG: Record<string, { fg: string; bg: string; bd: string; label: string }> = {
-    member:            { fg: "#8b9ab0", bg: "rgba(139,154,176,0.12)", bd: "rgba(139,154,176,0.45)", label: "MEMBER" },
-    president:         { fg: "#f59e0b", bg: "rgba(245,158,11,0.12)",  bd: "rgba(245,158,11,0.50)",  label: "PRESIDENT" },
-    vice_president:    { fg: "#a78bfa", bg: "rgba(167,139,250,0.12)", bd: "rgba(167,139,250,0.50)", label: "VICE PRESIDENT" },
-    faculty:           { fg: "#00e5ff", bg: "rgba(0,229,255,0.12)",   bd: "rgba(0,229,255,0.50)",   label: "FACULTY" },
-    inventory_manager: { fg: "#22c55e", bg: "rgba(34,197,94,0.12)",   bd: "rgba(34,197,94,0.50)",   label: "INV. MANAGER" },
-    website_manager:   { fg: "#fbbf24", bg: "rgba(251,191,36,0.12)",  bd: "rgba(251,191,36,0.50)",  label: "WEB MANAGER" },
-    printing_head:     { fg: "#f97316", bg: "rgba(249,115,22,0.12)",  bd: "rgba(249,115,22,0.50)",  label: "PRINT HEAD" },
+    member:               { fg: "#8b9ab0", bg: "rgba(139,154,176,0.12)", bd: "rgba(139,154,176,0.45)", label: "MEMBER" },
+    faculty:              { fg: "#00e5ff", bg: "rgba(0,229,255,0.12)",   bd: "rgba(0,229,255,0.50)",   label: "FACULTY" },
+    president:            { fg: "#f59e0b", bg: "rgba(245,158,11,0.12)",  bd: "rgba(245,158,11,0.50)",  label: "PRESIDENT" },
+    vice_president:       { fg: "#a78bfa", bg: "rgba(167,139,250,0.12)", bd: "rgba(167,139,250,0.50)", label: "VICE PRESIDENT" },
+    project_manager:      { fg: "#ec4899", bg: "rgba(236,72,153,0.12)",  bd: "rgba(236,72,153,0.50)",  label: "PROJECT MANAGER" },
+    inventory_manager:    { fg: "#22c55e", bg: "rgba(34,197,94,0.12)",   bd: "rgba(34,197,94,0.50)",   label: "INV. MANAGER" },
+    lead_developer:       { fg: "#fbbf24", bg: "rgba(251,191,36,0.12)",  bd: "rgba(251,191,36,0.50)",  label: "LEAD DEVELOPER" },
+    printing_head:        { fg: "#f97316", bg: "rgba(249,115,22,0.12)",  bd: "rgba(249,115,22,0.50)",  label: "PRINT HEAD" },
+    social_media_head:    { fg: "#ef4444", bg: "rgba(239,68,68,0.12)",   bd: "rgba(239,68,68,0.50)",   label: "SOCIAL MEDIA HEAD" },
+    social_media_co_head: { fg: "#ef4444", bg: "rgba(239,68,68,0.08)",   bd: "rgba(239,68,68,0.30)",   label: "SOCIAL MEDIA CO-HEAD" },
+    sponsorship_head:     { fg: "#10b981", bg: "rgba(16,185,129,0.12)",  bd: "rgba(16,185,129,0.50)",  label: "SPONSORSHIP HEAD" },
+    workshop_head:        { fg: "#6366f1", bg: "rgba(99,102,241,0.12)",  bd: "rgba(99,102,241,0.50)",  label: "WORKSHOP HEAD" },
+    mechanics_head:       { fg: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  bd: "rgba(139,92,246,0.50)",  label: "MECHANICS HEAD" },
+    cad_head:             { fg: "#f97316", bg: "rgba(249,115,22,0.12)",   bd: "rgba(249,115,22,0.50)",   label: "CAD HEAD" },
+    electronics_head:     { fg: "#06b6d4", bg: "rgba(6,182,212,0.12)",   bd: "rgba(6,182,212,0.50)",   label: "ELECTRONICS HEAD" },
+    procurement_head:     { fg: "#14b8a6", bg: "rgba(20,184,166,0.12)",  bd: "rgba(20,184,166,0.50)",  label: "PROCUREMENT HEAD" },
+    makerspace_head:      { fg: "#ef4444", bg: "rgba(239,68,68,0.12)",   bd: "rgba(239,68,68,0.50)",   label: "MAKERSPACE HEAD" },
 };
 const ROLE_OPTIONS = [
-    "member", "inventory_manager", "website_manager",
-    "printing_head", "president", "vice_president", "faculty",
+    "member", "faculty", "president", "vice_president", "project_manager",
+    "inventory_manager", "lead_developer", "printing_head",
+    "social_media_head", "social_media_co_head", "sponsorship_head",
+    "workshop_head", "mechanics_head", "cad_head", "electronics_head",
+    "procurement_head", "makerspace_head"
 ] as const;
 
 /* ── Avatar ───────────────────────────────────────────────── */
@@ -128,17 +152,22 @@ function Avatar({
 
 /* ── RoleSelect (custom dropdown) ─────────────────────────── */
 function RoleSelect({
-    value,
+    values,
     onChange,
     isSelf,
 }: {
-    value: string;
-    onChange: (r: string) => void;
+    values: string[];
+    onChange: (roles: string[]) => void;
     isSelf: boolean;
 }) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
-    const c = ROLE_CFG[value] ?? ROLE_CFG.member;
+    
+    // Always use at least member if empty
+    const currentValues = values.length > 0 ? values : ["member"];
+    
+    // The "primary" display config uses the first selected role
+    const primaryC = ROLE_CFG[currentValues[0]] ?? ROLE_CFG.member;
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -148,31 +177,54 @@ function RoleSelect({
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    const toggleRole = (r: string) => {
+        if (currentValues.includes(r)) {
+            // Cannot remove the last role
+            if (currentValues.length === 1) return;
+            onChange(currentValues.filter(x => x !== r));
+        } else {
+            // Max 2 roles. If they have 2, replace the second one, or maybe just replace the oldest?
+            // Actually let's just allow appending if < 2, otherwise do nothing
+            if (currentValues.length < 2) {
+                onChange([...currentValues, r]);
+            } else {
+                // If they already have 2 and select a third, replace the second one
+                onChange([currentValues[0], r]);
+            }
+        }
+    };
+
     return (
-        <div ref={ref} className="relative inline-block">
-            <button
-                onClick={() => !isSelf && setOpen((o) => !o)}
-                disabled={isSelf}
-                className="inline-flex items-center gap-2 h-8 px-2.5 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] transition-all"
-                style={{
-                    color: c.fg,
-                    background: c.bg,
-                    borderColor: open ? c.fg : c.bd,
-                    opacity: isSelf ? 0.6 : 1,
-                    cursor: isSelf ? "not-allowed" : "pointer",
-                }}
-            >
-                {c.label}
-                {!isSelf && (
-                    open
-                        ? <ChevronUp size={11} style={{ color: c.fg }} />
-                        : <ChevronDown size={11} style={{ color: c.fg }} />
-                )}
-            </button>
+        <div ref={ref} className="relative inline-flex flex-wrap gap-1.5">
+            {currentValues.map((val, idx) => {
+                const c = ROLE_CFG[val] ?? ROLE_CFG.member;
+                return (
+                    <button
+                        key={val}
+                        onClick={() => !isSelf && setOpen((o) => !o)}
+                        disabled={isSelf}
+                        className="inline-flex items-center gap-2 h-8 px-2.5 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] transition-all"
+                        style={{
+                            color: c.fg,
+                            background: c.bg,
+                            borderColor: (open && idx === 0) ? c.fg : c.bd,
+                            opacity: isSelf ? 0.6 : 1,
+                            cursor: isSelf ? "not-allowed" : "pointer",
+                        }}
+                    >
+                        {c.label}
+                        {!isSelf && idx === currentValues.length - 1 && (
+                            open
+                                ? <ChevronUp size={11} style={{ color: c.fg }} />
+                                : <ChevronDown size={11} style={{ color: c.fg }} />
+                        )}
+                    </button>
+                )
+            })}
 
             {open && (
                 <div
-                    className="absolute left-0 top-[calc(100%+4px)] z-30 w-48 rounded-sm border overflow-hidden shadow-2xl"
+                    className="absolute left-0 top-[calc(100%+4px)] z-30 w-56 rounded-sm border overflow-hidden shadow-2xl overflow-y-auto max-h-64"
                     style={{
                         background: "#111820",
                         borderColor: "rgba(0,229,255,0.30)",
@@ -180,19 +232,26 @@ function RoleSelect({
                             "0 0 0 1px rgba(0,229,255,0.06),0 16px 40px -8px rgba(0,0,0,0.95)",
                     }}
                 >
+                    <div className="px-3 py-2 border-b font-mono text-[9.5px] uppercase tracking-[0.1em]" style={{ borderColor: "rgba(0,229,255,0.1)", color: "#8b9ab0" }}>
+                        Select up to 2 roles
+                    </div>
                     {ROLE_OPTIONS.map((r) => {
                         const rc = ROLE_CFG[r] ?? ROLE_CFG.member;
+                        const isSelected = currentValues.includes(r);
                         return (
                             <button
                                 key={r}
-                                onClick={() => { onChange(r); setOpen(false); }}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    toggleRole(r);
+                                }}
                                 className="w-full flex items-center gap-2.5 px-3 h-9 text-left transition-colors"
-                                style={{ background: value === r ? rc.bg : "transparent" }}
+                                style={{ background: isSelected ? rc.bg : "transparent" }}
                                 onMouseEnter={(e) => {
-                                    if (value !== r) e.currentTarget.style.background = "rgba(0,229,255,0.04)";
+                                    if (!isSelected) e.currentTarget.style.background = "rgba(0,229,255,0.04)";
                                 }}
                                 onMouseLeave={(e) => {
-                                    if (value !== r) e.currentTarget.style.background = "transparent";
+                                    if (!isSelected) e.currentTarget.style.background = "transparent";
                                 }}
                             >
                                 <span
@@ -205,7 +264,7 @@ function RoleSelect({
                                 >
                                     {rc.label}
                                 </span>
-                                {value === r && (
+                                {isSelected && (
                                     <Check size={11} style={{ color: rc.fg, marginLeft: "auto" }} />
                                 )}
                             </button>
@@ -416,7 +475,7 @@ function MemberCard({
     member: MemberProfile;
     isSelf: boolean;
     currentUserId: string | null;
-    onRoleChange: (id: string, role: string) => void;
+    onRoleChange: (id: string, roles: string[]) => void;
     onTagsChange: (id: string, tags: string[]) => void;
     onSafetyCertsChange: (id: string, certs: string[]) => void;
     onDelete: (member: MemberProfile) => void;
@@ -435,7 +494,9 @@ function MemberCard({
     );
 
     const isDeleting = deletingId === member.id;
-    const roleColor = ROLE_CFG[member.role]?.fg ?? "#00e5ff";
+    // Avatar border/glow uses the primary role
+    const primaryRole = (member.roles && member.roles.length > 0) ? member.roles[0] : member.role;
+    const roleColor = ROLE_CFG[primaryRole]?.fg ?? "#00e5ff";
 
     const joinedLabel = new Date(member.created_at)
         .toLocaleDateString("en-GB", { month: "short", year: "numeric" })
@@ -589,7 +650,7 @@ function MemberCard({
             <div className="pl-3">
                 <MicroLabel>ROLE</MicroLabel>
                 <RoleSelect
-                    value={member.role}
+                    values={member.roles && member.roles.length > 0 ? member.roles : [member.role]}
                     onChange={(r) => onRoleChange(member.id, r)}
                     isSelf={isSelf}
                 />
@@ -670,7 +731,7 @@ export default function MemberManagement() {
         const { data } = await supabase
             .from("profiles")
             .select(
-                "id, display_name, avatar_url, contact_email, role, created_at, custom_tags, safety_certifications"
+                "id, display_name, avatar_url, contact_email, role, roles, created_at, custom_tags, safety_certifications"
             )
             .order("created_at", { ascending: true });
         if (data) setMembers(data as MemberProfile[]);
@@ -682,14 +743,19 @@ export default function MemberManagement() {
     }, [fetchMembers]);
 
     const handleRoleChange = useCallback(
-        async (userId: string, newRole: string) => {
+        async (userId: string, newRoles: string[]) => {
             setUpdatingId(userId);
+            const primaryRole = newRoles.length > 0 ? newRoles[0] : "member";
             await supabase
                 .from("profiles")
-                .update({ role: newRole as MemberProfile["role"] })
+                .update({ 
+                    roles: newRoles,
+                    role: primaryRole as MemberProfile["role"] // fallback compatibility
+                })
                 .eq("id", userId);
+                
             setMembers((prev) =>
-                prev.map((m) => (m.id === userId ? { ...m, role: newRole as MemberRole } : m))
+                prev.map((m) => (m.id === userId ? { ...m, roles: newRoles as MemberRole[], role: primaryRole as MemberRole } : m))
             );
             setUpdatingId(null);
         },
@@ -748,7 +814,7 @@ export default function MemberManagement() {
             (m) =>
                 m.display_name.toLowerCase().includes(q) ||
                 (m.contact_email ?? "").toLowerCase().includes(q) ||
-                m.role.toLowerCase().includes(q) ||
+                (m.roles ?? []).some((r) => r.toLowerCase().includes(q)) ||
                 (m.custom_tags ?? []).some((raw) =>
                     parseTag(raw).name.toLowerCase().includes(q)
                 ) ||

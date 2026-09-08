@@ -16,7 +16,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB (images)
 const MAX_RAW_FILE_SIZE = 25 * 1024 * 1024; // 25 MB (code / STL)
 const ALLOWED_FOLDERS = new Set([
     "vajrax", "gallery", "projects", "avatars", "sponsors",
-    "inventory", "progress-logs", "project-files",
+    "inventory", "progress-logs", "project-files", "mom",
 ]);
 
 // Code + 3D-model extensions allowed for "raw" uploads (project log attachments).

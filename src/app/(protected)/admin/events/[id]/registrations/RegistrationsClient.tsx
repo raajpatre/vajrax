@@ -175,7 +175,7 @@ function RegistrationFilterPills({ value, onChange }: {
     return (
         <div className="flex items-center gap-4">
             <div 
-                className="cir-tabs max-w-full overflow-x-auto relative flex items-center h-[46px] px-1 rounded-full" 
+                className="cir-tabs relative flex items-center h-[46px] px-1 rounded-full"
                 ref={wrapRef}
                 style={{ 
                     background: "rgba(13,17,23,0.8)", 

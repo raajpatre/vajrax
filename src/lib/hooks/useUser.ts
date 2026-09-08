@@ -276,10 +276,12 @@ export function useUser() {
         signOut,
         isAuthenticated: !!state.user,
         role: state.profile?.role ?? null,
-        isFaculty: state.profile?.role === "faculty",
+        roles: state.profile?.roles ?? (state.profile?.role ? [state.profile.role] : []),
+        isFaculty: (state.profile?.roles ?? [state.profile?.role]).includes("faculty"),
         isModerator:
-            state.profile?.role === "president" ||
-            state.profile?.role === "vice_president",
-        isInventoryManager: state.profile?.role === "inventory_manager",
+            (state.profile?.roles ?? [state.profile?.role]).includes("president") ||
+            (state.profile?.roles ?? [state.profile?.role]).includes("vice_president"),
+        isInventoryManager: (state.profile?.roles ?? [state.profile?.role]).includes("inventory_manager"),
+        isProjectManager: (state.profile?.roles ?? [state.profile?.role]).includes("project_manager"),
     };
 }

@@ -11,10 +11,10 @@ async function assertSponsorAdmin() {
     if (!user) throw new Error("Unauthorized");
     const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, roles")
         .eq("id", user.id)
         .single();
-    if (!profile || !["faculty", "president"].includes(profile.role ?? "")) {
+    if (!profile || !(profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role]).some((r) => ["faculty", "president"].includes(r ?? ""))) {
         throw new Error("Forbidden: only faculty and presidents can manage sponsors");
     }
     return supabase;

@@ -220,7 +220,7 @@ function FilterPills({ value, onChange, counts }: {
 
   return (
     <div 
-      className="cir-tabs max-w-full overflow-x-auto relative" 
+      className="cir-tabs relative" 
       ref={wrapRef}
       style={{ 
         background: "rgba(13,17,23,0.8)", 

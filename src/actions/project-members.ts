@@ -2,8 +2,9 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { Database } from "@/types/database";
 
-const PROJECT_MANAGER_ROLES = new Set(["faculty", "president", "vice_president"]);
+const PROJECT_MANAGER_ROLES = new Set(["faculty", "president", "vice_president", "project_manager"]);
 
 export async function removeProjectMember(input: {
     projectId: string;
@@ -21,7 +22,7 @@ export async function removeProjectMember(input: {
     const adminSupabase = createAdminClient();
 
     const [{ data: profile }, { data: project }, { data: actorMembership }] = await Promise.all([
-        adminSupabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+        adminSupabase.from("profiles").select("role, roles").eq("id", user.id).maybeSingle(),
         adminSupabase.from("projects").select("created_by").eq("id", input.projectId).maybeSingle(),
         adminSupabase
             .from("project_members")
@@ -34,7 +35,7 @@ export async function removeProjectMember(input: {
     const isManager =
         project?.created_by === user.id ||
         actorMembership?.role === "lead" ||
-        (profile?.role ? PROJECT_MANAGER_ROLES.has(profile.role) : false);
+        (profile?.roles ? profile.roles.some((r: string) => PROJECT_MANAGER_ROLES.has(r as Database["public"]["Enums"]["user_role"])) : false);
 
     if (!isManager) {
         return { ok: false, error: "Not authorized to remove members from this project." };

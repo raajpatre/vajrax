@@ -12,13 +12,23 @@ const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffec
 
 // ---- Role palette ----
 const ROLE_COLOR: Record<string, { fg: string; bg: string; bd: string; label: string }> = {
-  faculty:           { fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",   bd: "rgba(0,229,255,0.45)",   label: "FACULTY"       },
-  president:         { fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",  bd: "rgba(245,158,11,0.45)",  label: "PRESIDENT"     },
-  vice_president:    { fg: "#a78bfa", bg: "rgba(167,139,250,0.10)", bd: "rgba(167,139,250,0.45)", label: "VP"            },
-  inventory_manager: { fg: "#22c55e", bg: "rgba(34,197,94,0.10)",   bd: "rgba(34,197,94,0.45)",   label: "INVENTORY MGR" },
-  website_manager:   { fg: "#fbbf24", bg: "rgba(251,191,36,0.10)",  bd: "rgba(251,191,36,0.45)",  label: "WEBSITE MGR"   },
-  printing_head:     { fg: "#f97316", bg: "rgba(249,115,22,0.10)",  bd: "rgba(249,115,22,0.45)",  label: "PRINTING HEAD" },
-  member:            { fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)", bd: "rgba(139,154,176,0.40)", label: "MEMBER"        },
+  faculty:              { fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",  bd: "rgba(0,229,255,0.45)",  label: "FACULTY" },
+  president:            { fg: "#f59e0b", bg: "rgba(245,158,11,0.10)", bd: "rgba(245,158,11,0.45)", label: "PRESIDENT" },
+  vice_president:       { fg: "#a78bfa", bg: "rgba(167,139,250,0.10)",bd: "rgba(167,139,250,0.45)",label: "VP" },
+  project_manager:      { fg: "#ec4899", bg: "rgba(236,72,153,0.10)", bd: "rgba(236,72,153,0.45)", label: "PROJECT MGR" },
+  inventory_manager:    { fg: "#22c55e", bg: "rgba(34,197,94,0.10)",  bd: "rgba(34,197,94,0.45)",  label: "INVENTORY MGR" },
+  lead_developer:       { fg: "#fbbf24", bg: "rgba(251,191,36,0.10)", bd: "rgba(251,191,36,0.45)", label: "LEAD DEV" },
+  printing_head:        { fg: "#f97316", bg: "rgba(249,115,22,0.10)", bd: "rgba(249,115,22,0.45)", label: "PRINTING HEAD" },
+  social_media_head:    { fg: "#ef4444", bg: "rgba(239,68,68,0.10)",  bd: "rgba(239,68,68,0.45)",  label: "SOCIAL MEDIA HEAD" },
+  social_media_co_head: { fg: "#ef4444", bg: "rgba(239,68,68,0.08)",  bd: "rgba(239,68,68,0.30)",  label: "SOCIAL MEDIA CO-HEAD" },
+  sponsorship_head:     { fg: "#10b981", bg: "rgba(16,185,129,0.10)", bd: "rgba(16,185,129,0.45)", label: "SPONSORSHIP HEAD" },
+  workshop_head:        { fg: "#6366f1", bg: "rgba(99,102,241,0.10)", bd: "rgba(99,102,241,0.45)", label: "WORKSHOP HEAD" },
+  mechanics_head:       { fg: "#8b5cf6", bg: "rgba(139,92,246,0.10)", bd: "rgba(139,92,246,0.45)", label: "MECHANICS HEAD" },
+  cad_head:             { fg: "#f97316", bg: "rgba(249,115,22,0.10)", bd: "rgba(249,115,22,0.45)", label: "CAD HEAD" },
+  electronics_head:     { fg: "#06b6d4", bg: "rgba(6,182,212,0.10)",  bd: "rgba(6,182,212,0.45)",  label: "ELECTRONICS HEAD" },
+  procurement_head:     { fg: "#14b8a6", bg: "rgba(20,184,166,0.10)", bd: "rgba(20,184,166,0.45)", label: "PROCUREMENT HEAD" },
+  makerspace_head:      { fg: "#ef4444", bg: "rgba(239,68,68,0.10)",  bd: "rgba(239,68,68,0.45)",  label: "MAKERSPACE HEAD" },
+  member:               { fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)",bd: "rgba(139,154,176,0.40)",label: "MEMBER" },
 };
 
 // ---- Filter config ----
@@ -27,7 +37,7 @@ type FilterKey = "all" | "faculty" | "committee" | "members";
 const ROSTER_FILTERS: { key: FilterKey; label: string; test: (p: Profile) => boolean }[] = [
   { key: "all",       label: "All",            test: () => true },
   { key: "faculty",   label: "Faculty",        test: (p) => p.role === "faculty" },
-  { key: "committee", label: "Club Committee", test: (p) => ["president","vice_president","inventory_manager","website_manager","printing_head"].includes(p.role) },
+  { key: "committee", label: "Club Committee", test: (p) => ["president","vice_president","inventory_manager","lead_developer","project_manager","printing_head","social_media_head","social_media_co_head","sponsorship_head","workshop_head","mechanics_head","cad_head","electronics_head","procurement_head","makerspace_head"].includes(p.role) },
   { key: "members",   label: "Members",        test: (p) => p.role === "member" },
 ];
 
@@ -109,24 +119,6 @@ function RosterAvatar({ profile, size = 48 }: { profile: Profile; size?: number 
   );
 }
 
-// =============================================
-// TagChip
-// =============================================
-function TagChip({ tag }: { tag: ParsedTag }) {
-  const fg = tag.color || "#8b9ab0";
-  return (
-    <span
-      className="inline-flex items-center rounded-sm border font-mono uppercase tracking-[0.10em] h-[18px] px-1.5 text-[9.5px]"
-      style={{ color: fg, background: `${fg}14`, borderColor: `${fg}55` }}
-    >
-      {tag.name}
-    </span>
-  );
-}
-
-// =============================================
-// RoleChip
-// =============================================
 function RoleChip({ role }: { role: string }) {
   const c = ROLE_COLOR[role] ?? ROLE_COLOR.member;
   return (
@@ -206,7 +198,6 @@ function TeamCardDesktop({ profile, delay, shown }: { profile: Profile; delay: n
               <div className="font-sans font-semibold text-fg text-[14.5px] tracking-tight leading-tight truncate min-w-0">
                 {profile.display_name}
               </div>
-              <RoleChip role={profile.role} />
             </div>
 
             <div className="mt-2.5 flex items-center gap-1.5 min-w-0">
@@ -229,11 +220,11 @@ function TeamCardDesktop({ profile, delay, shown }: { profile: Profile; delay: n
           </div>
         </div>
 
-        {tags.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-edge flex items-center flex-wrap gap-1">
-            {tags.map((t) => <TagChip key={t.name} tag={t} />)}
-          </div>
-        )}
+        <div className="mt-3 pt-3 border-t border-edge flex items-center flex-wrap gap-1">
+          {(profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role]).map((r) => (
+            <RoleChip key={r} role={r} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -272,15 +263,11 @@ function TeamCardMobile({ profile, delay, shown }: { profile: Profile; delay: nu
         {profile.display_name}
       </h3>
 
-      <div className="mt-3 flex justify-center">
-        <RoleChip role={profile.role} />
+      <div className="mt-3 flex justify-center flex-wrap gap-1">
+        {(profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role]).map((r) => (
+          <RoleChip key={r} role={r} />
+        ))}
       </div>
-
-      {tags.length > 0 && (
-        <div className="mt-3 flex items-center flex-wrap gap-1 justify-center">
-          {tags.map((t) => <TagChip key={t.name} tag={t} />)}
-        </div>
-      )}
 
       {profile.contact_email && (
         <a

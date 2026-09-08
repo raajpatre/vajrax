@@ -33,6 +33,16 @@ export interface ReportSponsor {
   website_url?: string
   tier: 'platinum' | 'gold' | 'silver' | 'community'
 }
+export interface MomActionItem {
+  task: string
+  assignee?: string
+  due_date?: string  // ISO date string
+}
+export interface MomResource {
+  type: 'photo' | 'url'
+  url: string
+  title?: string
+}
 // ──────────────────────────────────────────────────────────────
 
 export type Database = {
@@ -137,6 +147,146 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_minutes: {
+        Row: {
+          id: string
+          title: string
+          meeting_date: string
+          meeting_type: string
+          attendees: number | null
+          session_scope: string
+          counts_attendance: boolean
+          attendee_ids: string[]
+          content: string
+          action_items: MomActionItem[]
+          resources: MomResource[]
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          meeting_date: string
+          meeting_type?: string
+          attendees?: number | null
+          session_scope?: string
+          counts_attendance?: boolean
+          attendee_ids?: string[]
+          content?: string
+          action_items?: MomActionItem[]
+          resources?: MomResource[]
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          meeting_date?: string
+          meeting_type?: string
+          attendees?: number | null
+          session_scope?: string
+          counts_attendance?: boolean
+          attendee_ids?: string[]
+          content?: string
+          action_items?: MomActionItem[]
+          resources?: MomResource[]
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_minutes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mom_attendances: {
+        Row: {
+          id: string
+          mom_id: string
+          member_id: string
+          present: boolean
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          mom_id: string
+          member_id: string
+          present?: boolean
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          mom_id?: string
+          member_id?: string
+          present?: boolean
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mom_attendances_mom_id_fkey"
+            columns: ["mom_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_minutes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mom_attendances_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mom_comments: {
+        Row: {
+          id: string
+          mom_id: string
+          author_id: string
+          content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          mom_id: string
+          author_id: string
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          mom_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mom_comments_mom_id_fkey"
+            columns: ["mom_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_minutes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mom_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -885,6 +1035,7 @@ export type Database = {
           id: string
           linkedin_url: string | null
           role: Database["public"]["Enums"]["user_role"]
+          roles: string[]
           safety_certifications: string[]
           updated_at: string
           username: string | null
@@ -901,6 +1052,7 @@ export type Database = {
           id: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          roles?: string[]
           safety_certifications?: string[]
           updated_at?: string
           username?: string | null
@@ -917,6 +1069,7 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          roles?: string[]
           safety_certifications?: string[]
           updated_at?: string
           username?: string | null
@@ -1168,9 +1321,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      member_attendance_summary: {
+        Row: {
+          member_id: string
+          display_name: string
+          avatar_url: string | null
+          role: string
+          joined_at: string
+          sessions_eligible: number
+          sessions_attended: number
+          attendance_pct: number
+          is_flagged: boolean
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_member_attendance_stats: {
+        Args: { p_member_id: string }
+        Returns: {
+          sessions_eligible: number
+          sessions_attended: number
+          attendance_pct: number
+        }[]
+      }
       get_user_role: {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1196,11 +1370,21 @@ export type Database = {
       user_role:
         | "member"
         | "inventory_manager"
-        | "website_manager"
+        | "lead_developer"
         | "printing_head"
         | "president"
         | "vice_president"
         | "faculty"
+        | "project_manager"
+        | "social_media_head"
+        | "social_media_co_head"
+        | "sponsorship_head"
+        | "workshop_head"
+        | "mechanics_head"
+        | "cad_head"
+        | "electronics_head"
+        | "procurement_head"
+        | "makerspace_head"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1339,11 +1523,21 @@ export const Constants = {
       user_role: [
         "member",
         "inventory_manager",
-        "website_manager",
+        "lead_developer",
         "printing_head",
         "president",
         "vice_president",
         "faculty",
+        "project_manager",
+        "social_media_head",
+        "social_media_co_head",
+        "sponsorship_head",
+        "workshop_head",
+        "mechanics_head",
+        "cad_head",
+        "electronics_head",
+        "procurement_head",
+        "makerspace_head",
       ],
     },
   },

@@ -7,11 +7,11 @@ async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Prom
     if (!user) return false;
     const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("roles")
         .eq("id", user.id)
         .single();
-    const adminRoles = ["faculty", "president", "vice_president", "website_manager"];
-    return adminRoles.includes(profile?.role ?? "");
+    const adminRoles = ["faculty", "president", "vice_president", "lead_developer"];
+    return (profile?.roles ?? []).some(r => adminRoles.includes(r));
 }
 
 // ── GET — fetch registrations for an event ────────────────────────
