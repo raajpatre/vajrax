@@ -1167,7 +1167,9 @@ export default function AdminRequestsPage() {
 
     return (
         <div className="min-h-screen relative" style={{ background: "#07090f" }}>
-        <div className="fixed inset-0 pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
+        <div className="fixed inset-0 pointer-events-none animate-grid-pan" style={{ backgroundImage: "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
+        {/* Scanlines */}
+        <div className="fixed inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
             {/* Page header */}
             <div className="mb-7">

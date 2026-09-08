@@ -15,7 +15,9 @@ import {
     ChevronRight,
     CheckCheck,
     ArrowRight,
+    FileText,
 } from "lucide-react";
+import { getNotificationHref } from "@/lib/notifications";
 
 /* ─── Types ───────────────────────────────────────────────────────── */
 
@@ -47,13 +49,15 @@ const NOTIF_CONFIG: Record<string, NotifConfig> = {
     inventory_request_received: { label: "EQUIPMENT REQUEST", fg: "#f59e0b", bg: "rgba(245,158,11,0.10)",  bd: "rgba(245,158,11,0.40)",  barBg: "#f59e0b", Icon: Package,      navHref: () => "/admin/requests"          },
     equipment_request_approved: { label: "REQUEST APPROVED",  fg: "#22c55e", bg: "rgba(34,197,94,0.10)",   bd: "rgba(34,197,94,0.40)",   barBg: "#22c55e", Icon: CheckCircle2, navHref: () => "/my-requests"             },
     equipment_request_rejected: { label: "REQUEST REJECTED",  fg: "#ef4444", bg: "rgba(239,68,68,0.10)",   bd: "rgba(239,68,68,0.40)",   barBg: "#ef4444", Icon: XCircle,      navHref: () => "/my-requests"             },
+    project_invite_received:    { label: "PROJECT INVITE",    fg: "#00e5ff", bg: "rgba(0,229,255,0.10)",   bd: "rgba(0,229,255,0.40)",   barBg: "#00e5ff", Icon: FolderGit2,   navHref: () => "/project-invites"         },
+    mom_published:              { label: "MINUTES OF MEETING", fg: "#38bdf8", bg: "rgba(56,189,248,0.10)",  bd: "rgba(56,189,248,0.40)",  barBg: "#38bdf8", Icon: FileText,     navHref: (relatedId) => relatedId ? `/mom/${relatedId}` : "/mom" },
 };
 
 const DEFAULT_CONFIG: NotifConfig = {
     label: "NOTIFICATION",
     fg: "#8b9ab0", bg: "rgba(139,154,176,0.10)", bd: "rgba(139,154,176,0.35)", barBg: "#4a5568",
     Icon: Bell,
-    navHref: () => null,
+    navHref: (relatedId) => null,
 };
 
 function getConfig(type: string): NotifConfig {
@@ -144,7 +148,7 @@ function NotifCard({
     const [hover, setHover] = useState(false);
     const cfg = getConfig(notif.type);
     const Icon = cfg.Icon;
-    const href = cfg.navHref(notif.related_entity_id);
+    const href = cfg.navHref(notif.related_entity_id) ?? getNotificationHref(notif.type, notif.related_entity_id);
 
     const handleClick = async () => {
         if (!notif.is_read) await onMarkRead(notif.id);
@@ -155,10 +159,10 @@ function NotifCard({
         <div
             className="relative flex rounded-sm overflow-hidden transition-all cursor-pointer group"
             style={{
-                background: notif.is_read ? "rgba(7,9,15,0.4)" : "#0d1117",
+                background: notif.is_read ? "rgba(255,255,255,0.01)" : "#0d1117",
                 border: `1px solid ${hover ? (notif.is_read ? "rgba(0,229,255,0.18)" : "rgba(0,229,255,0.35)") : (notif.is_read ? "rgba(0,229,255,0.08)" : "rgba(0,229,255,0.18)")}`,
                 boxShadow: hover && !notif.is_read ? "0 0 0 1px rgba(0,229,255,0.08), 0 8px 24px -14px rgba(0,0,0,0.7)" : "none",
-                opacity: notif.is_read ? 0.6 : 1,
+                opacity: notif.is_read ? 0.8 : 1,
             }}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
@@ -168,7 +172,7 @@ function NotifCard({
             <div
                 className="w-[3px] shrink-0 self-stretch"
                 style={{
-                    background: notif.is_read ? "rgba(139,154,176,0.3)" : cfg.barBg,
+                    background: notif.is_read ? "rgba(139,154,176,0.4)" : cfg.barBg,
                     boxShadow: hover && !notif.is_read ? `0 0 10px ${cfg.barBg}` : "none",
                 }}
             />
@@ -184,7 +188,7 @@ function NotifCard({
                             borderColor: notif.is_read ? "rgba(139,154,176,0.15)" : cfg.bd,
                         }}
                     >
-                        <Icon size={16} style={{ color: notif.is_read ? "#4a5568" : cfg.fg }} />
+                        <Icon size={16} style={{ color: notif.is_read ? "#8b9ab0" : cfg.fg }} />
                     </div>
 
                     {/* Text */}
@@ -194,9 +198,9 @@ function NotifCard({
                             <span
                                 className="inline-flex items-center h-[18px] px-1.5 rounded-sm border font-mono text-[9px] uppercase tracking-[0.12em]"
                                 style={{
-                                    color: notif.is_read ? "#4a5568" : cfg.fg,
-                                    background: notif.is_read ? "rgba(139,154,176,0.05)" : cfg.bg,
-                                    borderColor: notif.is_read ? "rgba(139,154,176,0.15)" : cfg.bd,
+                                    color: notif.is_read ? "#8b9ab0" : cfg.fg,
+                                    background: notif.is_read ? "rgba(139,154,176,0.08)" : cfg.bg,
+                                    borderColor: notif.is_read ? "rgba(139,154,176,0.25)" : cfg.bd,
                                 }}
                             >
                                 {cfg.label}
@@ -213,12 +217,12 @@ function NotifCard({
 
                         <p
                             className="font-sans text-[13.5px] leading-snug tracking-tight"
-                            style={{ color: notif.is_read ? "#4a5568" : "#f0f4ff" }}
+                            style={{ color: notif.is_read ? "#a0aec0" : "#f0f4ff" }}
                         >
                             {notif.message}
                         </p>
 
-                        <div className="flex items-center gap-3 mt-1.5 font-mono text-[10px] tracking-[0.08em]" style={{ color: "#4a5568" }}>
+                        <div className="flex items-center gap-3 mt-1.5 font-mono text-[10px] tracking-[0.08em]" style={{ color: notif.is_read ? "#64748b" : "#8b9ab0" }}>
                             <span>{timeAgo(notif.created_at)}</span>
                             <span className="hidden sm:inline">·</span>
                             <span className="hidden sm:inline">{fullDate(notif.created_at)}</span>
@@ -230,7 +234,7 @@ function NotifCard({
                         <div className="shrink-0 grid place-items-center self-center">
                             <ChevronRight
                                 size={14}
-                                style={{ color: hover ? cfg.fg : "#4a5568", transition: "color 150ms" }}
+                                style={{ color: hover ? cfg.fg : (notif.is_read ? "#64748b" : "#8b9ab0"), transition: "color 150ms" }}
                             />
                         </div>
                     )}
@@ -260,7 +264,7 @@ function EmptyState({ filter }: { filter: "all" | "unread" }) {
                     )}
                 </div>
                 <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] mb-2" style={{ color: filter === "unread" ? "#22c55e" : "#00e5ff" }}>
-                    {filter === "unread" ? "// ALL CAUGHT UP" : "// NO ACTIVITY YET"}
+                    {filter === "unread" ? "ALL CAUGHT UP" : "NO ACTIVITY YET"}
                 </div>
                 <h3 className="text-[#f0f4ff] font-bold text-[18px] tracking-tight">
                     {filter === "unread" ? "You're all caught up" : "No notifications yet"}
@@ -286,6 +290,22 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<"all" | "unread">("all");
     const [markingAll, setMarkingAll] = useState(false);
+
+    const [t, setT] = useState(0);
+
+    useEffect(() => {
+        let raf: number;
+        const start = performance.now();
+        const tick = () => {
+            setT((performance.now() - start) / 1000);
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    const drift = (k: number): string =>
+        `translate(${Math.sin(t * 0.08 + k) * 6}px, ${Math.cos(t * 0.07 + k * 1.3) * 4}px)`;
 
     const fetchNotifications = useCallback(async () => {
         if (!user) return;
@@ -336,8 +356,8 @@ export default function NotificationsPage() {
 
     const handleNavigate = useCallback((notif: Notification) => {
         const cfg = getConfig(notif.type);
-        const href = cfg.navHref(notif.related_entity_id);
-        if (href) router.push(href);
+        const href = cfg.navHref(notif.related_entity_id) ?? getNotificationHref(notif.type, notif.related_entity_id);
+        if (href && href !== "/") router.push(href);
     }, [router]);
 
     const unreadCount = useMemo(() => notifications.filter(n => !n.is_read).length, [notifications]);
@@ -350,16 +370,63 @@ export default function NotificationsPage() {
     if (userLoading || loading) return <VajraLoader fullPage />;
 
     return (
-        <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-16">
+        <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+            {/* Grid Background */}
+            <div
+                className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                style={{
+                    backgroundImage:
+                        "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                        "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                    backgroundSize: "40px 40px",
+                    maskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    WebkitMaskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                }}
+            />
+            
+            {/* Radial cyan glows — bottom-left large, top-right smaller */}
+            <div
+                className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)",
+                }}
+            />
+            <div
+                className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)",
+                }}
+            />
 
-            {/* Page header */}
+            {/* Scanlines */}
+            <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+            
+            {/* Circuit-trace SVG decorations — 3 shapes, slow sine/cosine drift */}
+            <div
+                className="absolute top-[6%] right-[-4%] w-[42vw] h-[40vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(0) }}
+            >
+                <CircuitTrace which={0} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute bottom-[12%] left-[-4%] w-[36vw] h-[44vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(2) }}
+            >
+                <CircuitTrace which={1} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute top-[44%] right-[10%] w-[26vw] h-[28vh] pointer-events-none z-0"
+                style={{ opacity: 0.05, transform: drift(4) }}
+            >
+                <CircuitTrace which={2} className="w-full h-full" />
+            </div>
+
+            <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-16">
+                {/* Page header */}
             <div className="mb-7">
-                <div className="flex items-center gap-2 mb-3">
-                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
-                        // WORKSPACE / NOTIFICATIONS
-                    </span>
-                </div>
+
                 <div className="flex items-end justify-between gap-4 flex-wrap">
                     <div>
                         <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[34px] leading-none">
@@ -443,6 +510,73 @@ export default function NotificationsPage() {
                     <span>Notifications older than 30 days are auto-archived</span>
                 </div>
             )}
+            </div>
         </div>
     );
+}
+
+// ─── CircuitTrace ─────────────────────────────────────────────────────────────
+type CircuitTraceProps = {
+  which?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
+  const paths = [
+    {
+      viewBox: "0 0 600 400",
+      d: [
+        "M 0 200 L 120 200 L 140 220 L 280 220 L 300 240 L 600 240",
+        "M 80 200 L 80 60  M 240 220 L 240 100",
+        "M 380 240 L 380 360",
+      ],
+      nodes: [
+        [120, 200], [280, 220], [80, 60], [240, 100], [380, 360],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 500 400",
+      d: [
+        "M 500 80 L 380 80 L 360 100 L 220 100 L 200 120 L 80 120 L 0 120",
+        "M 360 100 L 360 240",
+        "M 200 120 L 200 300 L 0 300",
+        "M 100 120 L 100 60",
+      ],
+      nodes: [
+        [380, 80], [220, 100], [80, 120], [360, 240], [200, 300], [100, 60],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 400 300",
+      d: [
+        "M 0 50 L 80 50 L 90 60 L 200 60 L 210 70 L 320 70 L 330 80 L 400 80",
+        "M 0 200 L 120 200 L 130 210 L 280 210 L 290 220 L 400 220",
+        "M 200 60 L 200 200 M 290 220 L 290 80",
+      ],
+      nodes: [
+        [80, 50], [200, 60], [320, 70], [120, 200], [280, 210],
+      ] as [number, number][],
+    },
+  ];
+
+  const p = paths[which % paths.length];
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox={p.viewBox}
+      preserveAspectRatio="none"
+      fill="none"
+      stroke="#00e5ff"
+      strokeWidth="1.2"
+    >
+      {p.d.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+      {p.nodes.map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="2.5" fill="#00e5ff" />
+      ))}
+    </svg>
+  );
 }

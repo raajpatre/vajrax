@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Database } from "@/types/database";
 import type { Json } from "@/types/database";
 
-const PROJECT_MANAGER_ROLES = new Set(["faculty", "president", "vice_president"]);
+const PROJECT_MANAGER_ROLES = new Set(["faculty", "president", "vice_president", "project_manager"]);
 
 type PermResult =
     | { ok: true; projectId: string }
@@ -27,7 +28,7 @@ async function authorizeLog(
     if (log.author_id === userId) return { ok: true, projectId: log.project_id };
 
     const [{ data: profile }, { data: project }, { data: membership }] = await Promise.all([
-        admin.from("profiles").select("role").eq("id", userId).maybeSingle(),
+        admin.from("profiles").select("role, roles").eq("id", userId).maybeSingle(),
         admin.from("projects").select("created_by").eq("id", log.project_id).maybeSingle(),
         admin
             .from("project_members")
@@ -40,7 +41,7 @@ async function authorizeLog(
     const can =
         project?.created_by === userId ||
         membership?.role === "lead" ||
-        (profile?.role ? PROJECT_MANAGER_ROLES.has(profile.role) : false);
+        (profile?.roles ? profile.roles.some((r: string) => PROJECT_MANAGER_ROLES.has(r as Database["public"]["Enums"]["user_role"])) : false);
 
     return can
         ? { ok: true, projectId: log.project_id }

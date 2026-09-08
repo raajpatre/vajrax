@@ -15,6 +15,7 @@ import {
     ChevronRight,
     X,
     User,
+    ArrowRight,
 } from "lucide-react";
 import {
     RETURN_CONDITIONS,
@@ -393,44 +394,49 @@ function RequestDrawer({ req, open, onClose }: {
                 />
             )}
             <div
-                className="fixed top-0 right-0 bottom-0 z-[91] flex flex-col w-full sm:w-[400px]"
+                className="fixed top-0 right-0 bottom-0 z-[91] flex flex-col w-full sm:w-[450px] backdrop-blur-md"
                 style={{
-                    background: "#0d1117",
-                    borderLeft: "1px solid rgba(0,229,255,0.18)",
-                    boxShadow: "-8px 0 32px rgba(0,0,0,0.55)",
+                    background: "rgba(17,24,32,0.95)",
+                    borderLeft: "1px solid rgba(0,229,255,0.28)",
+                    boxShadow: "0 0 0 1px rgba(0,229,255,0.06), -24px 0 60px -24px rgba(0,0,0,0.8), -8px 0 40px -16px rgba(0,229,255,0.35)",
                     transform: open ? "translateX(0)" : "translateX(100%)",
                     transition: "transform 280ms cubic-bezier(.5,.05,.2,1)",
                 }}
             >
+                <div
+                    className="absolute inset-y-0 left-0 w-px pointer-events-none"
+                    style={{ background: "linear-gradient(180deg, transparent, rgba(0,229,255,0.6), transparent)" }}
+                />
                 {req && (
                     <>
                         {/* Header */}
                         <div
-                            className="px-5 h-14 flex items-center gap-3 border-b shrink-0"
-                            style={{ borderColor: "rgba(0,229,255,0.12)", background: "rgba(7,9,15,0.60)" }}
+                            className="px-6 h-16 flex items-center gap-3 border-b shrink-0 relative z-10"
+                            style={{ borderColor: "rgba(0,229,255,0.12)", background: "transparent" }}
                         >
+                            <div className="h-4 w-0.5 rounded-full shrink-0" style={{ background: "#00e5ff", boxShadow: "0 0 6px rgba(0,229,255,0.8)" }} />
                             <div className="min-w-0 flex-1">
-                                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#00e5ff]">
+                                <div className="font-mono text-[11px] uppercase tracking-[0.20em] font-bold" style={{ color: "#00e5ff" }}>
                                     {shortId(req.id)}
                                 </div>
-                                <div className="font-sans font-semibold text-[#f0f4ff] text-[14px] tracking-tight truncate">
+                                <div className="font-sans font-black text-[#f0f4ff] text-[16px] tracking-tight truncate mt-0.5">
                                     {req.item.name}
                                 </div>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="grid place-items-center w-8 h-8 rounded-sm border text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors"
-                                style={{ borderColor: "rgba(0,229,255,0.14)" }}
+                                className="grid place-items-center w-8 h-8 rounded-sm border border-[rgba(0,229,255,0.14)] text-[#8b9ab0] hover:text-white transition-all hover:bg-[#ef4444] hover:border-[#ef4444]"
                             >
                                 <X size={14} />
                             </button>
                         </div>
 
-                        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-6">
+                        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-8 relative z-10">
                             {/* Request details */}
                             <div>
-                                <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568] mb-3">
-                                    // REQUEST DETAILS
+                                <div className="font-mono text-[11px] uppercase tracking-[0.20em] font-bold mb-4 flex items-center gap-2" style={{ color: "#00e5ff" }}>
+                                    <span className="h-2.5 w-0.5 rounded-full shrink-0" style={{ background: "#00e5ff", boxShadow: "0 0 4px rgba(0,229,255,0.6)" }} />
+                                    Request Details
                                 </div>
                                 <div className="space-y-2">
                                     {([
@@ -455,9 +461,10 @@ function RequestDrawer({ req, open, onClose }: {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-3">
-                                    <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#4a5568] mb-1.5">
-                                        REASON
+                                <div className="mt-6">
+                                    <div className="font-mono text-[11px] uppercase tracking-[0.20em] font-bold mb-3 flex items-center gap-2" style={{ color: "#00e5ff" }}>
+                                        <span className="h-2.5 w-0.5 rounded-full shrink-0" style={{ background: "#00e5ff", boxShadow: "0 0 4px rgba(0,229,255,0.6)" }} />
+                                        Reason
                                     </div>
                                     <p className="text-[#8b9ab0] text-[12.5px] leading-relaxed italic">
                                         {req.reason}
@@ -467,8 +474,9 @@ function RequestDrawer({ req, open, onClose }: {
 
                             {/* Status history */}
                             <div>
-                                <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568] mb-3">
-                                    // STATUS HISTORY
+                                <div className="font-mono text-[11px] uppercase tracking-[0.20em] font-bold mb-4 flex items-center gap-2" style={{ color: "#00e5ff" }}>
+                                    <span className="h-2.5 w-0.5 rounded-full shrink-0" style={{ background: "#00e5ff", boxShadow: "0 0 4px rgba(0,229,255,0.6)" }} />
+                                    Status History
                                 </div>
                                 <StatusTimeline history={timeline} />
                             </div>
@@ -476,8 +484,9 @@ function RequestDrawer({ req, open, onClose }: {
                             {/* Admin review */}
                             {(req.approver || req.status_note) && (
                                 <div>
-                                    <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568] mb-3">
-                                        // ADMIN REVIEW
+                                    <div className="font-mono text-[11px] uppercase tracking-[0.20em] font-bold mb-4 flex items-center gap-2" style={{ color: "#00e5ff" }}>
+                                        <span className="h-2.5 w-0.5 rounded-full shrink-0" style={{ background: "#00e5ff", boxShadow: "0 0 4px rgba(0,229,255,0.6)" }} />
+                                        Admin Review
                                     </div>
                                     {req.approver && (
                                         <div className="flex items-center gap-2 font-mono text-[11px] text-[#8b9ab0] mb-2">
@@ -502,8 +511,9 @@ function RequestDrawer({ req, open, onClose }: {
                             {/* Return condition */}
                             {conditionSummary.length > 0 && (
                                 <div>
-                                    <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568] mb-2">
-                                        // RETURN CONDITION
+                                    <div className="font-mono text-[11px] uppercase tracking-[0.20em] font-bold mb-4 flex items-center gap-2" style={{ color: "#00e5ff" }}>
+                                        <span className="h-2.5 w-0.5 rounded-full shrink-0" style={{ background: "#00e5ff", boxShadow: "0 0 4px rgba(0,229,255,0.6)" }} />
+                                        Return Condition
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
                                         {conditionSummary.map(({ condition, count }) => {
@@ -574,6 +584,21 @@ export default function MyRequestsPage() {
     const [tab, setTab] = useState("all");
     const [drawer, setDrawer] = useState<RequestWithItem | null>(null);
 
+    const [t, setT] = useState(0);
+    useEffect(() => {
+        let raf: number;
+        const start = performance.now();
+        const tick = () => {
+            setT((performance.now() - start) / 1000);
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    const drift = (k: number): string =>
+        `translate(${Math.sin(t * 0.08 + k) * 6}px, ${Math.cos(t * 0.07 + k * 1.3) * 4}px)`;
+
     const fetchRequests = useCallback(async () => {
         if (!user) return;
         const { data } = await supabase
@@ -633,15 +658,62 @@ export default function MyRequestsPage() {
     if (userLoading || loading) return <VajraLoader fullPage />;
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16">
+        <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+            {/* Grid Background */}
+            <div
+                className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                style={{
+                    backgroundImage:
+                        "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                        "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                    backgroundSize: "40px 40px",
+                    maskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    WebkitMaskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                }}
+            />
+            
+            {/* Radial cyan glows — bottom-left large, top-right smaller */}
+            <div
+                className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)",
+                }}
+            />
+            <div
+                className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)",
+                }}
+            />
+
+            {/* Scanlines */}
+            <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+            
+            {/* Circuit-trace SVG decorations — 3 shapes, slow sine/cosine drift */}
+            <div
+                className="absolute top-[6%] right-[-4%] w-[42vw] h-[40vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(0) }}
+            >
+                <CircuitTrace which={0} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute bottom-[12%] left-[-4%] w-[36vw] h-[44vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(2) }}
+            >
+                <CircuitTrace which={1} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute top-[44%] right-[10%] w-[26vw] h-[28vh] pointer-events-none z-0"
+                style={{ opacity: 0.05, transform: drift(4) }}
+            >
+                <CircuitTrace which={2} className="w-full h-full" />
+            </div>
+
+            <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16">
             {/* Page header */}
             <div className="mb-7">
-                <div className="flex items-center gap-2 mb-3">
-                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
-                        // WORKSPACE / REQUESTS
-                    </span>
-                </div>
                 <div className="flex items-end justify-between gap-4 flex-wrap">
                     <div>
                         <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] leading-none" style={{ fontSize: "clamp(24px, 5vw, 36px)" }}>
@@ -653,10 +725,16 @@ export default function MyRequestsPage() {
                     </div>
                     <Link
                         href="/inventory"
-                        className="inline-flex items-center gap-2 h-9 px-4 rounded-sm border font-mono text-[11px] uppercase tracking-[0.12em] text-[#8b9ab0] hover:text-[#f0f4ff] transition-all"
-                        style={{ borderColor: "rgba(0,229,255,0.20)", background: "rgba(0,229,255,0.04)" }}
+                        className="btn-3d-cyan"
+                        style={{ textDecoration: 'none' }}
                     >
-                        <ShoppingCart size={13} /> New Request
+                        <div className="btn-top flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] font-bold">
+                            <ShoppingCart size={14} />
+                            <span>New Request</span>
+                            <ArrowRight size={12} />
+                        </div>
+                        <div className="btn-bottom" />
+                        <div className="btn-base" />
                     </Link>
                 </div>
             </div>
@@ -694,5 +772,72 @@ export default function MyRequestsPage() {
                 onClose={() => setDrawer(null)}
             />
         </div>
+        </div>
     );
+}
+
+// ─── CircuitTrace ─────────────────────────────────────────────────────────────
+type CircuitTraceProps = {
+  which?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
+  const paths = [
+    {
+      viewBox: "0 0 600 400",
+      d: [
+        "M 0 200 L 120 200 L 140 220 L 280 220 L 300 240 L 600 240",
+        "M 80 200 L 80 60  M 240 220 L 240 100",
+        "M 380 240 L 380 360",
+      ],
+      nodes: [
+        [120, 200], [280, 220], [80, 60], [240, 100], [380, 360],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 500 400",
+      d: [
+        "M 500 80 L 380 80 L 360 100 L 220 100 L 200 120 L 80 120 L 0 120",
+        "M 360 100 L 360 240",
+        "M 200 120 L 200 300 L 0 300",
+        "M 100 120 L 100 60",
+      ],
+      nodes: [
+        [380, 80], [220, 100], [80, 120], [360, 240], [200, 300], [100, 60],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 400 300",
+      d: [
+        "M 0 50 L 80 50 L 90 60 L 200 60 L 210 70 L 320 70 L 330 80 L 400 80",
+        "M 0 200 L 120 200 L 130 210 L 280 210 L 290 220 L 400 220",
+        "M 200 60 L 200 200 M 290 220 L 290 80",
+      ],
+      nodes: [
+        [80, 50], [200, 60], [320, 70], [120, 200], [280, 210],
+      ] as [number, number][],
+    },
+  ];
+
+  const p = paths[which % paths.length];
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox={p.viewBox}
+      preserveAspectRatio="none"
+      fill="none"
+      stroke="#00e5ff"
+      strokeWidth="1.2"
+    >
+      {p.d.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+      {p.nodes.map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="2.5" fill="#00e5ff" />
+      ))}
+    </svg>
+  );
 }

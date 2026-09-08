@@ -66,11 +66,11 @@ export async function requireApplicantReviewer() {
 
     const { data: profile, error } = await supabase
         .from("profiles")
-        .select("id, role, display_name")
+        .select("id, role, roles, display_name")
         .eq("id", user.id)
         .single();
 
-    if (error || !profile || !isApplicantReviewer(profile.role)) {
+    if (error || !profile || !isApplicantReviewer(profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role])) {
         return {
             error: NextResponse.json(
                 { error: "Only faculty, president, and vice president can review applicants." },

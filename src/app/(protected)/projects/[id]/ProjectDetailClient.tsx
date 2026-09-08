@@ -46,10 +46,10 @@ const LOG_SELECT =
 
 // Accepted code / 3D-model file extensions for log attachments.
 const CODE_EXTS = new Set([
-    "py","ipynb","c","h","cpp","hpp","cc","cxx","ino","js","jsx","ts","tsx","mjs","cjs",
-    "java","kt","go","rs","rb","php","swift","m","mm","cs","sh","bash","zsh","ps1","lua",
-    "r","jl","dart","html","css","scss","sql","json","yaml","yml","toml","xml","md","txt",
-    "csv","v","vhd","vhdl","gcode","nc","scad","urdf","xacro","launch",
+    "py", "ipynb", "c", "h", "cpp", "hpp", "cc", "cxx", "ino", "js", "jsx", "ts", "tsx", "mjs", "cjs",
+    "java", "kt", "go", "rs", "rb", "php", "swift", "m", "mm", "cs", "sh", "bash", "zsh", "ps1", "lua",
+    "r", "jl", "dart", "html", "css", "scss", "sql", "json", "yaml", "yml", "toml", "xml", "md", "txt",
+    "csv", "v", "vhd", "vhdl", "gcode", "nc", "scad", "urdf", "xacro", "launch",
 ]);
 const ATTACH_ACCEPT = "." + [...CODE_EXTS, "stl"].join(",.");
 
@@ -76,12 +76,12 @@ interface ProjectData {
 // ─── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<string, { label: string; bg: string; border: string; fg: string }> = {
-    in_progress: { label: "IN PROGRESS", bg: "rgba(245,158,11,0.15)",  border: "rgba(245,158,11,0.55)",  fg: "#f59e0b" },
-    ongoing:     { label: "IN PROGRESS", bg: "rgba(245,158,11,0.15)",  border: "rgba(245,158,11,0.55)",  fg: "#f59e0b" },
-    completed:   { label: "COMPLETED",   bg: "rgba(34,197,94,0.12)",   border: "rgba(34,197,94,0.50)",   fg: "#22c55e" },
-    planning:    { label: "PLANNING",    bg: "rgba(0,229,255,0.10)",   border: "rgba(0,229,255,0.50)",   fg: "#00e5ff" },
-    archived:    { label: "ARCHIVED",    bg: "rgba(139,154,176,0.10)", border: "rgba(139,154,176,0.45)", fg: "#8b9ab0" },
-    on_hold:     { label: "ON HOLD",     bg: "rgba(139,154,176,0.10)", border: "rgba(139,154,176,0.45)", fg: "#8b9ab0" },
+    in_progress: { label: "IN PROGRESS", bg: "rgba(245,158,11,0.15)", border: "rgba(245,158,11,0.55)", fg: "#f59e0b" },
+    ongoing: { label: "IN PROGRESS", bg: "rgba(245,158,11,0.15)", border: "rgba(245,158,11,0.55)", fg: "#f59e0b" },
+    completed: { label: "COMPLETED", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.50)", fg: "#22c55e" },
+    planning: { label: "PLANNING", bg: "rgba(0,229,255,0.10)", border: "rgba(0,229,255,0.50)", fg: "#00e5ff" },
+    archived: { label: "ARCHIVED", bg: "rgba(139,154,176,0.10)", border: "rgba(139,154,176,0.45)", fg: "#8b9ab0" },
+    on_hold: { label: "ON HOLD", bg: "rgba(139,154,176,0.10)", border: "rgba(139,154,176,0.45)", fg: "#8b9ab0" },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -131,10 +131,10 @@ function initials(name: string) {
 function MemberAvatar({ name, avatarUrl, userId, size = 32 }: { name: string; avatarUrl: string | null; userId: string; size?: number }) {
     const hue = idHue(userId);
     const tint = `hsl(${hue} 90% 60%)`;
-    const c1   = `hsl(${hue} 60% 18%)`;
-    const c2   = `hsl(${(hue + 30) % 360} 70% 8%)`;
-    const id   = useMemo(() => Math.random().toString(36).slice(2), []);
-    const fs   = Math.max(9, Math.round(size * 0.34));
+    const c1 = `hsl(${hue} 60% 18%)`;
+    const c2 = `hsl(${(hue + 30) % 360} 70% 8%)`;
+    const id = useMemo(() => Math.random().toString(36).slice(2), []);
+    const fs = Math.max(9, Math.round(size * 0.34));
 
     if (avatarUrl) {
         return (
@@ -169,9 +169,9 @@ function MemberAvatar({ name, avatarUrl, userId, size = 32 }: { name: string; av
 
 function CoverFallback({ hue }: { hue: number }) {
     const tint = `hsl(${hue} 90% 60%)`;
-    const c1   = `hsl(${hue} 60% 12%)`;
-    const c2   = `hsl(${(hue + 30) % 360} 70% 7%)`;
-    const id   = useMemo(() => Math.random().toString(36).slice(2), []);
+    const c1 = `hsl(${hue} 60% 12%)`;
+    const c2 = `hsl(${(hue + 30) % 360} 70% 7%)`;
+    const id = useMemo(() => Math.random().toString(36).slice(2), []);
     return (
         <svg viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice" className="w-full h-full block">
             <defs>
@@ -196,9 +196,9 @@ function CoverFallback({ hue }: { hue: number }) {
                 <circle cx="200" cy="120" r="3" fill={tint} />
                 <circle cx="900" cy="280" r="3" fill={tint} />
             </g>
-            <path d="M0 0 H24 M0 0 V24"       stroke={tint} strokeWidth="2" opacity="0.85" />
+            <path d="M0 0 H24 M0 0 V24" stroke={tint} strokeWidth="2" opacity="0.85" />
             <path d="M1200 0 H1176 M1200 0 V24" stroke={tint} strokeWidth="2" opacity="0.6" />
-            <path d="M0 400 H24 M0 400 V376"   stroke={tint} strokeWidth="2" opacity="0.6" />
+            <path d="M0 400 H24 M0 400 V376" stroke={tint} strokeWidth="2" opacity="0.6" />
             <path d="M1200 400 H1176 M1200 400 V376" stroke={tint} strokeWidth="2" opacity="0.85" />
         </svg>
     );
@@ -473,17 +473,17 @@ function LogForm({ initial, heading, submitLabel, submitting, onSubmit, onCancel
     onSubmit: (data: LogFormData) => void;
     onCancel: () => void;
 }) {
-    const [title,        setTitle]        = useState(initial.title);
-    const [content,      setContent]      = useState(initial.content);
-    const [versionTag,   setVersionTag]   = useState(initial.versionTag);
-    const [sourceUrls,   setSourceUrls]   = useState(initial.sourceUrls);
-    const [videoUrls,    setVideoUrls]    = useState(initial.videoUrls);
+    const [title, setTitle] = useState(initial.title);
+    const [content, setContent] = useState(initial.content);
+    const [versionTag, setVersionTag] = useState(initial.versionTag);
+    const [sourceUrls, setSourceUrls] = useState(initial.sourceUrls);
+    const [videoUrls, setVideoUrls] = useState(initial.videoUrls);
     const [uploadedUrls, setUploadedUrls] = useState<string[]>(initial.imageUrls);
-    const [attachments,  setAttachments]  = useState<Attachment[]>(initial.attachments);
-    const [createdAt,    setCreatedAt]    = useState(initial.createdAt || toLocalInput(null));
-    const [uploading,    setUploading]    = useState(false);
-    const [attaching,    setAttaching]    = useState(false);
-    const imgInputRef  = useRef<HTMLInputElement>(null);
+    const [attachments, setAttachments] = useState<Attachment[]>(initial.attachments);
+    const [createdAt, setCreatedAt] = useState(initial.createdAt || toLocalInput(null));
+    const [uploading, setUploading] = useState(false);
+    const [attaching, setAttaching] = useState(false);
+    const imgInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const canSubmit = title.trim().length > 0 && !uploading && !attaching;
@@ -534,132 +534,133 @@ function LogForm({ initial, heading, submitLabel, submitting, onSubmit, onCancel
         onSubmit({ title, content, versionTag, sourceUrls, imageUrls: uploadedUrls, videoUrls, attachments, createdAt });
     };
 
+    const floatingInputCls = "peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors";
+    const floatingLabelCls = "absolute left-3 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-1 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-x-1 peer-[:not(:placeholder-shown)]:bg-[#111820] peer-[:not(:placeholder-shown)]:px-2 peer-[:not(:placeholder-shown)]:text-[#00e5ff]";
+    const floatingLabelTopCls = "absolute left-3 top-0 -translate-y-1/2 scale-[0.85] -translate-x-1 bg-[#111820] px-2 text-[#00e5ff] text-[14px] pointer-events-none";
+
     return (
         <form
             onSubmit={handleSubmit}
-            className="bg-[#111820] border border-[rgba(0,229,255,0.28)] rounded-md p-4 space-y-3"
-            style={{ animation: "fadeIn 180ms ease-out" }}
+            className="relative w-full bg-[#111820]/90 backdrop-blur-md rounded-md corner-ticks p-6 space-y-6 mt-4 mb-4"
+            style={{
+                animation: "fadeIn 180ms ease-out",
+                border: "1px solid rgba(0,229,255,0.28)",
+                boxShadow: "0 0 0 1px rgba(0,229,255,0.06), 0 24px 60px -24px rgba(0,0,0,0.8), 0 0 40px -16px rgba(0,229,255,0.35)",
+            }}
         >
-            <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#00e5ff] mb-1">{heading}</div>
+            <span className="ct-tr" /><span className="ct-bl" />
+            <div
+                className="absolute inset-x-0 top-0 h-px pointer-events-none rounded-t-md"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(0,229,255,0.6), transparent)" }}
+            />
 
-            <div>
-                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
-                    <span className="text-[#00e5ff]/70">$</span> Title
-                </label>
+            <div className="font-mono text-[12px] uppercase tracking-[0.20em] text-[#00e5ff] mb-2 font-bold">{heading}</div>
+
+            <div className="relative group">
                 <input value={title} onChange={e => setTitle(e.target.value)} required
-                    placeholder="gRPC server live on pit laptop" className={inputCls} />
+                    placeholder=" " className={floatingInputCls} />
+                <label className={floatingLabelCls}>Title</label>
             </div>
 
-            <div>
-                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
-                    <span className="text-[#00e5ff]/70">$</span> Content
+            <div className="relative group">
+                <textarea value={content} onChange={e => setContent(e.target.value)} rows={3} required
+                    placeholder=" " className="peer w-full bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] p-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors resize-y" />
+                <label className="absolute left-3 top-4 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:scale-[0.85] peer-focus:-translate-x-1 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-x-1 peer-[:not(:placeholder-shown)]:bg-[#111820] peer-[:not(:placeholder-shown)]:px-2 peer-[:not(:placeholder-shown)]:text-[#00e5ff]">
+                    Content
                 </label>
-                <textarea value={content} onChange={e => setContent(e.target.value)} rows={3}
-                    placeholder="Describe what changed and what was tested…" className={textareaCls} />
             </div>
 
-            <div>
-                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 block">
-                    <span className="text-[#00e5ff]/70">$</span> Timestamp
+            <div className="relative group">
+                <input type="datetime-local" value={createdAt} onChange={e => setCreatedAt(e.target.value)} required
+                    className={`${floatingInputCls} [color-scheme:dark]`} />
+                <label className={floatingLabelTopCls}>
+                    Timestamp
                 </label>
-                <input type="datetime-local" value={createdAt} onChange={e => setCreatedAt(e.target.value)}
-                    className={`${inputCls} [color-scheme:dark]`} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                        <span><span className="text-[#00e5ff]/70">$</span> Version Tag</span>
-                        <span className="text-[#4a5568]">OPTIONAL</span>
-                    </label>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="relative group">
                     <input value={versionTag} onChange={e => setVersionTag(e.target.value)}
-                        placeholder="v0.4-beta" className={inputCls} />
+                        placeholder=" " className={floatingInputCls} />
+                    <label className={floatingLabelCls}>Version Tag <span className="opacity-50 text-[10px] ml-1">(Optional)</span></label>
                 </div>
-                <div>
-                    <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                        <span><span className="text-[#00e5ff]/70">$</span> Source URL</span>
-                        <span className="text-[#4a5568]">OPTIONAL</span>
-                    </label>
+                <div className="relative group">
                     <input value={sourceUrls} onChange={e => setSourceUrls(e.target.value)}
-                        placeholder="https://github.com/…" className={inputCls} />
+                        placeholder=" " className={floatingInputCls} />
+                    <label className={floatingLabelCls}>Source URL <span className="opacity-50 text-[10px] ml-1">(Optional)</span></label>
                 </div>
             </div>
 
             <div>
-                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                    <span><span className="text-[#00e5ff]/70">$</span> Images</span>
-                    <span className="text-[#4a5568]">OPTIONAL</span>
-                </label>
-                <input ref={imgInputRef} type="file" accept="image/*" multiple className="hidden"
-                    onChange={e => e.target.files && handleImageFiles(e.target.files)} />
-                <button type="button" onClick={() => imgInputRef.current?.click()} disabled={uploading}
-                    className="inline-flex items-center gap-2 h-8 px-3 border border-dashed border-[rgba(0,229,255,0.25)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.50)] font-mono text-[10px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50">
-                    {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
-                    {uploading ? "Uploading…" : "Upload Images"}
-                </button>
-                {uploadedUrls.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {uploadedUrls.map((url, i) => (
-                            <div key={i} className="relative w-16 h-16 rounded-sm overflow-hidden border border-[rgba(0,229,255,0.15)] group">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={url} alt="" className="w-full h-full object-cover" />
-                                <button type="button"
-                                    onClick={() => setUploadedUrls(prev => prev.filter((_, j) => j !== i))}
-                                    className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <X size={14} className="text-white" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <label className={floatingLabelTopCls} style={{ position: 'relative', top: 'auto', left: '-4px', transform: 'none', background: 'transparent', display: 'inline-block', marginBottom: '8px' }}>Images <span className="opacity-50 text-[10px] ml-1">(Optional)</span></label>
+                <div className="mt-1">
+                    <input ref={imgInputRef} type="file" accept="image/*" multiple className="hidden"
+                        onChange={e => e.target.files && handleImageFiles(e.target.files)} />
+                    <button type="button" onClick={() => imgInputRef.current?.click()} disabled={uploading}
+                        className="inline-flex items-center gap-2 h-9 px-4 border border-dashed border-[rgba(0,229,255,0.25)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.50)] font-mono text-[11px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50">
+                        {uploading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                        {uploading ? "Uploading…" : "Upload Images"}
+                    </button>
+                    {uploadedUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            {uploadedUrls.map((url, i) => (
+                                <div key={i} className="relative w-16 h-16 rounded-sm overflow-hidden border border-[rgba(0,229,255,0.15)] group">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={url} alt="" className="w-full h-full object-cover" />
+                                    <button type="button"
+                                        onClick={() => setUploadedUrls(prev => prev.filter((_, j) => j !== i))}
+                                        className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X size={14} className="text-white" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div>
-                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                    <span><span className="text-[#00e5ff]/70">$</span> Code / STL Files</span>
-                    <span className="text-[#4a5568]">OPTIONAL</span>
-                </label>
-                <input ref={fileInputRef} type="file" accept={ATTACH_ACCEPT} multiple className="hidden"
-                    onChange={e => e.target.files && handleAttachFiles(e.target.files)} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={attaching}
-                    className="inline-flex items-center gap-2 h-8 px-3 border border-dashed border-[rgba(0,229,255,0.25)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.50)] font-mono text-[10px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50">
-                    {attaching ? <Loader2 size={12} className="animate-spin" /> : <Paperclip size={12} />}
-                    {attaching ? "Uploading…" : "Attach Files"}
-                </button>
-                {attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {attachments.map((a, i) => (
-                            <span key={i}
-                                className="inline-flex items-center gap-1.5 h-7 pl-2.5 pr-1.5 rounded-sm border border-[rgba(0,229,255,0.18)] bg-[#0d1117] font-mono text-[10.5px] text-[#8b9ab0] max-w-[220px]">
-                                {a.kind === "stl" ? <Box size={11} className="shrink-0 text-[#f59e0b]" /> : <FileCode2 size={11} className="shrink-0 text-[#00e5ff]" />}
-                                <span className="truncate">{a.name}</span>
-                                <button type="button" onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
-                                    className="grid place-items-center w-4 h-4 rounded-sm text-[#4a5568] hover:text-[#ef4444] transition-colors">
-                                    <X size={11} />
-                                </button>
-                            </span>
-                        ))}
-                    </div>
-                )}
+                <label className={floatingLabelTopCls} style={{ position: 'relative', top: 'auto', left: '-4px', transform: 'none', background: 'transparent', display: 'inline-block', marginBottom: '8px' }}>Code / STL Files <span className="opacity-50 text-[10px] ml-1">(Optional)</span></label>
+                <div className="mt-1">
+                    <input ref={fileInputRef} type="file" accept={ATTACH_ACCEPT} multiple className="hidden"
+                        onChange={e => e.target.files && handleAttachFiles(e.target.files)} />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={attaching}
+                        className="inline-flex items-center gap-2 h-9 px-4 border border-dashed border-[rgba(0,229,255,0.25)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.50)] font-mono text-[11px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50">
+                        {attaching ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
+                        {attaching ? "Uploading…" : "Attach Files"}
+                    </button>
+                    {attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            {attachments.map((a, i) => (
+                                <span key={i}
+                                    className="inline-flex items-center gap-1.5 h-7 pl-2.5 pr-1.5 rounded-sm border border-[rgba(0,229,255,0.18)] bg-[#0d1117] font-mono text-[10.5px] text-[#8b9ab0] max-w-[220px]">
+                                    {a.kind === "stl" ? <Box size={11} className="shrink-0 text-[#f59e0b]" /> : <FileCode2 size={11} className="shrink-0 text-[#00e5ff]" />}
+                                    <span className="truncate">{a.name}</span>
+                                    <button type="button" onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
+                                        className="grid place-items-center w-4 h-4 rounded-sm text-[#4a5568] hover:text-[#ef4444] transition-colors">
+                                        <X size={11} />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div>
-                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5 flex items-center justify-between">
-                    <span><span className="text-[#00e5ff]/70">$</span> YouTube Video URL</span>
-                    <span className="text-[#4a5568]">OPTIONAL</span>
-                </label>
+            <div className="relative group pt-1">
                 <input value={videoUrls} onChange={e => setVideoUrls(e.target.value)}
-                    placeholder="https://youtube.com/watch?v=…" className={inputCls} />
+                    placeholder=" " className={floatingInputCls} />
+                <label className={floatingLabelCls}>YouTube Video URL <span className="opacity-50 text-[10px] ml-1">(Optional)</span></label>
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex items-center gap-3 pt-4">
                 <button type="submit" disabled={!canSubmit || submitting}
-                    className="inline-flex items-center gap-2 h-8 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    {submitting ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                    className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-sm font-mono text-[12px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold min-w-[140px]">
+                    {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                     {submitLabel}
                 </button>
                 <button type="button" onClick={onCancel}
-                    className="h-8 px-4 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b9ab0] hover:text-[#f0f4ff] transition-colors">
+                    className="h-10 px-6 rounded-sm font-mono text-[12px] uppercase tracking-[0.14em] text-[#8b9ab0] hover:text-white transition-colors">
                     Cancel
                 </button>
             </div>
@@ -683,9 +684,9 @@ function AddUpdateForm({ onSubmit, posting }: {
             {!open ? (
                 <button
                     onClick={() => setOpen(true)}
-                    className="inline-flex items-center gap-2 h-8 px-3 border border-dashed border-[rgba(0,229,255,0.18)] rounded-sm text-[#8b9ab0] hover:text-[#00e5ff] hover:border-[rgba(0,229,255,0.45)] font-mono text-[11px] uppercase tracking-[0.14em] transition-colors"
+                    className="vista-button"
                 >
-                    <Plus size={13} /> Log Update
+                    <span><Plus size={13} /> Log Update</span>
                 </button>
             ) : (
                 <LogForm
@@ -767,8 +768,7 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
                     <div className="aspect-video w-full overflow-hidden">
                         <img src={url} alt="Preview" className="w-full h-full object-contain" />
                     </div>
-                    <div className="px-5 py-3 border-t border-[rgba(0,229,255,0.12)] flex items-center justify-between">
-                        <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-[#8b9ab0] truncate max-w-[70%]">{url}</span>
+                    <div className="px-5 py-3 border-t border-[rgba(0,229,255,0.12)] flex items-center justify-end">
                         <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568]">ESC to close</span>
                     </div>
                 </div>
@@ -876,16 +876,16 @@ export default function ProjectDetailClient({
         return [{ id: `owner-${project.id}`, role: "lead", joined_at: project.created_at, user: creator }, ...members];
     }, [members, project]);
 
-    const isLead   = isOwner || members.some(m => m.user.id === user?.id && m.role === "lead");
+    const isLead = isOwner || members.some(m => m.user.id === user?.id && m.role === "lead");
     const isMember = isOwner || members.some(m => m.user.id === user?.id);
     const canManage = isLead || isFaculty;
 
     // Invite
-    const [inviteEmail,   setInviteEmail]   = useState("");
-    const [inviteMsg,     setInviteMsg]     = useState<{ type: "ok" | "err"; text: string } | null>(null);
-    const [inviting,      setInviting]      = useState(false);
-    const [removingId,    setRemovingId]    = useState<string | null>(null);
-    const [memberError,   setMemberError]   = useState<string | null>(null);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviteMsg, setInviteMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+    const [inviting, setInviting] = useState(false);
+    const [removingId, setRemovingId] = useState<string | null>(null);
+    const [memberError, setMemberError] = useState<string | null>(null);
 
     const handleInvite = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -931,18 +931,18 @@ export default function ProjectDetailClient({
 
     // Post / edit / delete update
     const [postingUpdate, setPostingUpdate] = useState(false);
-    const [lightboxUrl,   setLightboxUrl]   = useState<string | null>(null);
-    const [codeView,      setCodeView]      = useState<Attachment | null>(null);
-    const [editingId,     setEditingId]     = useState<string | null>(null);
-    const [savingEdit,    setSavingEdit]    = useState(false);
-    const [deletingId,    setDeletingId]    = useState<string | null>(null);
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+    const [codeView, setCodeView] = useState<Attachment | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [savingEdit, setSavingEdit] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const handlePostUpdate = async (data: LogFormData) => {
         if (!data.title.trim() || !user) return;
         setPostingUpdate(true);
         const sourceUrls = data.sourceUrls.split("\n").map(v => v.trim()).filter(Boolean);
-        const imageUrls  = data.imageUrls.map(v => v.trim()).filter(Boolean);
-        const videoUrls  = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
+        const imageUrls = data.imageUrls.map(v => v.trim()).filter(Boolean);
+        const videoUrls = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
         const attachments = data.attachments;
 
         const createdAtIso = fromLocalInput(data.createdAt);
@@ -980,8 +980,8 @@ export default function ProjectDetailClient({
         if (!editingId) return;
         setSavingEdit(true);
         const sourceUrls = data.sourceUrls.split("\n").map(v => v.trim()).filter(Boolean);
-        const imageUrls  = data.imageUrls.map(v => v.trim()).filter(Boolean);
-        const videoUrls  = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
+        const imageUrls = data.imageUrls.map(v => v.trim()).filter(Boolean);
+        const videoUrls = data.videoUrls.split("\n").map(v => v.trim()).filter(Boolean);
         const attachments = data.attachments;
 
         const createdAtIso = fromLocalInput(data.createdAt);
@@ -1036,7 +1036,7 @@ export default function ProjectDetailClient({
     });
 
     const hue = useMemo(() => idHue(project.id), [project.id]);
-    const st  = STATUS_CFG[project.status] ?? STATUS_CFG.planning;
+    const st = STATUS_CFG[project.status] ?? STATUS_CFG.planning;
 
     return (
         <div className="min-h-screen bg-[#07090f] px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
@@ -1197,22 +1197,43 @@ export default function ProjectDetailClient({
                                         <span className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568]">// INVITE</span>
                                         <span className="flex-1 h-px bg-[rgba(0,229,255,0.12)]" />
                                     </div>
-                                    <form onSubmit={handleInvite} className="space-y-2">
-                                        <div className="relative">
-                                            <span className="absolute inset-y-0 left-0 grid place-items-center w-10 text-[#8b9ab0] pointer-events-none border-r border-[rgba(0,229,255,0.12)]">
-                                                <Mail size={14} />
-                                            </span>
+                                    <form onSubmit={handleInvite} className="space-y-4 mt-2">
+                                        <div className="input-container" style={{ marginTop: 0 }}>
                                             <input
                                                 type="email" value={inviteEmail}
                                                 onChange={e => { setInviteEmail(e.target.value); setInviteMsg(null); }}
-                                                placeholder="team@nst.edu"
-                                                className={`${inputCls} pl-12`}
+                                                placeholder=" "
+                                                className="holo-input"
                                             />
+                                            <span className="absolute inset-y-0 left-0 grid place-items-center w-10 text-[#00e5ff] pointer-events-none z-20">
+                                                <Mail size={14} />
+                                            </span>
+                                            <label className="input-label" data-text="team@nst.edu">team@nst.edu</label>
+                                            <div className="input-border"></div>
+                                            <div className="input-corners">
+                                                <div className="holo-input-corner corner-tl"></div>
+                                                <div className="holo-input-corner corner-tr"></div>
+                                                <div className="holo-input-corner corner-bl"></div>
+                                                <div className="holo-input-corner corner-br"></div>
+                                            </div>
+                                            <div className="input-glow"></div>
+                                            <div className="input-scanline"></div>
+                                            <div className="input-data-stream">
+                                                <div className="stream-bar" style={{ "--i": 1 } as React.CSSProperties}></div>
+                                                <div className="stream-bar" style={{ "--i": 2 } as React.CSSProperties}></div>
+                                                <div className="stream-bar" style={{ "--i": 3 } as React.CSSProperties}></div>
+                                            </div>
                                         </div>
                                         <button type="submit" disabled={inviting || !inviteEmail.trim()}
-                                            className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00c7e0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                                            {inviting ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
-                                            Invite Member
+                                            className="btn-3d-cyan w-full text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                            style={{ minWidth: 0, paddingBottom: 0, border: 'none' }}
+                                        >
+                                            <div className="btn-top flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] font-bold w-full">
+                                                {inviting ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
+                                                <span>Invite Member</span>
+                                            </div>
+                                            <div className="btn-bottom" />
+                                            <div className="btn-base" />
                                         </button>
                                         {inviteMsg && (
                                             <div className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em]"
@@ -1229,13 +1250,12 @@ export default function ProjectDetailClient({
 
                             {/* Meta */}
                             <div className="border-t border-[rgba(0,229,255,0.12)] pt-5">
-                                <div className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568] mb-3">// META</div>
                                 <div className="space-y-2.5">
                                     {([
-                                        ["Created",  fmtDate(project.created_at)],
-                                        ["Updates",  String(updates.length)],
-                                        ["Members",  String(displayMembers.length)],
-                                        ["Status",   st.label],
+                                        ["Created", fmtDate(project.created_at)],
+                                        ["Updates", String(updates.length)],
+                                        ["Members", String(displayMembers.length)],
+                                        ["Status", st.label],
                                     ] as [string, string][]).map(([k, v]) => (
                                         <div key={k} className="flex items-center justify-between gap-4 border-b border-[rgba(0,229,255,0.08)] pb-2 last:border-0">
                                             <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[#8b9ab0]">{k}</span>

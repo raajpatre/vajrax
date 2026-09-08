@@ -25,11 +25,12 @@ export async function grantSafetyCertification(params: {
 
     const { data: me, error: meError } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, roles")
         .eq("id", user.id)
         .single();
 
-    if (meError || !me || !GRANTER_ROLES.has(me.role)) {
+    const isGranter = me && (me.roles && me.roles.length > 0 ? me.roles : [me.role]).some((r) => GRANTER_ROLES.has(r as Database["public"]["Enums"]["user_role"]));
+    if (meError || !isGranter) {
         return { ok: false, error: "Only faculty/leadership can grant certifications" };
     }
 
@@ -69,11 +70,12 @@ export async function revokeSafetyCertification(params: {
 
     const { data: me, error: meError } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, roles")
         .eq("id", user.id)
         .single();
 
-    if (meError || !me || !GRANTER_ROLES.has(me.role)) {
+    const isGranter = me && (me.roles && me.roles.length > 0 ? me.roles : [me.role]).some((r) => GRANTER_ROLES.has(r as Database["public"]["Enums"]["user_role"]));
+    if (meError || !isGranter) {
         return { ok: false, error: "Only faculty/leadership can revoke certifications" };
     }
 

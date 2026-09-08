@@ -439,13 +439,15 @@ export default function ProjectInvitesPage() {
         >
             {/* Grid bg */}
             <div
-                className="fixed inset-0 pointer-events-none"
+                className="fixed inset-0 pointer-events-none animate-grid-pan"
                 style={{
                     backgroundImage:
                         "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)",
                     backgroundSize: "40px 40px",
                 }}
             />
+            {/* Scanlines */}
+            <div className="fixed inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
             {/* Amber radial decoration */}
             <div
                 className="fixed top-0 right-0 w-96 h-96 pointer-events-none"
@@ -458,18 +460,6 @@ export default function ProjectInvitesPage() {
             <div className="relative max-w-3xl mx-auto px-6 pt-12 pb-20">
                 {/* Page header */}
                 <div className="mb-10">
-                    <div className="flex items-center gap-2 mb-3">
-                        <span
-                            className="h-px w-8"
-                            style={{ background: "rgba(0,229,255,0.6)" }}
-                        />
-                        <span
-                            className="font-mono text-[11px] uppercase tracking-[0.24em]"
-                            style={{ color: "#00e5ff" }}
-                        >
-                            // WORKSPACE / INVITES
-                        </span>
-                    </div>
                     <div className="flex items-end justify-between gap-4 flex-wrap">
                         <div>
                             <h1

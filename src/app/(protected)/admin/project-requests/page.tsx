@@ -327,7 +327,9 @@ export default function AdminProjectRequestsPage() {
     return (
         <div className="min-h-screen relative" style={{ background: "#07090f" }}>
         {/* Grid bg */}
-        <div className="fixed inset-0 pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
+        <div className="fixed inset-0 pointer-events-none animate-grid-pan" style={{ backgroundImage: "linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
+        {/* Scanlines */}
+        <div className="fixed inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
         {/* Radial glow */}
         <div className="fixed top-0 right-0 w-[500px] h-[400px] pointer-events-none" style={{ background: "radial-gradient(ellipse,rgba(0,229,255,0.04) 0%,transparent 70%)" }} />
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ArrowDown } from "lucide-react";
 import type { Sponsor } from "@/actions/sponsors";
 import SponsorshipShowcase from "@/components/home/SponsorshipShowcase";
@@ -129,7 +130,7 @@ export default function HomePageClient({ sponsors, stats }: HomePageClientProps)
             >
                 {/* 40 px grid overlay, masked radially so edges fade out */}
                 <div
-                    className="absolute inset-0 pointer-events-none"
+                    className="absolute inset-0 pointer-events-none animate-grid-pan"
                     style={{
                         backgroundImage:
                             "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
@@ -177,31 +178,26 @@ export default function HomePageClient({ sponsors, stats }: HomePageClientProps)
                 </div>
 
                 {/* Scanlines */}
-                <div className="absolute inset-0 pointer-events-none scanline opacity-50" />
+                <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
 
                 {/* ── Content — vertically centered in full viewport ── */}
                 <div
                     className="relative flex flex-col items-center justify-center px-6 text-center lg:px-10"
                     style={{ minHeight: "100vh", paddingTop: "var(--nav-height)" }}
                 >
-                    {/* h1 — "VajraX" in Inter Black, clamp 64 → 168 px, glowing X */}
+                    {/* h1 — WordMark Image */}
                     <h1
-                        className="mt-7 leading-[0.88] text-[#f0f4ff]"
-                        style={{
-                            fontFamily: "var(--font-sans)",
-                            fontSize: "clamp(64px, 12vw, 168px)",
-                            fontWeight: 900,
-                            letterSpacing: "-0.045em",
-                            ...stagger(80),
-                        }}
+                        className="mt-7 flex justify-center"
+                        style={stagger(80)}
                     >
-                        Vajra
-                        <span
-                            className="text-[#00e5ff]"
-                            style={{ textShadow: "0 0 28px rgba(0,229,255,0.55)" }}
-                        >
-                            X
-                        </span>
+                        <Image 
+                            src="/White-WordMark-vajrax.png" 
+                            alt="VajraX"
+                            width={720}
+                            height={160}
+                            priority
+                            className="w-[85vw] max-w-[720px] h-auto object-contain drop-shadow-[0_0_24px_rgba(255,255,255,0.15)]"
+                        />
                     </h1>
 
                     {/* h2 — tagline with cyan period separators */}
@@ -279,13 +275,14 @@ export default function HomePageClient({ sponsors, stats }: HomePageClientProps)
                     >
                         <Link
                             href="/signup"
-                            className="btn btn-primary btn-lg group"
+                            className="hero-animated-btn"
                         >
-                            Join VajraX
-                            <ArrowRight
-                                size={15}
-                                className="transition-transform group-hover:translate-x-1"
-                            />
+                            <span>Join VajraX</span>
+                            <svg viewBox="0 6 32 20" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="0,6 8,16 0,26 4,26 12,16 4,6" />
+                                <polygon points="10,6 18,16 10,26 14,26 22,16 14,6" />
+                                <polygon points="20,6 28,16 20,26 24,26 32,16 24,6" />
+                            </svg>
                         </Link>
                     </div>
 

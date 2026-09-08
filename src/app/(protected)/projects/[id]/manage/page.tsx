@@ -193,26 +193,35 @@ function SectionCard({
 }) {
     return (
         <div
-            className="rounded-md overflow-hidden"
-            style={{ background: "#0d1117", border: "1px solid rgba(0,229,255,0.14)" }}
+            className="rounded-md overflow-hidden relative backdrop-blur-md corner-ticks mb-8"
+            style={{ 
+                background: "rgba(17,24,32,0.9)", 
+                border: "1px solid rgba(0,229,255,0.28)",
+                boxShadow: "0 0 0 1px rgba(0,229,255,0.06), 0 24px 60px -24px rgba(0,0,0,0.8), 0 0 40px -16px rgba(0,229,255,0.35)"
+            }}
         >
+            <span className="ct-tr" /><span className="ct-bl" />
             <div
-                className="h-11 px-4 flex items-center gap-3"
-                style={{ borderBottom: "1px solid rgba(0,229,255,0.10)" }}
+                className="absolute inset-x-0 top-0 h-px pointer-events-none rounded-t-md"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(0,229,255,0.6), transparent)" }}
+            />
+            <div
+                className="h-14 px-6 flex items-center gap-3 relative z-10"
+                style={{ borderBottom: "1px solid rgba(0,229,255,0.12)" }}
             >
                 <div
-                    className="h-3 w-0.5 rounded-full shrink-0"
+                    className="h-3.5 w-0.5 rounded-full shrink-0"
                     style={{ background: "#00e5ff", boxShadow: "0 0 6px rgba(0,229,255,0.8)" }}
                 />
                 <span
-                    className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none"
-                    style={{ color: "#f0f4ff" }}
+                    className="font-mono text-[12px] uppercase tracking-[0.20em] leading-none font-bold"
+                    style={{ color: "#00e5ff" }}
                 >
                     {title}
                 </span>
                 {badge !== undefined && (
                     <span
-                        className="font-mono text-[9.5px] px-1.5 py-0.5 rounded-sm leading-none"
+                        className="font-mono text-[10px] px-1.5 py-0.5 rounded-sm leading-none"
                         style={{
                             background: "rgba(0,229,255,0.10)",
                             border: "1px solid rgba(0,229,255,0.22)",
@@ -225,7 +234,7 @@ function SectionCard({
                 <div className="flex-1" />
                 {action}
             </div>
-            <div className="p-5">{children}</div>
+            <div className="p-6 relative z-10">{children}</div>
         </div>
     );
 }
@@ -316,6 +325,9 @@ function StackBuilder({
 const fieldBorder = { border: "1px solid rgba(0,229,255,0.14)" } as React.CSSProperties;
 const inputCls =
     "w-full h-9 px-3 rounded-sm text-[13px] bg-[#07090f] text-[#f0f4ff] placeholder:text-[#4a5568] focus-cyan transition-colors";
+const floatingInputCls = "peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors";
+const floatingLabelCls = "absolute left-3 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-1 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-x-1 peer-[:not(:placeholder-shown)]:bg-[#111820] peer-[:not(:placeholder-shown)]:px-2 peer-[:not(:placeholder-shown)]:text-[#00e5ff]";
+const floatingLabelTopCls = "absolute left-3 top-0 -translate-y-1/2 scale-[0.85] -translate-x-1 bg-[#111820] px-2 text-[#00e5ff] text-[14px] pointer-events-none";
 
 // ─────────────────────────────────────────────────────────────
 // Page
@@ -657,7 +669,7 @@ export default function ProjectManagePage() {
 
     return (
         <div className="min-h-screen" style={{ background: "#07090f" }}>
-            <div className="max-w-3xl mx-auto px-8 pt-10 pb-20 space-y-6">
+            <div className="max-w-3xl mx-auto px-8 pt-10 pb-20 space-y-8">
                 {/* Back link */}
                 <Link
                     href={`/projects/${id}`}
@@ -667,31 +679,6 @@ export default function ProjectManagePage() {
                     <ArrowLeft size={13} />
                     Back to project
                 </Link>
-
-                {/* Page header */}
-                <div>
-                    <span
-                        className="font-mono text-[10.5px] uppercase tracking-[0.22em] leading-none"
-                        style={{ color: "#00e5ff" }}
-                    >
-                        // MANAGE PROJECT
-                    </span>
-                    <h1
-                        className="font-sans font-black text-[28px] leading-none tracking-tight mt-1.5"
-                        style={{ color: "#f0f4ff" }}
-                    >
-                        Manage Project
-                    </h1>
-                    {project?.title && (
-                        <p
-                            className="font-mono text-[11.5px] tracking-[0.06em] mt-1"
-                            style={{ color: "#8b9ab0" }}
-                        >
-                            {project.title}
-                        </p>
-                    )}
-                    <div className="h-px mt-4" style={{ background: "rgba(0,229,255,0.10)" }} />
-                </div>
 
                 {/* ── Project Settings ─────────────────────────── */}
                 <SectionCard
@@ -708,49 +695,40 @@ export default function ProjectManagePage() {
                         ) : undefined
                     }
                 >
-                    <form onSubmit={handleSaveSettings} className="space-y-4">
-                        <div className="space-y-1.5">
-                            <label
-                                className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                                style={{ color: "#8b9ab0" }}
-                            >
-                                Title
-                            </label>
+                    <form onSubmit={handleSaveSettings} className="space-y-6">
+                        <div className="relative group pt-2">
                             <input
                                 type="text"
                                 value={settingsTitle}
                                 onChange={(e) => setSettingsTitle(e.target.value)}
-                                placeholder="Project title"
-                                className={inputCls}
-                                style={fieldBorder}
+                                placeholder=" "
+                                className={floatingInputCls}
+                                required
                             />
+                            <label className={floatingLabelCls}>
+                                Title
+                            </label>
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label
-                                className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                                style={{ color: "#8b9ab0" }}
-                            >
-                                Description
-                            </label>
+                        <div className="relative group">
                             <textarea
                                 value={settingsDesc}
                                 onChange={(e) => setSettingsDesc(e.target.value)}
-                                placeholder="What is this project about?"
+                                placeholder=" "
                                 rows={4}
-                                className="w-full px-3 py-2 rounded-sm text-[13px] bg-[#07090f] text-[#f0f4ff] placeholder:text-[#4a5568] focus-cyan transition-colors resize-none"
-                                style={fieldBorder}
+                                className="peer w-full bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] p-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors resize-y"
+                                required
                             />
+                            <label className="absolute left-3 top-4 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:scale-[0.85] peer-focus:-translate-x-1 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-x-1 peer-[:not(:placeholder-shown)]:bg-[#111820] peer-[:not(:placeholder-shown)]:px-2 peer-[:not(:placeholder-shown)]:text-[#00e5ff]">
+                                Description
+                            </label>
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label
-                                className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                                style={{ color: "#8b9ab0" }}
-                            >
+                        <div>
+                            <label className={floatingLabelTopCls} style={{ position: 'relative', top: 'auto', left: '-4px', transform: 'none', background: 'transparent', display: 'inline-block', marginBottom: '8px' }}>
                                 Status
                             </label>
-                            <div className="relative">
+                            <div className="relative mt-1">
                                 <span
                                     className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none"
                                     style={{
@@ -778,11 +756,8 @@ export default function ProjectManagePage() {
                             </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label
-                                className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                                style={{ color: "#8b9ab0" }}
-                            >
+                        <div>
+                            <label className={floatingLabelTopCls} style={{ position: 'relative', top: 'auto', left: '-4px', transform: 'none', background: 'transparent', display: 'inline-block', marginBottom: '8px' }}>
                                 Cover Image
                             </label>
                             <input
@@ -857,11 +832,8 @@ export default function ProjectManagePage() {
                             )}
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label
-                                className="font-mono text-[10px] uppercase tracking-[0.18em]"
-                                style={{ color: "#8b9ab0" }}
-                            >
+                        <div>
+                            <label className={floatingLabelTopCls} style={{ position: 'relative', top: 'auto', left: '-4px', transform: 'none', background: 'transparent', display: 'inline-block', marginBottom: '8px' }}>
                                 Tech Stack
                             </label>
                             <StackBuilder chips={settingsTech} onChange={setSettingsTech} />

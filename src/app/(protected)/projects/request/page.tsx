@@ -132,6 +132,22 @@ export default function ProjectRequestPage() {
     const [success, setSuccess] = useState(false);
     const [submittedTitle, setSubmittedTitle] = useState("");
 
+    const [t, setT] = useState(0);
+
+    useEffect(() => {
+        let raf: number;
+        const start = performance.now();
+        const tick = () => {
+            setT((performance.now() - start) / 1000);
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    const drift = (k: number): string =>
+        `translate(${Math.sin(t * 0.08 + k) * 6}px, ${Math.cos(t * 0.07 + k * 1.3) * 4}px)`;
+
     const addTag = () => {
         const t = tagInput.trim();
         if (!t) return;
@@ -179,15 +195,63 @@ export default function ProjectRequestPage() {
     if (userLoading) return <VajraLoader fullPage />;
 
     return (
-        <div className="relative max-w-2xl mx-auto px-6 pt-12 pb-20">
-            {/* Section header */}
+        <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+            {/* Grid Background */}
+            <div
+                className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                style={{
+                    backgroundImage:
+                        "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                        "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                    backgroundSize: "40px 40px",
+                    maskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    WebkitMaskImage:
+                        "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                }}
+            />
+            
+            {/* Radial cyan glows — bottom-left large, top-right smaller */}
+            <div
+                className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)",
+                }}
+            />
+            <div
+                className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0"
+                style={{
+                    background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)",
+                }}
+            />
+
+            {/* Scanlines */}
+            <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+            
+            {/* Circuit-trace SVG decorations — 3 shapes, slow sine/cosine drift */}
+            <div
+                className="absolute top-[6%] right-[-4%] w-[42vw] h-[40vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(0) }}
+            >
+                <CircuitTrace which={0} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute bottom-[12%] left-[-4%] w-[36vw] h-[44vh] pointer-events-none z-0"
+                style={{ opacity: 0.06, transform: drift(2) }}
+            >
+                <CircuitTrace which={1} className="w-full h-full" />
+            </div>
+            <div
+                className="absolute top-[44%] right-[10%] w-[26vw] h-[28vh] pointer-events-none z-0"
+                style={{ opacity: 0.05, transform: drift(4) }}
+            >
+                <CircuitTrace which={2} className="w-full h-full" />
+            </div>
+
+            <div className="relative z-10 max-w-2xl mx-auto px-6 pt-12 pb-20">
+                {/* Section header */}
             <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">
-                        // WORKSPACE / PROPOSE
-                    </span>
-                </div>
+
                 <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] leading-none" style={{ fontSize: "clamp(24px, 5vw, 38px)" }}>
                     Propose a Project
                 </h1>
@@ -239,70 +303,59 @@ export default function ProjectRequestPage() {
 
                         <div className="p-6 space-y-5">
                             {/* Title */}
-                            <div>
-                                <label className="block font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0] mb-1.5">
-                                    <span style={{ color: "rgba(0,229,255,0.70)" }}>$</span> Project Title
-                                </label>
+                            <div className="relative group">
                                 <input
                                     type="text"
-                                    placeholder="e.g. Autonomous LiDAR Field Mapping"
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
-                                    className="w-full h-10 text-[13.5px] text-[#f0f4ff] placeholder:text-[#4a5568] rounded-md px-3 focus-cyan transition-shadow outline-none"
-                                    style={{ background: "#0d1117", border: "1px solid rgba(0,229,255,0.14)" }}
+                                    placeholder=" "
+                                    className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                                 />
+                                <label className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-1 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-x-1 peer-[:not(:placeholder-shown)]:bg-[#111820] peer-[:not(:placeholder-shown)]:px-2 peer-[:not(:placeholder-shown)]:text-[#00e5ff]">
+                                    Project Title
+                                </label>
                             </div>
 
                             {/* Description */}
-                            <div>
-                                <div className="flex items-end justify-between mb-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0]">
-                                        <span style={{ color: "rgba(0,229,255,0.70)" }}>$</span> Description
-                                    </label>
-                                    <span className="font-mono text-[9.5px] text-[#4a5568] tracking-[0.06em]">
-                                        REQUIRED · 30+ CHARS
-                                    </span>
-                                </div>
+                            <div className="relative group">
                                 <textarea
                                     rows={6}
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
-                                    placeholder="Describe what you're building, why, and what impact it'll have..."
-                                    className="w-full text-[13.5px] text-[#f0f4ff] placeholder:text-[#4a5568] rounded-md px-3 py-2.5 resize-none leading-relaxed focus-cyan transition-shadow outline-none"
-                                    style={{ background: "#0d1117", border: "1px solid rgba(0,229,255,0.14)" }}
+                                    placeholder=" "
+                                    className="peer w-full text-[14px] text-[#f0f4ff] bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md px-3 py-3 resize-none leading-relaxed focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
                                 />
+                                <label className="absolute left-3 top-3 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-1 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-x-1 peer-[:not(:placeholder-shown)]:bg-[#111820] peer-[:not(:placeholder-shown)]:px-2 peer-[:not(:placeholder-shown)]:text-[#00e5ff]">
+                                    Description
+                                </label>
                             </div>
 
                             {/* Tech stack */}
                             <div>
-                                <div className="flex items-end justify-between mb-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b9ab0]">
-                                        <span style={{ color: "rgba(0,229,255,0.70)" }}>$</span> Tech Stack
-                                    </label>
-                                    <span className="font-mono text-[9.5px] text-[#4a5568] tracking-[0.06em]">
-                                        Add technologies used in this project
-                                    </span>
-                                </div>
                                 <div className="flex items-center gap-2">
-                                    <input
-                                        ref={tagRef}
-                                        type="text"
-                                        value={tagInput}
-                                        onChange={e => setTagInput(e.target.value)}
-                                        onKeyDown={e => {
-                                            if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                addTag();
-                                            }
-                                        }}
-                                        placeholder="e.g. ROS2, Python, ESP32…"
-                                        className="flex-1 h-9 text-[13px] text-[#f0f4ff] placeholder:text-[#4a5568] rounded-md px-3 focus-cyan transition-shadow outline-none"
-                                        style={{ background: "#0d1117", border: "1px solid rgba(0,229,255,0.14)" }}
-                                    />
+                                    <div className="relative group flex-1">
+                                        <input
+                                            ref={tagRef}
+                                            type="text"
+                                            value={tagInput}
+                                            onChange={e => setTagInput(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    addTag();
+                                                }
+                                            }}
+                                            placeholder=" "
+                                            className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
+                                        />
+                                        <label className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-1 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-x-1 peer-[:not(:placeholder-shown)]:bg-[#111820] peer-[:not(:placeholder-shown)]:px-2 peer-[:not(:placeholder-shown)]:text-[#00e5ff]">
+                                            Tech Stack
+                                        </label>
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={addTag}
-                                        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border font-mono text-[12px] font-medium transition-all hover:opacity-80"
+                                        className="inline-flex items-center gap-1.5 h-11 px-4 rounded-sm border font-mono text-[12px] font-medium transition-all hover:opacity-80"
                                         style={{
                                             color: "#00e5ff",
                                             borderColor: "rgba(0,229,255,0.35)",
@@ -366,11 +419,7 @@ export default function ProjectRequestPage() {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={loading}
-                                className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-sm font-mono text-[12px] uppercase tracking-[0.14em] font-medium transition-all disabled:opacity-50"
-                                style={{
-                                    background: "#00e5ff",
-                                    color: "#07090f",
-                                }}
+                                className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md font-mono text-[12px] uppercase tracking-[0.14em] font-semibold disabled:opacity-50 transition-all duration-200 border border-[rgba(0,229,255,0.2)] bg-[rgba(0,229,255,0.08)] text-[#00e5ff] [text-shadow:0_0_20px_rgba(0,229,255,0.4)] hover:border-[rgba(0,229,255,0.6)] hover:bg-[linear-gradient(to_bottom,rgba(0,229,255,0.15),rgba(0,229,255,0.25),rgba(0,229,255,0.4))] hover:shadow-[0_6px_rgba(0,229,255,0.6)] hover:-translate-y-[6px] active:translate-y-[2px] active:shadow-none"
                             >
                                 {loading ? (
                                     <>
@@ -398,6 +447,73 @@ export default function ProjectRequestPage() {
                     </div>
                 </>
             )}
+            </div>
         </div>
     );
+}
+
+// ─── CircuitTrace ─────────────────────────────────────────────────────────────
+type CircuitTraceProps = {
+  which?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
+  const paths = [
+    {
+      viewBox: "0 0 600 400",
+      d: [
+        "M 0 200 L 120 200 L 140 220 L 280 220 L 300 240 L 600 240",
+        "M 80 200 L 80 60  M 240 220 L 240 100",
+        "M 380 240 L 380 360",
+      ],
+      nodes: [
+        [120, 200], [280, 220], [80, 60], [240, 100], [380, 360],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 500 400",
+      d: [
+        "M 500 80 L 380 80 L 360 100 L 220 100 L 200 120 L 80 120 L 0 120",
+        "M 360 100 L 360 240",
+        "M 200 120 L 200 300 L 0 300",
+        "M 100 120 L 100 60",
+      ],
+      nodes: [
+        [380, 80], [220, 100], [80, 120], [360, 240], [200, 300], [100, 60],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 400 300",
+      d: [
+        "M 0 50 L 80 50 L 90 60 L 200 60 L 210 70 L 320 70 L 330 80 L 400 80",
+        "M 0 200 L 120 200 L 130 210 L 280 210 L 290 220 L 400 220",
+        "M 200 60 L 200 200 M 290 220 L 290 80",
+      ],
+      nodes: [
+        [80, 50], [200, 60], [320, 70], [120, 200], [280, 210],
+      ] as [number, number][],
+    },
+  ];
+
+  const p = paths[which % paths.length];
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox={p.viewBox}
+      preserveAspectRatio="none"
+      fill="none"
+      stroke="#00e5ff"
+      strokeWidth="1.2"
+    >
+      {p.d.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+      {p.nodes.map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="2.5" fill="#00e5ff" />
+      ))}
+    </svg>
+  );
 }

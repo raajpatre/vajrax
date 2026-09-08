@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState, useId } from "react";
+import { useMemo, useState, useId, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Code2, Wrench, Users, Trophy, CalendarRange,
   Calendar, Clock, MapPin, ExternalLink, Lock,
-  Pencil, Trash2, Plus, ArrowRight, ChevronRight, RefreshCcw,
+  Pencil, Trash2, Plus, ArrowRight, ChevronRight,
+  UserCheck, FileText,
 } from "lucide-react";
 import { Tables } from "@/types/database";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import EventModal from "./EventModal";
 
 type Event = Tables<"events">;
@@ -131,17 +133,27 @@ function EventFlipCard({
   const endFmt   = fmtDate(event.ends_at);
   const kicker   = `// ${t.label}`;
 
-  const regState: "open" | "soon" | "exclusive" =
-    event.is_exclusive && !isAuthenticated ? "exclusive"
-    : event.registration_url               ? "open"
-    :                                        "soon";
+  const mode = event.registration_mode ?? "none";
+  const isOpen = event.registration_open && mode !== "none" && mode !== "external";
+  const hasExternalUrl = mode === "external" && event.external_registration_url;
+  const isNoneMode = mode === "none";
+  const isExclusive = event.is_exclusive && !isAuthenticated;
+
+  const isPast = new Date(event.starts_at) < new Date();
+
+  const regState: "rsvp" | "external" | "open_to_all" | "exclusive" | "closed" =
+    isPast           ? "closed"
+    : isExclusive    ? "exclusive"
+    : isOpen         ? "rsvp"
+    : hasExternalUrl ? "external"
+    : "open_to_all";
 
   return (
     <div
       className="relative"
       style={{ perspective: "1000px", maxWidth: 290 }}
-      onMouseEnter={() => setFlipped(true)}
-      onMouseLeave={() => setFlipped(false)}
+      onMouseEnter={isPast ? undefined : () => setFlipped(true)}
+      onMouseLeave={isPast ? undefined : () => setFlipped(false)}
     >
       <div
         onClick={() => setFlipped((f) => !f)}
@@ -185,26 +197,21 @@ function EventFlipCard({
             {t.label}
           </span>
 
+          {/* RSVP badge on front if registration is open */}
+          {isOpen && !isPast && (
+            <span
+              className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em]"
+              style={{ color: "#07090f", background: "#00e5ff", backdropFilter: "blur(4px)" }}
+            >
+              <UserCheck size={10} />RSVP Open
+            </span>
+          )}
+
           {/* corner ticks */}
           <span className="absolute top-0 left-0    w-2.5 h-2.5 border-t border-l z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
           <span className="absolute top-0 right-0   w-2.5 h-2.5 border-t border-r z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
           <span className="absolute bottom-0 left-0  w-2.5 h-2.5 border-b border-l z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
           <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
-
-          {/* gradient + title overlay */}
-          <div
-            className="absolute inset-x-0 bottom-0 px-4 pt-12 pb-4 z-10"
-            style={{ background: "linear-gradient(to top, rgba(7,9,15,0.95) 0%, rgba(7,9,15,0.7) 50%, rgba(7,9,15,0) 100%)" }}
-          >
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] leading-none mb-1.5">{startFmt}</div>
-            <div className="font-sans font-bold text-[#f0f4ff] text-[16px] tracking-tight leading-snug line-clamp-2">{event.title}</div>
-            <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[#00e5ff]">
-              <span>HOVER OR TAP</span>
-              <RefreshCcw size={10} />
-              <span className="flex-1" />
-              <span className="text-[#4a5568]">FRONT 01/02</span>
-            </div>
-          </div>
         </div>
 
         {/* BACK */}
@@ -229,11 +236,22 @@ function EventFlipCard({
 
           {canEdit && (
             <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+              <Link
+                href={`/admin/events/${event.id}/registrations`}
+                onClick={(ev) => ev.stopPropagation()}
+                aria-label="view registrations"
+                className="grid place-items-center w-7 h-7 rounded-sm border bg-[#07090f]/80 text-[#8b9ab0] hover:bg-[rgba(0,229,255,0.15)] hover:text-[#00e5ff] transition-colors"
+                style={{ borderColor: "rgba(0,229,255,0.30)" }}
+                title="View Registrations"
+              >
+                <Users size={12} />
+              </Link>
               <button
                 onClick={(ev) => { ev.stopPropagation(); onEdit(event); }}
                 aria-label="edit"
                 className="grid place-items-center w-7 h-7 rounded-sm border bg-[#07090f]/80 text-[#00e5ff] hover:bg-[#00e5ff]/15 transition-colors"
                 style={{ borderColor: "rgba(0,229,255,0.55)" }}
+                title="Edit Event"
               >
                 <Pencil size={12} />
               </button>
@@ -290,10 +308,18 @@ function EventFlipCard({
 
             <div className="flex-1" />
 
-            <div className="mt-3" onClick={(ev) => ev.stopPropagation()}>
-              {regState === "open" && (
+            <div className="mt-3 space-y-2" onClick={(ev) => ev.stopPropagation()}>
+              {regState === "rsvp" && (
+                <Link
+                  href={`/events/${event.id}`}
+                  className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
+                >
+                  <UserCheck size={11} /> Register / RSVP
+                </Link>
+              )}
+              {regState === "external" && (
                 <a
-                  href={event.registration_url!}
+                  href={event.external_registration_url!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
@@ -301,9 +327,14 @@ function EventFlipCard({
                   Register <ExternalLink size={11} />
                 </a>
               )}
-              {regState === "soon" && (
-                <div className="h-9 px-3 grid place-items-center rounded-sm border border-[rgba(0,229,255,0.12)] bg-[#07090f]/60 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#8b9ab0]">
-                  Registration coming soon
+              {(regState === "open_to_all" || isNoneMode) && !isPast && (
+                <div className="h-9 px-3 grid place-items-center rounded-sm border border-[rgba(34,197,94,0.3)] bg-[#22c55e]/[0.06] font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#22c55e]">
+                  Open to all
+                </div>
+              )}
+              {regState === "closed" && (
+                <div className="h-9 px-3 grid place-items-center rounded-sm border border-[rgba(239,68,68,0.3)] bg-[#ef4444]/[0.06] font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#ef4444]">
+                  Closed
                 </div>
               )}
               {regState === "exclusive" && (
@@ -319,11 +350,6 @@ function EventFlipCard({
                 </div>
               )}
             </div>
-
-            <div className="mt-3 pt-3 border-t border-[rgba(0,229,255,0.12)] flex items-center justify-between font-mono text-[9.5px] uppercase tracking-[0.18em] text-[#4a5568]">
-              <span>HOVER · TAP TO FLIP</span>
-              <span>BACK 02/02</span>
-            </div>
           </div>
         </div>
       </div>
@@ -335,16 +361,18 @@ function EventFlipCard({
 
 function PastEventRow({ event }: { event: Event }) {
   const t = tc(event.event_type);
+  const hasReport = !!event.report_summary;
   return (
-    <button
+    <Link
+      href={hasReport ? `/events/${event.id}/report` : `/events/${event.id}`}
       className="group w-full flex items-center gap-3 h-14 px-3 rounded-sm border border-[rgba(0,229,255,0.12)] bg-[#0d1117]/60 transition-all"
       style={{ opacity: 0.75 }}
-      onMouseEnter={(ev) => { ev.currentTarget.style.opacity = "1"; ev.currentTarget.style.borderColor = "rgba(0,229,255,0.45)"; }}
-      onMouseLeave={(ev) => { ev.currentTarget.style.opacity = "0.75"; ev.currentTarget.style.borderColor = "rgba(0,229,255,0.12)"; }}
+      onMouseEnter={(ev) => { (ev.currentTarget as HTMLAnchorElement).style.opacity = "1"; (ev.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(0,229,255,0.45)"; }}
+      onMouseLeave={(ev) => { (ev.currentTarget as HTMLAnchorElement).style.opacity = "0.75"; (ev.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(0,229,255,0.12)"; }}
     >
       <span
         className="grid place-items-center w-9 h-9 rounded-sm shrink-0"
-        style={{ color: t.fg, background: t.bg, border: `1px solid ${t.bd}` }}
+        style={{ color: t.fg, background: t.bg, border: `1px solid ${t.bd}`, filter: "saturate(0.6)" }}
       >
         <t.Icon size={14} />
       </span>
@@ -353,8 +381,13 @@ function PastEventRow({ event }: { event: Event }) {
         <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#4a5568] mt-0.5">{t.label}</div>
       </div>
       <div className="font-mono text-[11px] text-[#8b9ab0] tabular-nums tracking-[0.06em] shrink-0">{fmtDate(event.starts_at)}</div>
-      <ChevronRight size={13} className="text-[#4a5568] group-hover:text-[#00e5ff] transition-colors" />
-    </button>
+      {hasReport && (
+        <span className="shrink-0 inline-flex items-center gap-1 h-[18px] px-2 rounded-sm font-mono text-[8.5px] uppercase tracking-[0.12em]" style={{ color: "#00e5ff", background: "rgba(0,229,255,0.08)", border: "1px solid rgba(0,229,255,0.2)" }}>
+          <FileText size={8} />Report
+        </span>
+      )}
+      <ChevronRight size={13} className="text-[#4a5568] group-hover:text-[#00e5ff] transition-colors shrink-0" />
+    </Link>
   );
 }
 
@@ -396,6 +429,72 @@ function EventsEmpty({ canEdit, onAdd }: { canEdit: boolean; onAdd: () => void }
   );
 }
 
+// ─── CircuitTrace ─────────────────────────────────────────────────────────────
+type CircuitTraceProps = {
+  which?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
+  const paths = [
+    {
+      viewBox: "0 0 600 400",
+      d: [
+        "M 0 200 L 120 200 L 140 220 L 280 220 L 300 240 L 600 240",
+        "M 80 200 L 80 60  M 240 220 L 240 100",
+        "M 380 240 L 380 360",
+      ],
+      nodes: [
+        [120, 200], [280, 220], [80, 60], [240, 100], [380, 360],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 500 400",
+      d: [
+        "M 500 80 L 380 80 L 360 100 L 220 100 L 200 120 L 80 120 L 0 120",
+        "M 360 100 L 360 240",
+        "M 200 120 L 200 300 L 0 300",
+        "M 100 120 L 100 60",
+      ],
+      nodes: [
+        [380, 80], [220, 100], [80, 120], [360, 240], [200, 300], [100, 60],
+      ] as [number, number][],
+    },
+    {
+      viewBox: "0 0 400 300",
+      d: [
+        "M 0 50 L 80 50 L 90 60 L 200 60 L 210 70 L 320 70 L 330 80 L 400 80",
+        "M 0 200 L 120 200 L 130 210 L 280 210 L 290 220 L 400 220",
+        "M 200 60 L 200 200 M 290 220 L 290 80",
+      ],
+      nodes: [
+        [80, 50], [200, 60], [320, 70], [120, 200], [280, 210],
+      ] as [number, number][],
+    },
+  ];
+
+  const p = paths[which % paths.length];
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox={p.viewBox}
+      preserveAspectRatio="none"
+      fill="none"
+      stroke="#00e5ff"
+      strokeWidth="1.2"
+    >
+      {p.d.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+      {p.nodes.map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="2.5" fill="#00e5ff" />
+      ))}
+    </svg>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function EventsClient({ events }: { events: Event[] }) {
@@ -406,6 +505,21 @@ export default function EventsClient({ events }: { events: Event[] }) {
   const [isModalOpen,   setIsModalOpen]   = useState(false);
   const [editingEvent,  setEditingEvent]  = useState<Event | null>(null);
   const [deletingId,    setDeletingId]    = useState<string | null>(null);
+  const [t, setT] = useState(0);
+
+  useEffect(() => {
+    let raf: number;
+    const start = performance.now();
+    const tick = () => {
+        setT((performance.now() - start) / 1000);
+        raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const drift = (k: number): string =>
+      `translate(${Math.sin(t * 0.08 + k) * 6}px, ${Math.cos(t * 0.07 + k * 1.3) * 4}px)`;
 
   const now      = new Date();
   const upcoming = events.filter((e) => new Date(e.starts_at) >= now);
@@ -437,18 +551,66 @@ export default function EventsClient({ events }: { events: Event[] }) {
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-24 pt-[calc(var(--nav-height)+2.5rem)] bg-[#07090f]">
+      {/* 40 px grid overlay, masked radially so edges fade out */}
+      <div
+        className="absolute inset-0 pointer-events-none animate-grid-pan"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+            "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage:
+            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+        }}
+      />
+      
+      {/* Radial cyan glows — bottom-left large, top-right smaller */}
+      <div
+        className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0"
+        style={{
+          background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)",
+        }}
+      />
+      <div
+        className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0"
+        style={{
+          background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Scanlines */}
+      <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+      
+      {/* Circuit-trace SVG decorations — 3 shapes, slow sine/cosine drift */}
+      <div
+        className="absolute top-[6%] right-[-4%] w-[42vw] h-[40vh] pointer-events-none z-0"
+        style={{ opacity: 0.06, transform: drift(0) }}
+      >
+        <CircuitTrace which={0} className="w-full h-full" />
+      </div>
+      <div
+        className="absolute bottom-[12%] left-[-4%] w-[36vw] h-[44vh] pointer-events-none z-0"
+        style={{ opacity: 0.06, transform: drift(2) }}
+      >
+        <CircuitTrace which={1} className="w-full h-full" />
+      </div>
+      <div
+        className="absolute top-[44%] right-[10%] w-[26vw] h-[28vh] pointer-events-none z-0"
+        style={{ opacity: 0.05, transform: drift(4) }}
+      >
+        <CircuitTrace which={2} className="w-full h-full" />
+      </div>
+
       <div className="relative z-10 max-w-[1480px] mx-auto w-full px-6 lg:px-12">
 
         {/* Header */}
         <div className="flex items-end justify-between gap-6 mb-10 flex-wrap">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="h-px w-8 bg-[#00e5ff]/60" />
-              <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">// VAJRAX / CALENDAR</span>
-            </div>
             <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[44px] leading-none">Events</h1>
             <p className="text-[#8b9ab0] text-[14px] mt-3 max-w-[68ch] leading-relaxed">
-              Workshops, scrimmages, hackathons, meetups. Hover any card to flip and see the details. Club-exclusive events require sign-in.
+              Workshops, scrimmages, hackathons, meetups. Hover any card to flip and see the details.
             </p>
           </div>
           {canEdit && (
@@ -470,9 +632,6 @@ export default function EventsClient({ events }: { events: Event[] }) {
               style={{ boxShadow: "0 0 6px #22c55e" }}
             />
             <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#00e5ff]">UPCOMING</span>
-            <span className="font-mono text-[10.5px] text-[#4a5568] tracking-[0.18em]">
-              {String(upcoming.length).padStart(2, "0")} ON THE CALENDAR
-            </span>
           </div>
 
           {upcoming.length === 0 ? (
@@ -502,13 +661,21 @@ export default function EventsClient({ events }: { events: Event[] }) {
             <div className="flex items-center gap-3 mb-5">
               <span className="w-2 h-2 rounded-sm border border-[rgba(0,229,255,0.18)]" />
               <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#8b9ab0]">PAST EVENTS</span>
-              <span className="font-mono text-[10.5px] text-[#4a5568] tracking-[0.18em]">
-                {String(past.length).padStart(2, "0")} ARCHIVED
-              </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div
+              className="grid gap-5"
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 290px))" }}
+            >
               {past.map((event) => (
-                <PastEventRow key={event.id} event={event} />
+                <div key={event.id} className="opacity-60 saturate-0 hover:saturate-100 hover:opacity-100 transition-all duration-300 cursor-pointer">
+                  <EventFlipCard
+                    event={event}
+                    canEdit={canEdit}
+                    isAuthenticated={isAuthenticated}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                  />
+                </div>
               ))}
             </div>
           </section>

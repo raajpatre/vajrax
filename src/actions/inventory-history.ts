@@ -240,11 +240,12 @@ export async function syncInventoryStocksToGoogleSheets(): Promise<
 
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, roles")
         .eq("id", user.id)
         .single();
 
-    if (profileError || !profile || !INVENTORY_SYNC_ROLES.has(profile.role)) {
+    const isAuthorized = profile && (profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role]).some((r) => INVENTORY_SYNC_ROLES.has(r as Database["public"]["Enums"]["user_role"]));
+    if (profileError || !isAuthorized) {
         return { ok: false, error: "Not authorized" };
     }
 
@@ -311,11 +312,12 @@ export async function syncInventoryHistoryToGoogleSheets(): Promise<
 
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, roles")
         .eq("id", user.id)
         .single();
 
-    if (profileError || !profile || !INVENTORY_SYNC_ROLES.has(profile.role)) {
+    const isAuthorized = profile && (profile.roles && profile.roles.length > 0 ? profile.roles : [profile.role]).some((r) => INVENTORY_SYNC_ROLES.has(r as Database["public"]["Enums"]["user_role"]));
+    if (profileError || !isAuthorized) {
         return { ok: false, error: "Not authorized" };
     }
 

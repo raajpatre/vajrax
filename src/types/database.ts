@@ -6,6 +6,45 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// ── Custom JSONB types for events registration system ──────────
+export type CustomFieldType = 'short_text' | 'long_text' | 'dropdown' | 'mcq' | 'checkbox'
+export interface CustomField {
+  id: string
+  label: string
+  type: CustomFieldType
+  required: boolean
+  options?: string[]       // for dropdown / mcq
+  placeholder?: string
+}
+export interface ReportMedia {
+  url: string
+  type: 'photo' | 'video'
+  caption?: string
+}
+export interface ReportGuest {
+  name: string
+  title: string
+  photo_url?: string
+  description?: string
+}
+export interface ReportSponsor {
+  name: string
+  logo_url?: string
+  website_url?: string
+  tier: 'platinum' | 'gold' | 'silver' | 'community'
+}
+export interface MomActionItem {
+  task: string
+  assignee?: string
+  due_date?: string  // ISO date string
+}
+export interface MomResource {
+  type: 'photo' | 'url'
+  url: string
+  title?: string
+}
+// ──────────────────────────────────────────────────────────────
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -108,6 +147,146 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_minutes: {
+        Row: {
+          id: string
+          title: string
+          meeting_date: string
+          meeting_type: string
+          attendees: number | null
+          session_scope: string
+          counts_attendance: boolean
+          attendee_ids: string[]
+          content: string
+          action_items: MomActionItem[]
+          resources: MomResource[]
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          meeting_date: string
+          meeting_type?: string
+          attendees?: number | null
+          session_scope?: string
+          counts_attendance?: boolean
+          attendee_ids?: string[]
+          content?: string
+          action_items?: MomActionItem[]
+          resources?: MomResource[]
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          meeting_date?: string
+          meeting_type?: string
+          attendees?: number | null
+          session_scope?: string
+          counts_attendance?: boolean
+          attendee_ids?: string[]
+          content?: string
+          action_items?: MomActionItem[]
+          resources?: MomResource[]
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_minutes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mom_attendances: {
+        Row: {
+          id: string
+          mom_id: string
+          member_id: string
+          present: boolean
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          mom_id: string
+          member_id: string
+          present?: boolean
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          mom_id?: string
+          member_id?: string
+          present?: boolean
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mom_attendances_mom_id_fkey"
+            columns: ["mom_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_minutes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mom_attendances_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mom_comments: {
+        Row: {
+          id: string
+          mom_id: string
+          author_id: string
+          content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          mom_id: string
+          author_id: string
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          mom_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mom_comments_mom_id_fkey"
+            columns: ["mom_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_minutes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mom_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -345,6 +524,97 @@ export type Database = {
           },
         ]
       }
+      event_registrations: {
+        Row: {
+          id: string
+          event_id: string
+          registration_type: 'individual' | 'team'
+          team_name: string | null
+          leader_name: string
+          leader_email: string
+          leader_phone: string
+          leader_college: string
+          custom_responses: Record<string, unknown>
+          registration_code: string
+          created_at: string
+          _hp: string | null
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          registration_type: 'individual' | 'team'
+          team_name?: string | null
+          leader_name: string
+          leader_email: string
+          leader_phone: string
+          leader_college: string
+          custom_responses?: Record<string, unknown>
+          registration_code: string
+          created_at?: string
+          _hp?: string | null
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          registration_type?: 'individual' | 'team'
+          team_name?: string | null
+          leader_name?: string
+          leader_email?: string
+          leader_phone?: string
+          leader_college?: string
+          custom_responses?: Record<string, unknown>
+          registration_code?: string
+          created_at?: string
+          _hp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_team_members: {
+        Row: {
+          id: string
+          registration_id: string
+          member_name: string
+          member_email: string | null
+          member_phone: string | null
+          member_college: string | null
+          position: number
+        }
+        Insert: {
+          id?: string
+          registration_id: string
+          member_name: string
+          member_email?: string | null
+          member_phone?: string | null
+          member_college?: string | null
+          position?: number
+        }
+        Update: {
+          id?: string
+          registration_id?: string
+          member_name?: string
+          member_email?: string | null
+          member_phone?: string | null
+          member_college?: string | null
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_team_members_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "event_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           cover_image_url: string | null
@@ -357,6 +627,20 @@ export type Database = {
           is_exclusive: boolean
           location: string | null
           registration_url: string | null
+          registration_mode: 'none' | 'individual' | 'team' | 'both' | 'external'
+          external_registration_url: string | null
+          registration_open: boolean
+          registration_deadline: string | null
+          max_registrations: number | null
+          team_size_min: number
+          team_size_max: number
+          team_size_strict: boolean
+          custom_fields: CustomField[]
+          report_summary: string | null
+          report_media: ReportMedia[]
+          report_youtube_urls: string[]
+          report_guests: ReportGuest[]
+          report_sponsors: ReportSponsor[]
           starts_at: string
           title: string
           updated_at: string
@@ -372,6 +656,20 @@ export type Database = {
           is_exclusive?: boolean
           location?: string | null
           registration_url?: string | null
+          registration_mode?: 'none' | 'individual' | 'team' | 'both' | 'external'
+          external_registration_url?: string | null
+          registration_open?: boolean
+          registration_deadline?: string | null
+          max_registrations?: number | null
+          team_size_min?: number
+          team_size_max?: number
+          team_size_strict?: boolean
+          custom_fields?: CustomField[]
+          report_summary?: string | null
+          report_media?: ReportMedia[]
+          report_youtube_urls?: string[]
+          report_guests?: ReportGuest[]
+          report_sponsors?: ReportSponsor[]
           starts_at: string
           title: string
           updated_at?: string
@@ -387,6 +685,20 @@ export type Database = {
           is_exclusive?: boolean
           location?: string | null
           registration_url?: string | null
+          registration_mode?: 'none' | 'individual' | 'team' | 'both' | 'external'
+          external_registration_url?: string | null
+          registration_open?: boolean
+          registration_deadline?: string | null
+          max_registrations?: number | null
+          team_size_min?: number
+          team_size_max?: number
+          team_size_strict?: boolean
+          custom_fields?: CustomField[]
+          report_summary?: string | null
+          report_media?: ReportMedia[]
+          report_youtube_urls?: string[]
+          report_guests?: ReportGuest[]
+          report_sponsors?: ReportSponsor[]
           starts_at?: string
           title?: string
           updated_at?: string
@@ -401,6 +713,7 @@ export type Database = {
           },
         ]
       }
+
       gallery_items: {
         Row: {
           cover_image_url: string | null
@@ -722,6 +1035,7 @@ export type Database = {
           id: string
           linkedin_url: string | null
           role: Database["public"]["Enums"]["user_role"]
+          roles: string[]
           safety_certifications: string[]
           updated_at: string
           username: string | null
@@ -738,6 +1052,7 @@ export type Database = {
           id: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          roles?: string[]
           safety_certifications?: string[]
           updated_at?: string
           username?: string | null
@@ -754,6 +1069,7 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          roles?: string[]
           safety_certifications?: string[]
           updated_at?: string
           username?: string | null
@@ -1005,9 +1321,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      member_attendance_summary: {
+        Row: {
+          member_id: string
+          display_name: string
+          avatar_url: string | null
+          role: string
+          joined_at: string
+          sessions_eligible: number
+          sessions_attended: number
+          attendance_pct: number
+          is_flagged: boolean
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_member_attendance_stats: {
+        Args: { p_member_id: string }
+        Returns: {
+          sessions_eligible: number
+          sessions_attended: number
+          attendance_pct: number
+        }[]
+      }
       get_user_role: {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1033,11 +1370,21 @@ export type Database = {
       user_role:
         | "member"
         | "inventory_manager"
-        | "website_manager"
+        | "lead_developer"
         | "printing_head"
         | "president"
         | "vice_president"
         | "faculty"
+        | "project_manager"
+        | "social_media_head"
+        | "social_media_co_head"
+        | "sponsorship_head"
+        | "workshop_head"
+        | "mechanics_head"
+        | "cad_head"
+        | "electronics_head"
+        | "procurement_head"
+        | "makerspace_head"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1176,11 +1523,21 @@ export const Constants = {
       user_role: [
         "member",
         "inventory_manager",
-        "website_manager",
+        "lead_developer",
         "printing_head",
         "president",
         "vice_president",
         "faculty",
+        "project_manager",
+        "social_media_head",
+        "social_media_co_head",
+        "sponsorship_head",
+        "workshop_head",
+        "mechanics_head",
+        "cad_head",
+        "electronics_head",
+        "procurement_head",
+        "makerspace_head",
       ],
     },
   },
