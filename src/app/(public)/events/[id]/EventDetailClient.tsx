@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useId } from "react";
+import React, { useState, useCallback, useMemo, useId } from "react";
 import Link from "next/link";
 import {
     ArrowLeft, Calendar, Clock, MapPin, Users, User, CheckCircle2,
@@ -224,6 +224,54 @@ function CustomFieldInput({
             </div>
         );
     }
+    if (field.type === "rating") {
+        const safeId = id.replace(/[^a-zA-Z0-9]/g, "");
+        return (
+            <div className="flex">
+                <style dangerouslySetInnerHTML={{ __html: `
+                    .rating-container-${safeId} {
+                        display: inline-flex;
+                        flex-direction: row-reverse;
+                    }
+                    .rating-container-${safeId} input {
+                        display: none;
+                    }
+                    .rating-container-${safeId} label {
+                        cursor: pointer;
+                        transition: color 0.3s;
+                        color: #2d3748;
+                    }
+                    .rating-container-${safeId} label:before {
+                        content: "\\2605";
+                        font-size: 32px;
+                        line-height: 1;
+                    }
+                    .rating-container-${safeId} input:checked ~ label,
+                    .rating-container-${safeId} label:hover,
+                    .rating-container-${safeId} label:hover ~ label {
+                        color: #ffd700;
+                        transition: color 0.3s;
+                    }
+                ` }} />
+                <div className={`rating-container-${safeId}`}>
+                    {[5, 4, 3, 2, 1].map((star) => (
+                        <React.Fragment key={star}>
+                            <input
+                                type="radio"
+                                id={`${id}-star${star}`}
+                                name={id}
+                                value={star.toString()}
+                                checked={value === star.toString()}
+                                onChange={() => onChange(star.toString())}
+                                required={field.required && !value}
+                            />
+                            <label htmlFor={`${id}-star${star}`}></label>
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+        );
+    }
     return null;
 }
 
@@ -263,7 +311,44 @@ function MemberRow({
 }
 
 // ── Success screen ────────────────────────────────────────────────
-function SuccessScreen({ code, eventTitle, type }: { code: string; eventTitle: string; type: "individual" | "team" }) {
+function SuccessScreen({ code, eventTitle, type, eventType }: { code: string; eventTitle: string; type: "individual" | "team", eventType?: string }) {
+    if (eventType === "feedback") {
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center text-center py-10 px-6"
+            >
+                <div
+                    className="w-20 h-20 rounded-full grid place-items-center mb-6"
+                    style={{
+                        background: "rgba(34,197,94,0.12)",
+                        border: "1px solid rgba(34,197,94,0.45)",
+                        boxShadow: "0 0 30px rgba(34,197,94,0.2)",
+                    }}
+                >
+                    <CheckCircle2 size={36} className="text-[#22c55e]" />
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#22c55e] mb-2">
+                    // SUBMISSION SUCCESSFUL
+                </div>
+                <h2 className="font-sans font-bold text-[#f0f4ff] text-[22px] tracking-tight mb-3">
+                    Thanks for your valuable time
+                </h2>
+                <p className="text-[#8b9ab0] text-[13.5px] max-w-[38ch] leading-relaxed mb-8">
+                    Your feedback for <span className="text-[#f0f4ff]">{eventTitle}</span> has been securely recorded.
+                </p>
+                <Link
+                    href="/events"
+                    className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-[#8b9ab0] hover:text-[#00e5ff] transition-colors"
+                >
+                    <ArrowLeft size={12} />
+                    Back to Events
+                </Link>
+            </motion.div>
+        );
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -528,7 +613,7 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                         />
 
                         {successCode ? (
-                            <SuccessScreen code={successCode} eventTitle={event.title} type={regType} />
+                            <SuccessScreen code={successCode} eventTitle={event.title} type={regType} eventType={event.event_type} />
                         ) : isPast ? (
                             <div className="p-8 text-center">
                                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#4a5568] mb-3">// EVENT CONCLUDED</div>
@@ -550,7 +635,7 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 h-10 px-6 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] bg-[#00e5ff] text-[#07090f] hover:bg-[#00e5ff]/90 transition-colors"
                                 >
-                                    Register Now <ExternalLink size={12} />
+                                    {event.event_type === "feedback" ? "Submit" : "Register Now"} <ExternalLink size={12} />
                                 </a>
                             </div>
                         ) : event.registration_mode === "none" ? (
@@ -755,9 +840,9 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                                         className="d3btn"
                                     >
                                         {loading ? (
-                                            <><Loader2 size={14} className="animate-spin" /> Registering...</>
+                                            <><Loader2 size={14} className="animate-spin" /> {event.event_type === "feedback" ? "Submitting..." : "Registering..."}</>
                                         ) : (
-                                            regType === "team" ? "Register Team" : "Register Now"
+                                            event.event_type === "feedback" ? "Submit" : (regType === "team" ? "Register Team" : "Register Now")
                                         )}
                                     </button>
                                 </div>

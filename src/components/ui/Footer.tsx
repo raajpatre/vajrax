@@ -130,7 +130,7 @@ function SocialButton({
 export default function Footer() {
   const { isAuthenticated, isFaculty } = useUser();
   return (
-    <footer className="relative z-20 bg-base" style={{ borderTop: "1px solid rgba(0,229,255,0.08)" }}>
+    <footer className="relative z-40 bg-base" style={{ borderTop: "1px solid rgba(0,229,255,0.08)" }}>
       {/* Top cyan trace gradient */}
       <div
         className="absolute inset-x-0 top-0 h-px pointer-events-none"

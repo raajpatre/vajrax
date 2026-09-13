@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
     X, Loader2, Image as ImageIcon, Calendar, MapPin, Link2,
     Upload, Sparkles, Plus, Trash2, GripVertical, ToggleLeft, ToggleRight,
-    ChevronDown, Settings2, FileText, Users, Check,
+    ChevronDown, Settings2, FileText, Users, Check, Circle, Square,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/lib/hooks/useUser";
@@ -61,6 +61,7 @@ const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
     dropdown: "Dropdown",
     mcq: "Multiple Choice",
     checkbox: "Checkboxes",
+    rating: "5-Star Rating",
 };
 
 const MODAL_TABS = [
@@ -164,7 +165,16 @@ function FieldBuilderRow({
                 <div className="flex w-full sm:w-auto items-end gap-2 pl-6 sm:pl-0">
                     <AuthSelect
                         value={field.type}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange({ ...field, type: e.target.value as CustomFieldType, options: [] })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            const newType = e.target.value as CustomFieldType;
+                            const oldNeedsOptions = ["dropdown", "mcq", "checkbox"].includes(field.type);
+                            const newNeedsOptions = ["dropdown", "mcq", "checkbox"].includes(newType);
+                            onChange({ 
+                                ...field, 
+                                type: newType, 
+                                options: (oldNeedsOptions && newNeedsOptions) ? field.options : (newNeedsOptions ? [""] : []) 
+                            });
+                        }}
                         label="Type"
                     >
                         {Object.entries(FIELD_TYPE_LABELS).map(([v, l]) => (
@@ -189,13 +199,59 @@ function FieldBuilderRow({
             </div>
 
             {needsOptions && (
-                <div className="pl-6">
-                    <AuthTextarea
-                        value={(field.options ?? []).join("\n")}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange({ ...field, options: e.target.value.split("\n").filter(Boolean) })}
-                        label="Options (one per line)"
-                        rows={3}
-                    />
+                <div className="pl-6 space-y-2 mt-2">
+                    <label className="flex items-center gap-2 mb-3">
+                        <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">Options</span>
+                    </label>
+                    
+                    {(field.options ?? []).map((opt, idx) => (
+                        <div key={idx} className="flex items-center gap-3 group">
+                            {field.type === "mcq" && <Circle size={14} className="text-[#4a5568] shrink-0" />}
+                            {field.type === "checkbox" && <Square size={14} className="text-[#4a5568] shrink-0" />}
+                            {field.type === "dropdown" && <span className="font-mono text-[11px] text-[#4a5568] shrink-0 w-3.5 text-center">{idx + 1}.</span>}
+
+                            <input
+                                type="text"
+                                value={opt}
+                                onChange={(e) => {
+                                    const newOptions = [...(field.options ?? [])];
+                                    newOptions[idx] = e.target.value;
+                                    onChange({ ...field, options: newOptions });
+                                }}
+                                placeholder={`Option ${idx + 1}`}
+                                className="flex-1 bg-transparent border-b border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.2)] focus:border-[#00e5ff] text-[13px] text-[#f0f4ff] px-1 py-1.5 focus:outline-none transition-colors"
+                            />
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const newOptions = (field.options ?? []).filter((_, i) => i !== idx);
+                                    onChange({ ...field, options: newOptions });
+                                }}
+                                className="text-[#4a5568] hover:text-[#ef4444] opacity-0 group-hover:opacity-100 transition-all p-1 shrink-0"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    ))}
+                    
+                    <div className="flex items-center gap-3 pt-1">
+                        {field.type === "mcq" && <Circle size={14} className="text-[#4a5568] shrink-0" />}
+                        {field.type === "checkbox" && <Square size={14} className="text-[#4a5568] shrink-0" />}
+                        {field.type === "dropdown" && <span className="font-mono text-[11px] text-[#4a5568] shrink-0 w-3.5 text-center">{(field.options?.length ?? 0) + 1}.</span>}
+                        
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const newOptions = [...(field.options ?? []), ""];
+                                onChange({ ...field, options: newOptions });
+                            }}
+                            className="text-[13px] text-[#8b9ab0] hover:text-[#00e5ff] border-b border-transparent transition-colors px-1 py-1"
+                        >
+                            Add Option
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -368,7 +424,10 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
                 team_size_min: teamSizeMin,
                 team_size_max: teamSizeMax,
                 team_size_strict: teamSizeStrict,
-                custom_fields: customFields as any,
+                custom_fields: customFields.map(f => ({
+                    ...f,
+                    options: f.options ? f.options.map(o => o.trim()).filter(Boolean) : []
+                })) as any,
                 // Report
                 report_summary: reportSummary.trim() || null,
                 report_youtube_urls: youtubeUrls,
@@ -536,6 +595,7 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
                                                     <option value="workshop">Workshop</option>
                                                     <option value="meetup">Meetup</option>
                                                     <option value="competition">Competition</option>
+                                                    <option value="feedback">Feedback</option>
                                                     <option value="other">Other</option>
                                                 </AuthSelect>
                                                 <div>

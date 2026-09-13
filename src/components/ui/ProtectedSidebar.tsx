@@ -343,7 +343,7 @@ function NavItem({
 
     if (!collapsed) return inner;
     return (
-        <Tooltip label={label} hotkey={hotkey}>
+        <Tooltip label={label} hotkey={hotkey} fullWidth>
             {inner}
         </Tooltip>
     );

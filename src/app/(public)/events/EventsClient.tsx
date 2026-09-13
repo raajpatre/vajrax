@@ -189,18 +189,20 @@ function EventFlipCard({
           </div>
 
           {/* type chip */}
-          <span
-            className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em]"
-            style={{ color: t.fg, background: "rgba(7,9,15,0.85)", border: `1px solid ${t.bd}`, backdropFilter: "blur(4px)" }}
-          >
-            <t.Icon size={10} />
-            {t.label}
-          </span>
+          {event.event_type !== "feedback" && (
+            <span
+              className="absolute top-3 right-3 inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em]"
+              style={{ color: t.fg, background: "rgba(7,9,15,0.85)", border: `1px solid ${t.bd}`, backdropFilter: "blur(4px)" }}
+            >
+              <t.Icon size={10} />
+              {t.label}
+            </span>
+          )}
 
           {/* RSVP badge on front if registration is open */}
-          {isOpen && !isPast && (
+          {isOpen && !isPast && event.event_type !== "feedback" && (
             <span
-              className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em]"
+              className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em]"
               style={{ color: "#07090f", background: "#00e5ff", backdropFilter: "blur(4px)" }}
             >
               <UserCheck size={10} />RSVP Open
@@ -208,10 +210,10 @@ function EventFlipCard({
           )}
 
           {/* corner ticks */}
-          <span className="absolute top-0 left-0    w-2.5 h-2.5 border-t border-l z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
-          <span className="absolute top-0 right-0   w-2.5 h-2.5 border-t border-r z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
-          <span className="absolute bottom-0 left-0  w-2.5 h-2.5 border-b border-l z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r z-10" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+          <span className="absolute top-0 left-0    w-2.5 h-2.5 border-t border-l" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+          <span className="absolute top-0 right-0   w-2.5 h-2.5 border-t border-r" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+          <span className="absolute bottom-0 left-0  w-2.5 h-2.5 border-b border-l" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r" style={{ borderColor: "rgba(0,229,255,0.55)" }} />
         </div>
 
         {/* BACK */}
@@ -267,13 +269,15 @@ function EventFlipCard({
           )}
 
           <div className="relative h-full flex flex-col p-4">
-            <span
-              className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] self-start"
-              style={{ color: t.fg, background: t.bg, border: `1px solid ${t.bd}` }}
-            >
-              <t.Icon size={11} />
-              {t.label}
-            </span>
+            {event.event_type !== "feedback" && (
+              <span
+                className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] self-start"
+                style={{ color: t.fg, background: t.bg, border: `1px solid ${t.bd}` }}
+              >
+                <t.Icon size={11} />
+                {t.label}
+              </span>
+            )}
 
             <h3 className="font-sans font-bold text-[#f0f4ff] text-[16.5px] tracking-tight leading-snug mt-3 line-clamp-2">
               {event.title}
@@ -314,7 +318,11 @@ function EventFlipCard({
                   href={`/events/${event.id}`}
                   className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
                 >
-                  <UserCheck size={11} /> Register / RSVP
+                  {event.event_type === "feedback" ? (
+                    <>Feedback</>
+                  ) : (
+                    <><UserCheck size={11} /> Register / RSVP</>
+                  )}
                 </Link>
               )}
               {regState === "external" && (
@@ -324,7 +332,7 @@ function EventFlipCard({
                   rel="noopener noreferrer"
                   className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
                 >
-                  Register <ExternalLink size={11} />
+                  {event.event_type === "feedback" ? "Feedback" : "Register"} <ExternalLink size={11} />
                 </a>
               )}
               {(regState === "open_to_all" || isNoneMode) && !isPast && (

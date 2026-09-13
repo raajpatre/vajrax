@@ -1749,7 +1749,7 @@ export interface MomResource {
   title: string;
 }
 
-export type CustomFieldType = "short_text" | "long_text" | "dropdown" | "mcq" | "checkbox";
+export type CustomFieldType = "short_text" | "long_text" | "dropdown" | "mcq" | "checkbox" | "rating";
 
 export interface CustomField {
     id: string;
