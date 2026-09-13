@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
+import type { MomActionItem, MomResource } from "@/types/database";
 import MOMComments from "@/components/mom/MOMComments";
 import { Tables } from "@/types/database";
 
@@ -305,8 +306,9 @@ export default function MOMDetailClient({
     const [deleting, setDeleting] = useState(false);
     const [selectedPhotoIdx, setSelectedPhotoIdx] = useState<number | null>(null);
 
-    const photoResources = (mom.resources ?? []).filter((r) => r.type === "photo");
-    const linkResources = (mom.resources ?? []).filter((r) => r.type === "url");
+    const resources = (mom.resources as unknown as MomResource[]) ?? [];
+    const photoResources = resources.filter((r) => r.type === "photo");
+    const linkResources = resources.filter((r) => r.type === "url");
 
     // Drift animation for circuit traces
     const [t, setT] = useState(0);
@@ -467,7 +469,7 @@ export default function MOMDetailClient({
                 </section>
 
                 {/* ── Action Items ── */}
-                {mom.action_items && mom.action_items.length > 0 && (
+                {((mom.action_items as unknown as MomActionItem[]) ?? []).length > 0 && (
                     <section
                         className="rounded-sm mb-5 px-6 py-5"
                         style={{ border: "1px solid rgba(0,229,255,0.10)", background: "#0d1117" }}
@@ -476,7 +478,7 @@ export default function MOMDetailClient({
                             <CheckSquare size={11} style={{ color: "#22c55e" }} /> Action Items
                         </div>
                         <div className="space-y-2">
-                            {mom.action_items.map((item, idx) => (
+                            {((mom.action_items as unknown as MomActionItem[]) ?? []).map((item, idx) => (
                                 <div
                                     key={idx}
                                     className="flex items-start gap-3 rounded-sm px-3 py-2.5"
@@ -510,7 +512,7 @@ export default function MOMDetailClient({
                 )}
 
                 {/* ── Resources ── */}
-                {mom.resources && mom.resources.length > 0 && (
+                {resources.length > 0 && (
                     <section
                         className="rounded-sm mb-5 px-6 py-5"
                         style={{ border: "1px solid rgba(0,229,255,0.10)", background: "#0d1117" }}

@@ -280,8 +280,8 @@ export default function NewMOMClient({ userId }: { userId: string }) {
                 counts_attendance: countsAttendance,
                 attendee_ids: attendeeIds,
                 content,
-                action_items: actionItems,
-                resources,
+                action_items: actionItems as any,
+                resources: resources as any,
                 created_by: userId,
             })
             .select("id")

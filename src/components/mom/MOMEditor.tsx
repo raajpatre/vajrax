@@ -5,6 +5,8 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Color } from "@tiptap/extension-color";
+import { TextStyle } from "@tiptap/extension-text-style";
 import {
     Bold, Italic, UnderlineIcon, Strikethrough,
     AlignLeft, AlignCenter, AlignRight,
@@ -88,6 +90,8 @@ export default function MOMEditor({ content, onChange, placeholder, readOnly = f
             Placeholder.configure({
                 placeholder: placeholder ?? "Write the minutes of the meeting here…",
             }),
+            TextStyle,
+            Color,
         ],
         content,
         editable: !readOnly,
@@ -148,6 +152,27 @@ export default function MOMEditor({ content, onChange, placeholder, readOnly = f
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline Code">
                         <Code size={14} />
                     </ToolbarBtn>
+
+                    <Divider />
+
+                    {/* Colors */}
+                    <div className="flex items-center gap-0.5 ml-1">
+                        <ToolbarBtn onClick={() => editor.chain().focus().setColor('#f59e0b').run()} active={editor.isActive('textStyle', { color: '#f59e0b' })} title="Amber">
+                            <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
+                        </ToolbarBtn>
+                        <ToolbarBtn onClick={() => editor.chain().focus().setColor('#00e5ff').run()} active={editor.isActive('textStyle', { color: '#00e5ff' })} title="Cyan">
+                            <div className="w-3 h-3 rounded-full bg-[#00e5ff]" />
+                        </ToolbarBtn>
+                        <ToolbarBtn onClick={() => editor.chain().focus().setColor('#ec4899').run()} active={editor.isActive('textStyle', { color: '#ec4899' })} title="Pink">
+                            <div className="w-3 h-3 rounded-full bg-[#ec4899]" />
+                        </ToolbarBtn>
+                        <ToolbarBtn onClick={() => editor.chain().focus().setColor('#22c55e').run()} active={editor.isActive('textStyle', { color: '#22c55e' })} title="Green">
+                            <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
+                        </ToolbarBtn>
+                        <ToolbarBtn onClick={() => editor.chain().focus().unsetColor().run()} title="Clear Color">
+                            <div className="w-3 h-3 rounded-full bg-[#d4dbe8]" />
+                        </ToolbarBtn>
+                    </div>
 
                     <Divider />
 

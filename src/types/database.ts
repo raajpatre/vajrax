@@ -6,50 +6,11 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-// ── Custom JSONB types for events registration system ──────────
-export type CustomFieldType = 'short_text' | 'long_text' | 'dropdown' | 'mcq' | 'checkbox'
-export interface CustomField {
-  id: string
-  label: string
-  type: CustomFieldType
-  required: boolean
-  options?: string[]       // for dropdown / mcq
-  placeholder?: string
-}
-export interface ReportMedia {
-  url: string
-  type: 'photo' | 'video'
-  caption?: string
-}
-export interface ReportGuest {
-  name: string
-  title: string
-  photo_url?: string
-  description?: string
-}
-export interface ReportSponsor {
-  name: string
-  logo_url?: string
-  website_url?: string
-  tier: 'platinum' | 'gold' | 'silver' | 'community'
-}
-export interface MomActionItem {
-  task: string
-  assignee?: string
-  due_date?: string  // ISO date string
-}
-export interface MomResource {
-  type: 'photo' | 'url'
-  url: string
-  title?: string
-}
-// ──────────────────────────────────────────────────────────────
-
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -104,6 +65,13 @@ export type Database = {
             foreignKeyName: "applicants_reviewed_by_fkey"
             columns: ["reviewed_by"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "applicants_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -139,6 +107,13 @@ export type Database = {
             foreignKeyName: "comments_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -151,227 +126,39 @@ export type Database = {
           },
         ]
       }
-      meeting_minutes: {
-        Row: {
-          id: string
-          title: string
-          meeting_date: string
-          meeting_type: string
-          attendees: number | null
-          session_scope: string
-          counts_attendance: boolean
-          attendee_ids: string[]
-          content: string
-          action_items: MomActionItem[]
-          resources: MomResource[]
-          created_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
-          meeting_date: string
-          meeting_type?: string
-          attendees?: number | null
-          session_scope?: string
-          counts_attendance?: boolean
-          attendee_ids?: string[]
-          content?: string
-          action_items?: MomActionItem[]
-          resources?: MomResource[]
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          meeting_date?: string
-          meeting_type?: string
-          attendees?: number | null
-          session_scope?: string
-          counts_attendance?: boolean
-          attendee_ids?: string[]
-          content?: string
-          action_items?: MomActionItem[]
-          resources?: MomResource[]
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_minutes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      mom_attendances: {
-        Row: {
-          id: string
-          mom_id: string
-          member_id: string
-          present: boolean
-          recorded_at: string
-        }
-        Insert: {
-          id?: string
-          mom_id: string
-          member_id: string
-          present?: boolean
-          recorded_at?: string
-        }
-        Update: {
-          id?: string
-          mom_id?: string
-          member_id?: string
-          present?: boolean
-          recorded_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mom_attendances_mom_id_fkey"
-            columns: ["mom_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_minutes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mom_attendances_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      mom_comments: {
-        Row: {
-          id: string
-          mom_id: string
-          author_id: string
-          content: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          mom_id: string
-          author_id: string
-          content: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          mom_id?: string
-          author_id?: string
-          content?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mom_comments_mom_id_fkey"
-            columns: ["mom_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_minutes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mom_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      equipment_carts: {
-        Row: {
-          id: string
-          requester_id: string
-          reason: string
-          status: string
-          reviewed_by: string | null
-          reviewed_at: string | null
-          status_note: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          requester_id: string
-          reason: string
-          status?: string
-          reviewed_by?: string | null
-          reviewed_at?: string | null
-          status_note?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          requester_id?: string
-          reason?: string
-          status?: string
-          reviewed_by?: string | null
-          reviewed_at?: string | null
-          status_note?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "equipment_carts_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_carts_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       equipment_cart_items: {
         Row: {
-          id: string
+          admin_note: string | null
+          approved_quantity: number | null
           cart_id: string
+          created_at: string
+          id: string
           item_id: string
+          item_status: string
           quantity: number
           request_type: string
-          item_status: string
-          approved_quantity: number | null
-          admin_note: string | null
-          created_at: string
         }
         Insert: {
-          id?: string
+          admin_note?: string | null
+          approved_quantity?: number | null
           cart_id: string
+          created_at?: string
+          id?: string
           item_id: string
+          item_status?: string
           quantity?: number
           request_type?: string
-          item_status?: string
-          approved_quantity?: number | null
-          admin_note?: string | null
-          created_at?: string
         }
         Update: {
-          id?: string
+          admin_note?: string | null
+          approved_quantity?: number | null
           cart_id?: string
+          created_at?: string
+          id?: string
           item_id?: string
+          item_status?: string
           quantity?: number
           request_type?: string
-          item_status?: string
-          approved_quantity?: number | null
-          admin_note?: string | null
-          created_at?: string
         }
         Relationships: [
           {
@@ -390,70 +177,62 @@ export type Database = {
           },
         ]
       }
-      equipment_requests: {
+      equipment_carts: {
         Row: {
-          approved_quantity: number | null
-          approved_by: string | null
           created_at: string
           id: string
-          item_id: string
-          quantity: number
           reason: string
-          reviewed_at: string | null
-          request_type: string
           requester_id: string
-          status: Database["public"]["Enums"]["request_status"]
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
           status_note: string | null
-          updated_at: string
         }
         Insert: {
-          approved_quantity?: number | null
-          approved_by?: string | null
           created_at?: string
           id?: string
-          item_id: string
-          quantity?: number
-          reason?: string
-          reviewed_at?: string | null
-          request_type?: string
+          reason: string
           requester_id: string
-          status?: Database["public"]["Enums"]["request_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
           status_note?: string | null
-          updated_at?: string
         }
         Update: {
-          approved_quantity?: number | null
-          approved_by?: string | null
           created_at?: string
           id?: string
-          item_id?: string
-          quantity?: number
           reason?: string
-          reviewed_at?: string | null
-          request_type?: string
           requester_id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
           status_note?: string | null
-          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "equipment_requests_approved_by_fkey"
-            columns: ["approved_by"]
+            foreignKeyName: "equipment_carts_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "equipment_carts_requester_id_fkey"
+            columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "equipment_requests_item_id_fkey"
-            columns: ["item_id"]
+            foreignKeyName: "equipment_carts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
-            referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
           },
           {
-            foreignKeyName: "equipment_requests_requester_id_fkey"
-            columns: ["requester_id"]
+            foreignKeyName: "equipment_carts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -463,12 +242,12 @@ export type Database = {
       equipment_request_return_units: {
         Row: {
           created_at: string
-          giving_condition: "perfect" | "partly_damaged" | "trash" | null
+          giving_condition: string | null
           id: string
           item_id: string
-          lifecycle_status: "return_pending" | "returned"
+          lifecycle_status: string
           request_id: string
-          return_condition: "perfect" | "partly_damaged" | "trash" | null
+          return_condition: string | null
           returned_at: string | null
           returned_by: string | null
           unit_index: number
@@ -476,12 +255,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          giving_condition?: "perfect" | "partly_damaged" | "trash" | null
+          giving_condition?: string | null
           id?: string
           item_id: string
-          lifecycle_status?: "return_pending" | "returned"
+          lifecycle_status?: string
           request_id: string
-          return_condition?: "perfect" | "partly_damaged" | "trash" | null
+          return_condition?: string | null
           returned_at?: string | null
           returned_by?: string | null
           unit_index: number
@@ -489,12 +268,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          giving_condition?: "perfect" | "partly_damaged" | "trash" | null
+          giving_condition?: string | null
           id?: string
           item_id?: string
-          lifecycle_status?: "return_pending" | "returned"
+          lifecycle_status?: string
           request_id?: string
-          return_condition?: "perfect" | "partly_damaged" | "trash" | null
+          return_condition?: string | null
           returned_at?: string | null
           returned_by?: string | null
           unit_index?: number
@@ -519,6 +298,97 @@ export type Database = {
             foreignKeyName: "equipment_request_return_units_returned_by_fkey"
             columns: ["returned_by"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "equipment_request_return_units_returned_by_fkey"
+            columns: ["returned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_requests: {
+        Row: {
+          approved_by: string | null
+          approved_quantity: number | null
+          created_at: string
+          id: string
+          item_id: string
+          quantity: number
+          reason: string
+          request_type: string
+          requester_id: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          status_note: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_quantity?: number | null
+          created_at?: string
+          id?: string
+          item_id: string
+          quantity?: number
+          reason?: string
+          request_type?: string
+          requester_id: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          status_note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          approved_quantity?: number | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          quantity?: number
+          reason?: string
+          request_type?: string
+          requester_id?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          status_note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "equipment_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_requests_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "equipment_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -526,46 +396,46 @@ export type Database = {
       }
       event_registrations: {
         Row: {
-          id: string
-          event_id: string
-          registration_type: 'individual' | 'team'
-          team_name: string | null
-          leader_name: string
-          leader_email: string
-          leader_phone: string
-          leader_college: string
-          custom_responses: Record<string, unknown>
-          registration_code: string
-          created_at: string
           _hp: string | null
+          created_at: string
+          custom_responses: Json
+          event_id: string
+          id: string
+          leader_college: string
+          leader_email: string
+          leader_name: string
+          leader_phone: string
+          registration_code: string
+          registration_type: string
+          team_name: string | null
         }
         Insert: {
-          id?: string
-          event_id: string
-          registration_type: 'individual' | 'team'
-          team_name?: string | null
-          leader_name: string
-          leader_email: string
-          leader_phone: string
-          leader_college: string
-          custom_responses?: Record<string, unknown>
-          registration_code: string
-          created_at?: string
           _hp?: string | null
+          created_at?: string
+          custom_responses?: Json
+          event_id: string
+          id?: string
+          leader_college: string
+          leader_email: string
+          leader_name: string
+          leader_phone: string
+          registration_code: string
+          registration_type: string
+          team_name?: string | null
         }
         Update: {
-          id?: string
-          event_id?: string
-          registration_type?: 'individual' | 'team'
-          team_name?: string | null
-          leader_name?: string
-          leader_email?: string
-          leader_phone?: string
-          leader_college?: string
-          custom_responses?: Record<string, unknown>
-          registration_code?: string
-          created_at?: string
           _hp?: string | null
+          created_at?: string
+          custom_responses?: Json
+          event_id?: string
+          id?: string
+          leader_college?: string
+          leader_email?: string
+          leader_name?: string
+          leader_phone?: string
+          registration_code?: string
+          registration_type?: string
+          team_name?: string | null
         }
         Relationships: [
           {
@@ -580,30 +450,30 @@ export type Database = {
       event_team_members: {
         Row: {
           id: string
-          registration_id: string
-          member_name: string
-          member_email: string | null
-          member_phone: string | null
           member_college: string | null
+          member_email: string | null
+          member_name: string
+          member_phone: string | null
           position: number
+          registration_id: string
         }
         Insert: {
           id?: string
-          registration_id: string
-          member_name: string
-          member_email?: string | null
-          member_phone?: string | null
           member_college?: string | null
+          member_email?: string | null
+          member_name: string
+          member_phone?: string | null
           position?: number
+          registration_id: string
         }
         Update: {
           id?: string
-          registration_id?: string
-          member_name?: string
-          member_email?: string | null
-          member_phone?: string | null
           member_college?: string | null
+          member_email?: string | null
+          member_name?: string
+          member_phone?: string | null
           position?: number
+          registration_id?: string
         }
         Relationships: [
           {
@@ -620,28 +490,28 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           created_by: string | null
+          custom_fields: Json
           description: string
           ends_at: string | null
           event_type: string
+          external_registration_url: string | null
           id: string
           is_exclusive: boolean
           location: string | null
-          registration_url: string | null
-          registration_mode: 'none' | 'individual' | 'team' | 'both' | 'external'
-          external_registration_url: string | null
-          registration_open: boolean
-          registration_deadline: string | null
           max_registrations: number | null
-          team_size_min: number
-          team_size_max: number
-          team_size_strict: boolean
-          custom_fields: CustomField[]
+          registration_deadline: string | null
+          registration_mode: string
+          registration_open: boolean
+          registration_url: string | null
+          report_guests: Json
+          report_media: Json
+          report_sponsors: Json
           report_summary: string | null
-          report_media: ReportMedia[]
-          report_youtube_urls: string[]
-          report_guests: ReportGuest[]
-          report_sponsors: ReportSponsor[]
+          report_youtube_urls: Json
           starts_at: string
+          team_size_max: number
+          team_size_min: number
+          team_size_strict: boolean
           title: string
           updated_at: string
         }
@@ -649,28 +519,28 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
+          custom_fields?: Json
           description?: string
           ends_at?: string | null
           event_type?: string
+          external_registration_url?: string | null
           id?: string
           is_exclusive?: boolean
           location?: string | null
-          registration_url?: string | null
-          registration_mode?: 'none' | 'individual' | 'team' | 'both' | 'external'
-          external_registration_url?: string | null
-          registration_open?: boolean
-          registration_deadline?: string | null
           max_registrations?: number | null
-          team_size_min?: number
-          team_size_max?: number
-          team_size_strict?: boolean
-          custom_fields?: CustomField[]
+          registration_deadline?: string | null
+          registration_mode?: string
+          registration_open?: boolean
+          registration_url?: string | null
+          report_guests?: Json
+          report_media?: Json
+          report_sponsors?: Json
           report_summary?: string | null
-          report_media?: ReportMedia[]
-          report_youtube_urls?: string[]
-          report_guests?: ReportGuest[]
-          report_sponsors?: ReportSponsor[]
+          report_youtube_urls?: Json
           starts_at: string
+          team_size_max?: number
+          team_size_min?: number
+          team_size_strict?: boolean
           title: string
           updated_at?: string
         }
@@ -678,32 +548,39 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
+          custom_fields?: Json
           description?: string
           ends_at?: string | null
           event_type?: string
+          external_registration_url?: string | null
           id?: string
           is_exclusive?: boolean
           location?: string | null
-          registration_url?: string | null
-          registration_mode?: 'none' | 'individual' | 'team' | 'both' | 'external'
-          external_registration_url?: string | null
-          registration_open?: boolean
-          registration_deadline?: string | null
           max_registrations?: number | null
-          team_size_min?: number
-          team_size_max?: number
-          team_size_strict?: boolean
-          custom_fields?: CustomField[]
+          registration_deadline?: string | null
+          registration_mode?: string
+          registration_open?: boolean
+          registration_url?: string | null
+          report_guests?: Json
+          report_media?: Json
+          report_sponsors?: Json
           report_summary?: string | null
-          report_media?: ReportMedia[]
-          report_youtube_urls?: string[]
-          report_guests?: ReportGuest[]
-          report_sponsors?: ReportSponsor[]
+          report_youtube_urls?: Json
           starts_at?: string
+          team_size_max?: number
+          team_size_min?: number
+          team_size_strict?: boolean
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
           {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
@@ -713,7 +590,6 @@ export type Database = {
           },
         ]
       }
-
       gallery_items: {
         Row: {
           cover_image_url: string | null
@@ -762,6 +638,13 @@ export type Database = {
             foreignKeyName: "gallery_items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "gallery_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -806,6 +689,13 @@ export type Database = {
           request_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_history_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
           {
             foreignKeyName: "inventory_history_actor_id_fkey"
             columns: ["actor_id"]
@@ -871,6 +761,227 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_minutes: {
+        Row: {
+          action_items: Json
+          attendee_ids: string[]
+          attendees: number | null
+          content: string
+          counts_attendance: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          meeting_date: string
+          meeting_type: string
+          resources: Json
+          session_scope: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_items?: Json
+          attendee_ids?: string[]
+          attendees?: number | null
+          content?: string
+          counts_attendance?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          meeting_date: string
+          meeting_type?: string
+          resources?: Json
+          session_scope?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_items?: Json
+          attendee_ids?: string[]
+          attendees?: number | null
+          content?: string
+          counts_attendance?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          meeting_date?: string
+          meeting_type?: string
+          resources?: Json
+          session_scope?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_minutes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "meeting_minutes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mom_attendances: {
+        Row: {
+          id: string
+          member_id: string
+          mom_id: string
+          present: boolean
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          mom_id: string
+          present?: boolean
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          mom_id?: string
+          present?: boolean
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mom_attendances_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "mom_attendances_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mom_attendances_mom_id_fkey"
+            columns: ["mom_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_minutes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mom_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          mom_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          mom_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          mom_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mom_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "mom_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mom_comments_mom_id_fkey"
+            columns: ["mom_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_minutes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notice_board: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          cta_label: string | null
+          cta_url: string | null
+          ctas: Json
+          expires_at: string | null
+          id: string
+          is_archived: boolean
+          is_pinned: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          ctas?: Json
+          expires_at?: string | null
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          ctas?: Json
+          expires_at?: string | null
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notice_board_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "notice_board_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -904,43 +1015,17 @@ export type Database = {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
-      }
-      sponsors: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          logo_url: string
-          name: string
-          tier: string
-          updated_at: string
-          website_link: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          logo_url: string
-          name: string
-          tier: string
-          updated_at?: string
-          website_link?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          logo_url?: string
-          name?: string
-          tier?: string
-          updated_at?: string
-          website_link?: string | null
-        }
-        Relationships: []
       }
       post_likes: {
         Row: {
@@ -968,6 +1053,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "post_likes_user_id_fkey"
@@ -1017,6 +1109,13 @@ export type Database = {
             foreignKeyName: "posts_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1035,7 +1134,7 @@ export type Database = {
           id: string
           linkedin_url: string | null
           role: Database["public"]["Enums"]["user_role"]
-          roles: string[]
+          roles: string[] | null
           safety_certifications: string[]
           updated_at: string
           username: string | null
@@ -1052,7 +1151,7 @@ export type Database = {
           id: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          roles?: string[]
+          roles?: string[] | null
           safety_certifications?: string[]
           updated_at?: string
           username?: string | null
@@ -1069,7 +1168,7 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          roles?: string[]
+          roles?: string[] | null
           safety_certifications?: string[]
           updated_at?: string
           username?: string | null
@@ -1106,8 +1205,22 @@ export type Database = {
             foreignKeyName: "project_invites_invitee_id_fkey"
             columns: ["invitee_id"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "project_invites_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "project_invites_inviter_id_fkey"
@@ -1154,6 +1267,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "project_members_user_id_fkey"
@@ -1206,8 +1326,22 @@ export type Database = {
             foreignKeyName: "project_requests_requester_id_fkey"
             columns: ["requester_id"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "project_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "project_requests_reviewed_by_fkey"
@@ -1263,6 +1397,13 @@ export type Database = {
             foreignKeyName: "project_updates_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "project_updates_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1314,49 +1455,99 @@ export type Database = {
             foreignKeyName: "projects_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "member_attendance_summary"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
+      sponsors: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string
+          name: string
+          tier: string
+          updated_at: string
+          website_link: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url: string
+          name: string
+          tier: string
+          updated_at?: string
+          website_link?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string
+          name?: string
+          tier?: string
+          updated_at?: string
+          website_link?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       member_attendance_summary: {
         Row: {
-          member_id: string
-          display_name: string
+          attendance_pct: number | null
           avatar_url: string | null
-          role: string
-          joined_at: string
-          sessions_eligible: number
-          sessions_attended: number
-          attendance_pct: number
-          is_flagged: boolean
+          display_name: string | null
+          is_flagged: boolean | null
+          joined_at: string | null
+          member_id: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          sessions_attended: number | null
+          sessions_eligible: number | null
         }
         Relationships: []
       }
     }
     Functions: {
+      get_event_registration_count: {
+        Args: { p_event_id: string }
+        Returns: number
+      }
       get_member_attendance_stats: {
         Args: { p_member_id: string }
         Returns: {
-          sessions_eligible: number
-          sessions_attended: number
           attendance_pct: number
+          sessions_attended: number
+          sessions_eligible: number
         }[]
       }
       get_user_role: {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      has_inventory_review_access: { Args: never; Returns: boolean }
       is_faculty: { Args: { uid: string }; Returns: boolean }
       is_moderator: { Args: { uid: string }; Returns: boolean }
+      is_notice_board_writer: { Args: never; Returns: boolean }
       lookup_profile_by_email: {
         Args: { lookup_email: string }
         Returns: {
           display_name: string
           id: string
         }[]
+      }
+      requester_has_required_certification: {
+        Args: { p_item_id: string; p_requester_id: string }
+        Returns: boolean
       }
     }
     Enums: {
@@ -1370,11 +1561,12 @@ export type Database = {
       user_role:
         | "member"
         | "inventory_manager"
-        | "lead_developer"
-        | "printing_head"
         | "president"
         | "vice_president"
         | "faculty"
+        | "website_manager"
+        | "printing_head"
+        | "lead_developer"
         | "project_manager"
         | "social_media_head"
         | "social_media_co_head"
@@ -1400,12 +1592,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1429,11 +1621,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1454,11 +1646,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1479,11 +1671,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1496,11 +1688,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1523,11 +1715,12 @@ export const Constants = {
       user_role: [
         "member",
         "inventory_manager",
-        "lead_developer",
-        "printing_head",
         "president",
         "vice_president",
         "faculty",
+        "website_manager",
+        "printing_head",
+        "lead_developer",
         "project_manager",
         "social_media_head",
         "social_media_co_head",
@@ -1542,3 +1735,52 @@ export const Constants = {
     },
   },
 } as const
+
+export interface MomActionItem {
+  task: string;
+  assignee?: string;
+  due_date?: string;
+  completed?: boolean;
+}
+
+export interface MomResource {
+  type: "photo" | "url";
+  url: string;
+  title: string;
+}
+
+export type CustomFieldType = "short_text" | "long_text" | "dropdown" | "mcq" | "checkbox";
+
+export interface CustomField {
+    id: string;
+    label: string;
+    type: CustomFieldType;
+    required: boolean;
+    options: string[];
+    placeholder: string;
+}
+
+export interface ReportMedia {
+    type: "image" | "video";
+    url: string;
+    caption?: string;
+}
+
+export interface ReportGuest {
+    name: string;
+    title: string;
+    photo_url?: string;
+    description?: string;
+}
+
+export interface ReportSponsor {
+    name: string;
+    tier: "platinum" | "gold" | "silver" | "community";
+    logo_url?: string;
+    website_url?: string;
+}
+
+export interface NoticeCTA {
+    label: string;
+    url: string;
+}

@@ -371,7 +371,7 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
     const isDeadlinePassed = event.registration_deadline ? new Date(event.registration_deadline) < new Date() : false;
     const registrationClosed = !event.registration_open || isFull || isDeadlinePassed;
 
-    const customFields = (event.custom_fields ?? []) as CustomField[];
+    const customFields = (event.custom_fields ?? []) as unknown as CustomField[];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

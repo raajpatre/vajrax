@@ -288,10 +288,10 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
             setTeamSizeMin(event.team_size_min ?? 2);
             setTeamSizeMax(event.team_size_max ?? 4);
             setTeamSizeStrict(!!event.team_size_strict);
-            setCustomFields((event.custom_fields as CustomField[]) ?? []);
+            setCustomFields((event.custom_fields as unknown as CustomField[]) ?? []);
             // Report
             setReportSummary(event.report_summary ?? "");
-            setReportYoutubeUrls(((event.report_youtube_urls as string[]) ?? []).join("\n"));
+            setReportYoutubeUrls(((event.report_youtube_urls as unknown as string[]) ?? []).join("\n"));
         } else {
             setTitle(""); setDescription(""); setEventType("hackathon"); setIsExclusive(false);
             setStartsAt(""); setEndsAt(""); setLocation("");
@@ -368,7 +368,7 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
                 team_size_min: teamSizeMin,
                 team_size_max: teamSizeMax,
                 team_size_strict: teamSizeStrict,
-                custom_fields: customFields,
+                custom_fields: customFields as any,
                 // Report
                 report_summary: reportSummary.trim() || null,
                 report_youtube_urls: youtubeUrls,

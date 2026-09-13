@@ -71,8 +71,8 @@ export default function EditMOMClient({ mom, userId }: { mom: MOM; userId: strin
     const [meetingDate, setMeetingDate] = useState(mom.meeting_date);
     const [meetingType, setMeetingType] = useState(mom.meeting_type);
     const [content, setContent] = useState(mom.content);
-    const [actionItems, setActionItems] = useState<MomActionItem[]>(mom.action_items ?? []);
-    const [resources, setResources] = useState<MomResource[]>(mom.resources ?? []);
+    const [actionItems, setActionItems] = useState<MomActionItem[]>((mom.action_items as unknown as MomActionItem[]) ?? []);
+    const [resources, setResources] = useState<MomResource[]>((mom.resources as unknown as MomResource[]) ?? []);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [attendeeProfiles, setAttendeeProfiles] = useState<{ id: string; display_name: string; avatar_url: string | null }[]>([]);
@@ -116,8 +116,8 @@ export default function EditMOMClient({ mom, userId }: { mom: MOM; userId: strin
                 meeting_date: meetingDate,
                 meeting_type: meetingType,
                 content,
-                action_items: actionItems,
-                resources,
+                action_items: actionItems as any,
+                resources: resources as any,
             })
             .eq("id", mom.id);
         // NOTE: attendee_ids, session_scope, counts_attendance are intentionally locked after publish

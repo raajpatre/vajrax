@@ -37,10 +37,11 @@ const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffec
 
 // ---- Public center nav links ----
 const PUBLIC_NAV = [
-  { key: "gallery",    href: "/gallery",    label: "Gallery" },
-  { key: "events",     href: "/events",     label: "Events" },
-  { key: "innovators", href: "/innovators", label: "Our Innovators" },
-  { key: "contact",    href: "/contact",    label: "Contact" },
+  { key: "gallery",      href: "/gallery",       label: "Gallery" },
+  { key: "events",       href: "/events",        label: "Events" },
+  { key: "notice-board", href: "/notice-board",  label: "Notice" },
+  { key: "innovators",   href: "/innovators",    label: "Our Innovators" },
+  { key: "contact",      href: "/contact",       label: "Contact" },
 ] as const;
 
 // ---- Role display config ----
@@ -549,11 +550,13 @@ function MobilePublicDropdown({
   if (!renderOpen) return null;
 
   const items = [
-    { key: "gallery", label: "Gallery", href: "/gallery", icon: "/gallery-svgrepo-com.svg" },
-    { key: "events", label: "Events", href: "/events", icon: "/calendar-svgrepo-com.svg" },
-    { key: "innovators", label: "Our Innovators", href: "/innovators", icon: "/users-svgrepo-com.svg" },
-    { key: "contact", label: "Contact", href: "/contact", icon: "/contact-svgrepo-com.svg" },
+    { key: "gallery",      label: "Gallery",        href: "/gallery",       icon: "/gallery-svgrepo-com.svg" },
+    { key: "events",       label: "Events",          href: "/events",        icon: "/calendar-svgrepo-com.svg" },
+    { key: "notice-board", label: "Notice",          href: "/notice-board",  icon: "/notice.svg" },
+    { key: "innovators",   label: "Our Innovators",  href: "/innovators",    icon: "/users-svgrepo-com.svg" },
+    { key: "contact",      label: "Contact",          href: "/contact",       icon: "/contact-svgrepo-com.svg" },
   ];
+
 
   return (
     <div className="fixed inset-0 z-[70] md:hidden">

@@ -6,7 +6,8 @@ export type AppNotificationType =
     | "equipment_request_rejected"
     | "project_request_approved"
     | "project_request_rejected"
-    | "mom_published";
+    | "mom_published"
+    | "notice_board";
 
 export function getNotificationHref(type: string, entityId?: string | null): string {
     switch (type as AppNotificationType) {
@@ -25,6 +26,8 @@ export function getNotificationHref(type: string, entityId?: string | null): str
             return "/projects/request";
         case "mom_published":
             return entityId ? `/mom/${entityId}` : "/mom";
+        case "notice_board":
+            return entityId ? `/notice-board/${entityId}` : "/notice-board";
         default:
             return "/";
     }

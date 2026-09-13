@@ -18,6 +18,7 @@ import {
     UserCheck,
     AlertTriangle,
     ShieldCheck,
+    Megaphone,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
@@ -29,6 +30,7 @@ interface DashStats {
     pendingApps: number;
     openRequests: number;
     activeProjects: number;
+    liveNotices: number;
 }
 
 /* ── helpers ──────────────────────────────────────────────── */
@@ -211,6 +213,7 @@ const STAT_CONFIGS = [
     { key: "pendingApps",   label: "PENDING APPS",    Icon: UserRoundPlus, color: "#f59e0b" },
     { key: "openRequests",  label: "OPEN REQUESTS",   Icon: PackageSearch, color: "#22c55e" },
     { key: "activeProjects",label: "ACTIVE PROJECTS", Icon: GitBranch,     color: "#a78bfa" },
+    { key: "liveNotices",   label: "LIVE NOTICES",    Icon: Megaphone,     color: "#f97316" },
 ] as const;
 
 function StatBanner({ stats }: { stats: DashStats }) {
@@ -505,11 +508,12 @@ export default function AdminDashboard() {
         pendingApps: 0,
         openRequests: 0,
         activeProjects: 0,
+        liveNotices: 0,
     });
     const [statsLoading, setStatsLoading] = useState(true);
 
     const fetchStats = useCallback(async () => {
-        const [membersRes, appsRes, reqsRes, projsRes] = await Promise.all([
+        const [membersRes, appsRes, reqsRes, projsRes, noticesRes] = await Promise.all([
             supabase
                 .from("profiles")
                 .select("id", { count: "exact", head: true })
@@ -525,6 +529,11 @@ export default function AdminDashboard() {
                 .from("projects")
                 .select("id", { count: "exact", head: true })
                 .in("status", ["in_progress", "ongoing", "planning", "on_hold"]),
+            supabase
+                .from("notice_board")
+                .select("id", { count: "exact", head: true })
+                .eq("is_archived", false)
+                .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`),
         ]);
 
         const pendingApplicants = Array.isArray(appsRes?.applicants)
@@ -536,6 +545,7 @@ export default function AdminDashboard() {
             pendingApps:    pendingApplicants,
             openRequests:   reqsRes.count ?? 0,
             activeProjects: projsRes.count ?? 0,
+            liveNotices:    noticesRes.count ?? 0,
         });
         setStatsLoading(false);
     }, [supabase]);
@@ -585,6 +595,14 @@ export default function AdminDashboard() {
                   },
               ]
             : []),
+        {
+            icon: Megaphone,
+            title: "Notice Board",
+            subtitle: "Broadcast announcements to the public. Pin notices, set expiry dates, and add action buttons.",
+            accentColor: "#f97316",
+            badge: stats.liveNotices,
+            href: "/admin/notice-board",
+        },
     ];
 
     return (

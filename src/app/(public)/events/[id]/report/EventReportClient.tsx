@@ -129,10 +129,10 @@ export default function EventReportClient({ event }: { event: Event }) {
     }, [event.cover_image_url, supabase]);
     const showCover = !!coverUrl && !imgFailed;
 
-    const reportMedia = (event.report_media ?? []) as ReportMedia[];
-    const reportYoutubeUrls = (event.report_youtube_urls ?? []) as string[];
-    const reportGuests = (event.report_guests ?? []) as ReportGuest[];
-    const reportSponsors = (event.report_sponsors ?? []) as ReportSponsor[];
+    const reportMedia = (event.report_media as unknown as ReportMedia[]) ?? [];
+    const reportYoutubeUrls = (event.report_youtube_urls as unknown as string[]) ?? [];
+    const reportGuests = (event.report_guests as unknown as ReportGuest[]) ?? [];
+    const reportSponsors = (event.report_sponsors as unknown as ReportSponsor[]) ?? [];
     const hasReport = !!event.report_summary;
 
     return (

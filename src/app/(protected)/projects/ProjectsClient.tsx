@@ -24,13 +24,15 @@ const STATUS: Record<string, { label: string; bg: string; text: string }> = {
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
 const FILTERS = [
-  { key: "all",         label: "All" },
+  { key: "all",         label: "All Projects" },
+  { key: "mine",        label: "My Projects" },
   { key: "in_progress", label: "In Progress" },
   { key: "completed",   label: "Completed" },
   { key: "archived",    label: "Archived" },
 ];
 
-function matchesFilter(filter: string, status: string) {
+function matchesFilter(filter: string, status: string, isMine: boolean) {
+  if (filter === "mine") return isMine;
   if (filter === "all") return true;
   if (filter === "in_progress") return ["in_progress", "ongoing", "planning"].includes(status);
   if (filter === "archived")    return ["archived", "on_hold"].includes(status);
@@ -112,7 +114,7 @@ function TechChip({ label, extra }: { label?: string; extra?: number }) {
 
 const MAX_TAGS = 4;
 
-function ProjectCard({ project, delay, shown }: { project: Project; delay: number; shown: boolean }) {
+function ProjectCard({ project, delay, shown, isMine }: { project: Project; delay: number; shown: boolean; isMine: boolean }) {
   const [hover, setHover] = useState(false);
   const st = STATUS[project.status] ?? STATUS.planning;
   const hue = useMemo(() => projectHue(project.id), [project.id]);
@@ -160,10 +162,22 @@ function ProjectCard({ project, delay, shown }: { project: Project; delay: numbe
 
           {/* Status badge */}
           <span
-            className="pointer-events-none absolute top-2.5 right-2.5 inline-flex items-center h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] font-semibold"
-            style={{ color: st.text, background: st.bg, backdropFilter: "blur(4px)" }}
+            className="pointer-events-none absolute top-2.5 right-2.5 inline-flex flex-col gap-1.5 items-end"
           >
-            {st.label}
+            <span
+              className="inline-flex items-center h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] font-semibold shadow-sm"
+              style={{ color: st.text, background: st.bg, backdropFilter: "blur(4px)" }}
+            >
+              {st.label}
+            </span>
+            {isMine && (
+              <span
+                className="inline-flex items-center h-[20px] px-2 rounded-sm font-mono text-[9px] uppercase tracking-[0.12em] font-semibold shadow-sm border"
+                style={{ color: "#00e5ff", background: "rgba(0,229,255,0.15)", borderColor: "rgba(0,229,255,0.4)", backdropFilter: "blur(4px)" }}
+              >
+                YOUR PROJECT
+              </span>
+            )}
           </span>
         </div>
 
@@ -399,7 +413,7 @@ function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 
-export default function ProjectsClient({ projects }: { projects: Project[] }) {
+export default function ProjectsClient({ projects, myProjectIds }: { projects: Project[]; myProjectIds: string[] }) {
   const { isFaculty } = useUser();
   const [filter, setFilter] = useState("all");
   const [shown,  setShown]  = useState(false);
@@ -432,8 +446,9 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
   }, [filter]);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: projects.length };
+    const c: Record<string, number> = { all: projects.length, mine: 0 };
     projects.forEach((p) => {
+      if (myProjectIds.includes(p.id)) c.mine++;
       // normalize ongoing → in_progress bucket
       const bucket = p.status === "ongoing" ? "in_progress" : p.status;
       c[bucket] = (c[bucket] ?? 0) + 1;
@@ -447,7 +462,7 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
 
   const items = useMemo(() => {
     if (filter === "all") return projects;
-    return projects.filter((p) => matchesFilter(filter, p.status));
+    return projects.filter((p) => matchesFilter(filter, p.status, myProjectIds.includes(p.id)));
   }, [filter, projects]);
 
   return (
@@ -552,14 +567,15 @@ export default function ProjectsClient({ projects }: { projects: Project[] }) {
         <ProjectsEmpty isFiltered={filter !== "all"} onClear={() => setFilter("all")} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-          {items.map((p, i) => (
-            <ProjectCard
-              key={p.id}
-              project={p}
-              delay={Math.min(i, 12) * 40}
-              shown={shown}
-            />
-          ))}
+              {items.map((p, i) => (
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  delay={Math.min(i, 16) * 35}
+                  shown={shown}
+                  isMine={myProjectIds.includes(p.id)}
+                />
+              ))}
         </div>
       )}
       </div>

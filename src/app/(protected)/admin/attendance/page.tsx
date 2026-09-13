@@ -42,7 +42,7 @@ export default async function AttendancePage() {
 
     return (
         <AttendanceClient
-            summary={summary ?? []}
+            summary={(summary as any) ?? []}
             moms={moms ?? []}
             attendanceRows={attendanceRows ?? []}
         />
