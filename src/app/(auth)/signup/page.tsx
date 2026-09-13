@@ -396,7 +396,7 @@ function SignupForm() {
             </div>
           </form>
 
-          <div className="mt-5 pt-5 border-t border-[rgba(0,229,255,0.12)] text-center">
+          <div className="mt-5 pt-5 border-t border-[rgba(0,229,255,0.12)] text-center hidden md:block">
             <span className="text-[#8b9ab0] text-[12.5px]">Already approved? </span>
             <Link
               href="/login"

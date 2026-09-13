@@ -245,10 +245,10 @@ export default function ContactPage() {
 
         {/* Kicker Removed */}
 
-        <div className="grid grid-cols-12 gap-10 mt-2">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-2">
 
           {/* LEFT — contact info */}
-          <div className="col-span-12 lg:col-span-7">
+          <div className="col-span-1 lg:col-span-7">
             <div className="w-full max-w-[600px] mx-auto lg:mx-0 relative">
               <div className="absolute top-0 left-0 z-10 pointer-events-none pr-4">
                 <div className="font-mono text-[11px] text-[#00e5ff] uppercase tracking-[0.2em] mb-1.5">HQ Location</div>
@@ -274,7 +274,7 @@ export default function ContactPage() {
           </div>
 
           {/* RIGHT — social + CTA */}
-          <div className="col-span-12 lg:col-span-5">
+          <div className="col-span-1 lg:col-span-5">
             <div className="w-full max-w-[340px] sm:max-w-sm mx-auto lg:max-w-none lg:mx-0">
               <SocialsCard />
 
