@@ -661,9 +661,11 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                         ) : (
                             <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
                                 <div>
-                                    <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#00e5ff] mb-1">
-                                        REGISTRATION FORM
-                                    </div>
+                                    {event.event_type !== 'feedback' && (
+                                        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#00e5ff] mb-1">
+                                            REGISTRATION FORM
+                                        </div>
+                                    )}
                                     <h2 className="font-sans font-bold text-[#f0f4ff] text-[20px] tracking-tight">
                                         {event.title}
                                     </h2>
