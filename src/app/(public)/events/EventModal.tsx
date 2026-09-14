@@ -61,7 +61,9 @@ const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
     dropdown: "Dropdown",
     mcq: "Multiple Choice",
     checkbox: "Checkboxes",
-    rating: "5-Star Rating",
+    rating: "Rating",
+    image: "Image Upload",
+    url: "External URL",
 };
 
 const MODAL_TABS = [

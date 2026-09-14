@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useId } from "react";
+import React, { useState, useCallback, useMemo, useId, useRef } from "react";
 import Link from "next/link";
 import {
     ArrowLeft, Calendar, Clock, MapPin, Users, User, CheckCircle2,
     AlertCircle, Loader2, ChevronDown, Lock, ExternalLink, Plus, Minus,
+    Upload, Trash2, ImageIcon, Link as LinkIcon
 } from "lucide-react";
 import { Tables } from "@/types/database";
 import type { CustomField } from "@/types/database";
@@ -108,6 +109,100 @@ const D3ButtonStyles = `
 `;
 
 // ── Custom Field Renderer ─────────────────────────────────────────
+function ImageUploadField({
+    field,
+    id,
+    value,
+    onChange,
+}: {
+    field: CustomField;
+    id: string;
+    value: string;
+    onChange: (v: string) => void;
+}) {
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        setError(null);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            fd.append("folder", "event_custom_fields");
+            const res = await fetch("/api/cloudinary/upload", { method: "POST", body: fd });
+            if (!res.ok) throw new Error("Upload failed");
+            const json = await res.json() as { url: string };
+            onChange(json.url);
+        } catch {
+            setError("Image upload failed. Try again.");
+        } finally {
+            setUploading(false);
+            if (fileRef.current) fileRef.current.value = "";
+        }
+    };
+
+    return (
+        <div className="space-y-3">
+            <input
+                ref={fileRef}
+                id={id}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUpload}
+                required={field.required && !value}
+            />
+            {value ? (
+                <div className="relative group rounded-sm overflow-hidden border border-[rgba(0,229,255,0.18)] inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={value} alt="Uploaded preview" className="max-h-[160px] max-w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => fileRef.current?.click()}
+                            disabled={uploading}
+                            className="bg-[#00e5ff] text-black px-3 py-1.5 rounded-sm text-[11px] font-mono uppercase tracking-wider hover:bg-[#33ccdd] transition-colors disabled:opacity-50"
+                        >
+                            {uploading ? "Uploading..." : "Replace"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onChange("")}
+                            className="bg-red-500/80 text-white p-1.5 rounded-sm hover:bg-red-500 transition-colors"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="w-full flex flex-col items-center justify-center gap-2 rounded-sm border border-dashed border-[rgba(0,229,255,0.3)] bg-[rgba(0,229,255,0.02)] hover:bg-[rgba(0,229,255,0.05)] transition-colors py-8 text-[#8b9ab0] hover:text-[#f0f4ff] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {uploading ? (
+                        <>
+                            <Loader2 size={24} className="animate-spin text-[#00e5ff]" />
+                            <span className="text-[13px]">Uploading image...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Upload size={24} className="text-[rgba(0,229,255,0.6)]" />
+                            <span className="text-[13px]">{field.placeholder || "Click to upload an image"}</span>
+                        </>
+                    )}
+                </button>
+            )}
+            {error && <p className="text-[#ef4444] text-[12px]">{error}</p>}
+        </div>
+    );
+}
+
 function CustomFieldInput({
     field,
     value,
@@ -271,6 +366,25 @@ function CustomFieldInput({
                 </div>
             </div>
         );
+    }
+    if (field.type === "url") {
+        return (
+            <div className="relative">
+                <LinkIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4a5568]" />
+                <input
+                    id={id}
+                    type="url"
+                    required={field.required}
+                    placeholder={field.placeholder || "https://..."}
+                    value={value as string}
+                    onChange={(e) => onChange(e.target.value)}
+                    className={`${base} pl-9`}
+                />
+            </div>
+        );
+    }
+    if (field.type === "image") {
+        return <ImageUploadField field={field} id={id} value={value as string} onChange={onChange} />;
     }
     return null;
 }

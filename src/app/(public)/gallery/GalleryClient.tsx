@@ -308,13 +308,7 @@ function GalleryCard({
               padding: "36px 14px 12px",
             }}
           >
-            <div className="text-fg text-[13.5px] font-semibold tracking-tight leading-snug">{item.title}</div>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <meta.Icon size={11} style={{ color: meta.fg }} />
-              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-fg2">
-                {kind} · {item.location_city || "VajraX"}
-              </span>
-            </div>
+            <div className="text-fg text-[18px] font-bold tracking-tight leading-snug">⚡️ {item.title}</div>
           </div>
         </div>
       ) : isArticle ? (
@@ -704,7 +698,7 @@ function Lightbox({
             </div>
 
             <h2 className="font-sans font-extrabold text-fg text-[22px] tracking-tight leading-tight">
-              {item.title}
+              ⚡️ {item.title}
             </h2>
             {item.description && (
               <p className="text-fg2 text-[13px] leading-relaxed mt-1.5 max-w-[60ch]">

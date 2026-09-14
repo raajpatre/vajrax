@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
     X, Loader2, Image as ImageIcon, Calendar, MapPin, Tag,
-    Link2, Upload, PlayCircle, FileText, Play, Check, Globe,
+    Link2, Upload, PlayCircle, FileText, Play, Check, Globe, AlignLeft, Type
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -68,24 +68,60 @@ const TAG_COLORS = [
     { hex: "#ffd700", label: "Gold"   },
 ];
 
-// Shared input class
-const inputCls =
-    "w-full bg-[rgba(7,9,15,0.6)] border border-edge rounded-sm px-3 py-2.5 text-fg text-[13px] " +
-    "focus:outline-none focus:border-cyan2/60 transition-colors placeholder:text-fg3";
+const FloatingField = ({ 
+    icon: Icon, 
+    label, 
+    value, 
+    type = "text", 
+    textarea = false, 
+    select = false, 
+    children,
+    hint,
+    ...props 
+}: any) => {
+    const hasValue = value !== undefined && value !== null && value !== "";
+    const active = hasValue || type === "date" || select;
+    const paddingLeft = Icon ? "pl-11" : "pl-4";
+    const baseCls = `peer w-full bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors ${paddingLeft} pr-3`;
 
-// $ label
-function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
+    const initialPosition = textarea ? 'top-3' : 'top-1/2 -translate-y-1/2';
+    const activePosition = 'top-0 -translate-y-1/2';
+    const activeTransform = `scale-[0.85] ${Icon ? "-translate-x-6" : "-translate-x-2"}`;
+    
+    const focusCls = `peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] ${Icon ? "peer-focus:-translate-x-6" : "peer-focus:-translate-x-2"} peer-focus:bg-[#07090f] peer-focus:px-2 peer-focus:text-[#00e5ff]`;
+    
+    const activeCls = active ? `${activePosition} ${activeTransform} bg-[#07090f] px-2 text-[#00e5ff]` : initialPosition;
+    
+    const labelCls = `absolute ${Icon ? "left-11" : "left-4"} text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 ${focusCls} ${activeCls}`;
+
     return (
-        <div className="flex items-center justify-between mb-1.5">
-            <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-fg2">
-                <span className="text-fg3 mr-0.5">$</span> {children}
+        <div className="relative group w-full mt-2">
+            {textarea ? (
+                <textarea {...props} value={value} placeholder=" " className={`${baseCls} py-3 resize-none`} />
+            ) : select ? (
+                <select {...props} value={value} className={`${baseCls} h-11 appearance-none`}>
+                    {children}
+                </select>
+            ) : (
+                <input {...props} type={type} value={value} placeholder=" " className={`${baseCls} h-11`} style={type === 'date' ? { colorScheme: 'dark' } : {}} />
+            )}
+            
+            {Icon && (
+                <span className={`absolute left-0 top-0 ${textarea ? 'h-11' : 'bottom-0'} grid place-items-center w-11 text-[#8b9ab0] pointer-events-none peer-focus:text-[#00e5ff] transition-colors`}>
+                    <Icon size={15} />
+                </span>
+            )}
+            
+            <label className={labelCls}>
+                {label}
             </label>
+
             {hint && (
-                <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-fg3">{hint}</span>
+                <span className="absolute right-0 -top-5 font-mono text-[9px] uppercase tracking-[0.14em] text-fg3">{hint}</span>
             )}
         </div>
     );
-}
+};
 
 export default function GalleryUploadModal({
     isOpen, onClose, onSuccess, editItem = null,
@@ -290,7 +326,7 @@ export default function GalleryUploadModal({
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 py-6">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 py-6">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -305,7 +341,7 @@ export default function GalleryUploadModal({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.97, y: 10 }}
                         transition={{ duration: 0.18 }}
-                        className="relative z-10 w-full max-w-xl border border-edgeStrong rounded-md overflow-hidden corner-ticks"
+                        className="relative z-10 w-full max-w-xl max-h-[85vh] md:max-h-[90vh] border border-edgeStrong rounded-md overflow-hidden corner-ticks flex flex-col"
                         style={{ background: "rgba(7,9,15,0.98)" }}
                     >
                         <span className="ct-tr" />
@@ -341,8 +377,8 @@ export default function GalleryUploadModal({
                         </div>
 
                         {/* ── BODY ── */}
-                        <form onSubmit={handleSubmit}>
-                            <div className="overflow-y-auto px-5 py-5 flex flex-col gap-5" style={{ maxHeight: "calc(100vh - 12rem)" }}>
+                        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 overflow-hidden">
+                            <div className="overflow-y-auto px-4 py-5 sm:px-5 flex flex-col gap-6 flex-1">
 
                                 {/* Error */}
                                 {error && (
@@ -458,16 +494,14 @@ export default function GalleryUploadModal({
                                             </button>
                                         ) : (
                                             <div className="flex flex-col gap-2">
-                                                <div className="relative">
-                                                    <Link2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
-                                                    <input
-                                                        type="url"
-                                                        value={imageUrlInput}
-                                                        onChange={(e) => { setImageUrlInput(e.target.value); setImagePreview(e.target.value || null); setError(null); }}
-                                                        placeholder="https://res.cloudinary.com/…"
-                                                        className={inputCls + " pl-9"}
-                                                    />
-                                                </div>
+                                                <FloatingField
+                                                    icon={Link2}
+                                                    label="Image URL"
+                                                    type="url"
+                                                    value={imageUrlInput}
+                                                    onChange={(e: any) => { setImageUrlInput(e.target.value); setImagePreview(e.target.value || null); setError(null); }}
+                                                    placeholder="https://res.cloudinary.com/…"
+                                                />
                                                 {imagePreview ? (
                                                     <div className="relative w-full overflow-hidden rounded-sm border border-edge" style={{ aspectRatio: "16/7" }}>
                                                         <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"
@@ -494,16 +528,14 @@ export default function GalleryUploadModal({
                                 {/* ── VIDEO ── */}
                                 {mediaType === "video" && (
                                     <div className="flex flex-col gap-3">
-                                        <div className="relative">
-                                            <Play size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#ef4444] pointer-events-none" />
-                                            <input
-                                                type="url"
-                                                value={youtubeUrl}
-                                                onChange={(e) => { setPlayUrl(e.target.value); setError(null); }}
-                                                placeholder="https://youtube.com/watch?v=…"
-                                                className={inputCls + " pl-9"}
-                                            />
-                                        </div>
+                                        <FloatingField
+                                            icon={Play}
+                                            label="YouTube URL"
+                                            type="url"
+                                            value={youtubeUrl}
+                                            onChange={(e: any) => { setPlayUrl(e.target.value); setError(null); }}
+                                            placeholder="https://youtube.com/watch?v=…"
+                                        />
                                         {ytId ? (
                                             <div className="relative w-full overflow-hidden rounded-sm border border-edge" style={{ aspectRatio: "16/9" }}>
                                                 <img src={ytThumbnail(ytId)} alt="YouTube thumbnail" className="w-full h-full object-cover" />
@@ -533,19 +565,17 @@ export default function GalleryUploadModal({
                                 {/* ── ARTICLE ── */}
                                 {mediaType === "article" && (
                                     <div className="flex flex-col gap-3">
-                                        <div className="relative">
-                                            <FileText size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a78bfa] pointer-events-none" />
-                                            <input
-                                                type="url"
-                                                value={articleUrl}
-                                                onChange={(e) => { setArticleUrl(e.target.value); setError(null); }}
-                                                placeholder="https://medium.com/…"
-                                                className={inputCls + " pl-9"}
-                                            />
-                                        </div>
+                                        <FloatingField
+                                            icon={FileText}
+                                            label="Article URL"
+                                            type="url"
+                                            value={articleUrl}
+                                            onChange={(e: any) => { setArticleUrl(e.target.value); setError(null); }}
+                                            placeholder="https://medium.com/…"
+                                        />
 
-                                        <div>
-                                            <FieldLabel>Cover image <span className="text-fg3 normal-case font-sans font-normal text-[11px] tracking-normal ml-1">(optional)</span></FieldLabel>
+                                        <div className="mt-2">
+                                            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-fg2 mb-2 block">Cover image <span className="text-fg3 normal-case font-sans font-normal text-[11px] tracking-normal ml-1">(optional)</span></span>
                                             <input type="file" accept="image/*" ref={thumbInputRef} onChange={handleThumbSelect} className="hidden" />
                                             <div className="flex gap-0 border border-edge rounded-sm overflow-hidden mb-2 w-fit">
                                                 {(["none", "upload", "url"] as const).map((src, i) => (
@@ -581,12 +611,13 @@ export default function GalleryUploadModal({
                                                 </button>
                                             )}
                                             {thumbSource === "url" && (
-                                                <input
+                                                <FloatingField
+                                                    icon={Link2}
+                                                    label="Thumbnail URL"
                                                     type="url"
                                                     value={thumbUrlInput}
-                                                    onChange={(e) => { setThumbUrlInput(e.target.value); setThumbPreview(e.target.value || null); }}
+                                                    onChange={(e: any) => { setThumbUrlInput(e.target.value); setThumbPreview(e.target.value || null); }}
                                                     placeholder="https://…/thumbnail.jpg"
-                                                    className={inputCls}
                                                 />
                                             )}
                                         </div>
@@ -594,81 +625,54 @@ export default function GalleryUploadModal({
                                 )}
 
                                 {/* ── $ TITLE ── */}
-                                <div>
-                                    <FieldLabel>Title</FieldLabel>
-                                    <input
-                                        type="text"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        required
-                                        placeholder="E.g., VajraX Team at TechFest 2025"
-                                        className={inputCls}
-                                    />
-                                </div>
+                                <FloatingField
+                                    icon={Type}
+                                    label="Title"
+                                    value={title}
+                                    onChange={(e: any) => setTitle(e.target.value)}
+                                    required
+                                />
 
                                 {/* ── $ DESCRIPTION ── */}
-                                <div>
-                                    <FieldLabel hint="2-LINE PREVIEW IN CARD">Description</FieldLabel>
-                                    <textarea
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        rows={3}
-                                        placeholder="Write a short caption or context…"
-                                        className={inputCls + " resize-none"}
-                                    />
-                                </div>
+                                <FloatingField
+                                    icon={AlignLeft}
+                                    label="Description"
+                                    value={description}
+                                    onChange={(e: any) => setDescription(e.target.value)}
+                                    textarea
+                                    rows={3}
+                                    hint="2-LINE PREVIEW IN CARD"
+                                />
 
                                 {/* ── $ TAG · $ CITY · $ COUNTRY ── */}
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div>
-                                        <FieldLabel>
-                                            Tag
-                                            {mediaType !== "photo" && (
-                                                <span className="text-fg3 ml-1 normal-case font-sans font-normal text-[10px] tracking-normal">(auto)</span>
-                                            )}
-                                        </FieldLabel>
-                                        <div className="relative">
-                                            <select
-                                                value={mediaType === "video" ? "Video" : mediaType === "article" ? "Article" : tag}
-                                                onChange={(e) => { if (mediaType === "photo") setTag(e.target.value); }}
-                                                disabled={mediaType !== "photo"}
-                                                className={inputCls + " appearance-none pr-7 disabled:opacity-50 disabled:cursor-not-allowed"}
-                                                style={{ colorScheme: "dark" }}
-                                            >
-                                                {mediaType !== "photo"
-                                                    ? <option>{mediaType === "video" ? "Video" : "Article"}</option>
-                                                    : TAG_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)
-                                                }
-                                            </select>
-                                            <Tag size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <FieldLabel>City</FieldLabel>
-                                        <div className="relative">
-                                            <MapPin size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
-                                            <input
-                                                type="text"
-                                                value={locationCity}
-                                                onChange={(e) => setLocationCity(e.target.value)}
-                                                placeholder="Bengaluru"
-                                                className={inputCls + " pl-8"}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <FieldLabel>Country</FieldLabel>
-                                        <div className="relative">
-                                            <Globe size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
-                                            <input
-                                                type="text"
-                                                value={locationCountry}
-                                                onChange={(e) => setLocationCountry(e.target.value)}
-                                                placeholder="India"
-                                                className={inputCls + " pl-8"}
-                                            />
-                                        </div>
-                                    </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-3">
+                                    <FloatingField
+                                        icon={Tag}
+                                        label={mediaType !== "photo" ? "Tag (auto)" : "Tag"}
+                                        select
+                                        value={mediaType === "video" ? "Video" : mediaType === "article" ? "Article" : tag}
+                                        onChange={(e: any) => { if (mediaType === "photo") setTag(e.target.value); }}
+                                        disabled={mediaType !== "photo"}
+                                    >
+                                        {mediaType !== "photo"
+                                            ? <option>{mediaType === "video" ? "Video" : "Article"}</option>
+                                            : TAG_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)
+                                        }
+                                    </FloatingField>
+
+                                    <FloatingField
+                                        icon={MapPin}
+                                        label="City"
+                                        value={locationCity}
+                                        onChange={(e: any) => setLocationCity(e.target.value)}
+                                    />
+
+                                    <FloatingField
+                                        icon={Globe}
+                                        label="Country"
+                                        value={locationCountry}
+                                        onChange={(e: any) => setLocationCountry(e.target.value)}
+                                    />
                                 </div>
 
                                 {/* Tag color swatches — photo only */}
@@ -708,20 +712,14 @@ export default function GalleryUploadModal({
                                 )}
 
                                 {/* ── $ DATE ── */}
-                                <div>
-                                    <FieldLabel>Date</FieldLabel>
-                                    <div className="relative">
-                                        <Calendar size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg3 pointer-events-none" />
-                                        <input
-                                            type="date"
-                                            value={date}
-                                            onChange={(e) => setDate(e.target.value)}
-                                            required
-                                            className={inputCls + " pl-8"}
-                                            style={{ colorScheme: "dark" }}
-                                        />
-                                    </div>
-                                </div>
+                                <FloatingField
+                                    icon={Calendar}
+                                    label="Date"
+                                    type="date"
+                                    value={date}
+                                    onChange={(e: any) => setDate(e.target.value)}
+                                    required
+                                />
                             </div>
 
                             {/* ── FOOTER ── */}

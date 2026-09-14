@@ -12,7 +12,7 @@ export default function ProtectedLayout({
             <ProtectedSidebar />
             <div className="flex flex-col flex-1 transition-[padding] duration-300 lg:pl-[260px] [.sidebar-collapsed_&]:lg:pl-[68px]">
                 <PublicAmbientBackground />
-                <main className="relative z-30 flex-1 pt-14 lg:pt-0">
+                <main className="relative z-30 flex-1 pt-20 lg:pt-0">
                     {children}
                 </main>
                 <Footer />

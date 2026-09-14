@@ -156,8 +156,8 @@ function EventFlipCard({
       onMouseLeave={isPast ? undefined : () => setFlipped(false)}
     >
       <div
-        onClick={() => setFlipped((f) => !f)}
         className="relative w-full cursor-pointer"
+        onClick={isPast ? () => setFlipped(f => !f) : undefined}
         style={{
           aspectRatio: "290 / 380",
           transformStyle: "preserve-3d",

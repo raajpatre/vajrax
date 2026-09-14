@@ -17,13 +17,12 @@ export default function PublicLayoutShell({
     if (!loading && isAuthenticated) {
         return (
             <div
-                className="flex min-h-screen bg-[#050B14]"
-                style={{ "--nav-height": "0px" } as React.CSSProperties}
+                className="flex min-h-screen bg-[#050B14] [--nav-height:64px] lg:[--nav-height:0px]"
             >
                 <ProtectedSidebar />
                 <div className="flex flex-col flex-1 transition-[padding] duration-300 lg:pl-[260px] [.sidebar-collapsed_&]:lg:pl-[68px]">
                     <PublicAmbientBackground />
-                    <main className="relative z-10 flex-1 pt-14 lg:pt-0">{children}</main>
+                    <main className="relative z-10 flex-1">{children}</main>
                     <div className="relative z-10">
                         <Footer />
                     </div>

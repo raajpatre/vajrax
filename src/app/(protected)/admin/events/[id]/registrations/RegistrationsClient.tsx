@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import {
     ArrowLeft, Download, Search, Users, User, ChevronDown, ChevronRight,
-    Phone, Mail, Building2, Hash, Check, Filter, LayoutGrid
+    Phone, Mail, Building2, Hash, Check, Filter, LayoutGrid, ExternalLink
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -98,11 +98,39 @@ function RegistrationRow({ reg, eventCustomFields }: { reg: Reg, eventCustomFiel
                                 {eventCustomFields.map((field: any) => {
                                     const answer = (reg.custom_responses as Record<string, any>)?.[field.id];
                                     if (answer === undefined || answer === null || answer === "") return null;
+                                    
+                                    let content: React.ReactNode = Array.isArray(answer) ? answer.join(", ") : String(answer);
+                                    
+                                    if (field.type === "url") {
+                                        content = (
+                                            <a href={String(answer)} target="_blank" rel="noopener noreferrer" className="text-[#00e5ff] hover:underline flex items-center gap-1">
+                                                {String(answer)}
+                                                <ExternalLink size={12} />
+                                            </a>
+                                        );
+                                    } else if (field.type === "image") {
+                                        const originalUrl = String(answer);
+                                        const downloadUrl = originalUrl.includes('cloudinary.com') 
+                                            ? originalUrl.replace('/upload/', '/upload/fl_attachment/') 
+                                            : originalUrl;
+                                            
+                                        content = (
+                                            <div className="flex flex-col gap-2">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={originalUrl} alt="User upload" className="max-h-[120px] w-fit rounded-sm object-cover border border-[rgba(0,229,255,0.18)]" />
+                                                <a href={downloadUrl} download target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-widest text-[#00e5ff] hover:text-[#33ccdd] transition-colors">
+                                                    <Download size={12} />
+                                                    Download Image
+                                                </a>
+                                            </div>
+                                        );
+                                    }
+
                                     return (
                                         <div key={field.id} className="bg-[#0d1117]/80 border border-[rgba(0,229,255,0.15)] rounded-sm px-3.5 py-2.5">
                                             <div className="font-mono text-[10px] text-[#4a5568] mb-1">{field.label}</div>
                                             <div className="font-sans text-[13px] text-[#f0f4ff]">
-                                                {Array.isArray(answer) ? answer.join(", ") : String(answer)}
+                                                {content}
                                             </div>
                                         </div>
                                     );

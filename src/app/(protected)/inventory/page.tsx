@@ -380,7 +380,7 @@ function InvFilterPills({ value, onChange, counts }: {
 
     return (
         <div 
-            className="cir-tabs relative"
+            className="cir-tabs relative max-w-full overflow-x-auto"
             ref={wrapRef}
             style={{ 
                 background: "rgba(13,17,23,0.8)", 
@@ -473,7 +473,7 @@ function AddToCartModal({ item, onClose, onConfirm }: {
     return (
         <div className="fixed inset-0 z-[110]" style={{ animation: "fadeIn 160ms ease-out" }}>
             <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(7,9,15,0.80)" }} onClick={onClose} />
-            <div className="absolute inset-0 grid place-items-center p-6">
+            <div className="absolute inset-0 grid place-items-center p-4 sm:p-6">
                 <div
                     className="relative w-full max-w-md rounded-md shadow-2xl corner-ticks"
                     style={{
@@ -576,7 +576,8 @@ function CartDrawer({ open, onClose, cart, onUpdateQty, onChangeType, onRemove, 
             <div
                 className="fixed top-0 right-0 bottom-0 z-[91] flex flex-col"
                 style={{
-                    width: 380,
+                    width: "100%",
+                    maxWidth: 380,
                     background: "#0d1117",
                     borderLeft: "1px solid rgba(0,229,255,0.18)",
                     boxShadow: "-8px 0 32px rgba(0,0,0,0.55)",
@@ -769,7 +770,7 @@ function ItemModal({ item, onClose, onSaved }: {
     return (
         <div className="fixed inset-0 z-[120]" style={{ animation: "fadeIn 160ms ease-out" }}>
             <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(7,9,15,0.80)" }} onClick={onClose} />
-            <div className="absolute inset-0 grid place-items-center p-6 overflow-y-auto">
+            <div className="absolute inset-0 grid place-items-center p-4 sm:p-6 overflow-y-auto">
                 <div
                     className="relative w-full max-w-2xl rounded-md shadow-2xl corner-ticks my-auto"
                     style={{
@@ -1159,7 +1160,7 @@ export default function InventoryPage() {
                 <CircuitTrace which={2} className="w-full h-full" />
             </div>
 
-            <div className="relative z-10 max-w-6xl mx-auto px-8 pt-8 pb-16">
+            <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 pt-8 pb-16">
                 {/* Page header */}
             <div className="mb-7">
                 <h1 className="font-sans font-extrabold tracking-tight text-[#f0f4ff] text-[36px] leading-none">
@@ -1187,7 +1188,7 @@ export default function InventoryPage() {
             {/* Controls row */}
             <div className="flex items-center gap-3 mb-5 flex-wrap">
                 {/* Search */}
-                <div className="relative flex-1 max-w-sm">
+                <div className="relative w-full sm:flex-1 sm:max-w-sm">
                     <span className="absolute inset-y-0 left-0 grid place-items-center w-9 text-[#8b9ab0] pointer-events-none">
                         <Search size={14} />
                     </span>
@@ -1201,7 +1202,7 @@ export default function InventoryPage() {
                     />
                 </div>
 
-                <div className="flex-1" />
+                <div className="hidden sm:block sm:flex-1" />
 
                 {/* Manager actions */}
                 {canManage && (

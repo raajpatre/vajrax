@@ -555,30 +555,39 @@ export default function ProtectedSidebar() {
             {/* Mobile backdrop */}
             {mobileOpen && (
                 <div
-                    className="lg:hidden fixed inset-0 z-30"
+                    className="lg:hidden fixed inset-0 z-40"
                     style={{ background: "rgba(7,9,15,0.80)", backdropFilter: "blur(6px)" }}
                     onClick={() => setMobileOpen(false)}
                 />
             )}
 
-            {/* Mobile hamburger button — hidden when sidebar is open */}
+            {/* Mobile Header Bar — hidden when sidebar is open */}
             {!mobileOpen && (
-                <button
-                    className="lg:hidden fixed top-4 left-4 z-50 grid place-items-center w-10 h-10 rounded-sm"
-                    style={{
-                        background: "#0d1117",
-                        border: "1px solid rgba(0,229,255,0.18)",
-                        color: "#f0f4ff",
+                <div 
+                    className="lg:hidden fixed top-0 left-0 right-0 h-16 z-40 flex items-center justify-between px-4"
+                    style={{ 
+                        background: "rgba(13, 17, 23, 0.85)", 
+                        backdropFilter: "blur(12px)", 
+                        borderBottom: "1px solid rgba(0, 229, 255, 0.08)" 
                     }}
-                    onClick={() => setMobileOpen(true)}
-                    aria-label="Open menu"
                 >
-                    <Menu size={18} />
-                </button>
+                    <button
+                        className="grid place-items-center w-10 h-10 rounded-sm"
+                        style={{
+                            background: "#0d1117",
+                            border: "1px solid rgba(0,229,255,0.18)",
+                            color: "#f0f4ff",
+                        }}
+                        onClick={() => setMobileOpen(true)}
+                        aria-label="Open menu"
+                    >
+                        <Menu size={18} />
+                    </button>
+                </div>
             )}
 
             <aside
-                className={`flex flex-col fixed top-0 left-0 h-screen z-40 overflow-hidden ${
+                className={`flex flex-col fixed top-0 left-0 h-screen z-50 overflow-hidden ${
                     mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
                 }`}
                 style={{

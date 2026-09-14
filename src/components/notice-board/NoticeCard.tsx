@@ -72,15 +72,7 @@ export default function NoticeCard({ notice }: NoticeCardProps) {
                     : "none",
             }}
         >
-            {/* Corner ticks */}
-            <span
-                className="absolute top-2 right-2 w-2.5 h-2.5 pointer-events-none"
-                style={{ borderTop: `1px solid rgba(${accentRgb},0.4)`, borderRight: `1px solid rgba(${accentRgb},0.4)` }}
-            />
-            <span
-                className="absolute bottom-2 left-4 w-2.5 h-2.5 pointer-events-none"
-                style={{ borderBottom: `1px solid rgba(${accentRgb},0.4)`, borderLeft: `1px solid rgba(${accentRgb},0.4)` }}
-            />
+
 
             <div className="px-5 pt-4 pb-5">
                 {/* Top badge row */}
