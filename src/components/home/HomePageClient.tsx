@@ -364,7 +364,7 @@ export default function HomePageClient({ sponsors, stats, spiralImages = [] }: H
                             {spiralImages.length > 0 ? (
                                 <InfiniteSpiral
                                     items={spiralImages}
-                                    animationMode="all"
+                                    animationMode="auto"
                                     speed={0.55}
                                     radius={170}
                                     cardWidth={152}

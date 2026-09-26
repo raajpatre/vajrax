@@ -1280,7 +1280,7 @@ export function InventoryPageInner() {
                     <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
                     <span>{filtered.length > 0 ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} items</span>
                 </div>
-                <span className="text-[#4a5568] hidden md:block">// last sync 12s ago</span>
+
             </div>
 
             {/* Grid */}

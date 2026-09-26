@@ -53,10 +53,13 @@ export default async function HomePage() {
                 awards: awardsResult.count ?? 0,
                 years: yearsSinceFounding(),
             }}
-            spiralImages={shuffledGallery.map((item) => ({
-                src: (item.cover_image_url || item.media_url) as string,
-                alt: item.title,
-            }))}
+            spiralImages={shuffledGallery.map((item) => {
+                const rawUrl = (item.cover_image_url || item.media_url) as string;
+                return {
+                    src: rawUrl.includes(',') ? rawUrl.split(',')[0] : rawUrl,
+                    alt: item.title,
+                };
+            })}
         />
     );
 }

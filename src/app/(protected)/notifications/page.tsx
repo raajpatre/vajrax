@@ -270,14 +270,6 @@ function EmptyState({ filter }: { filter: "all" | "unread" }) {
                 <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] mb-2" style={{ color: filter === "unread" ? "#22c55e" : "#00e5ff" }}>
                     {filter === "unread" ? "ALL CAUGHT UP" : "NO ACTIVITY YET"}
                 </div>
-                <h3 className="text-[#f0f4ff] font-bold text-[18px] tracking-tight">
-                    {filter === "unread" ? "You're all caught up" : "No notifications yet"}
-                </h3>
-                <p className="text-[#8b9ab0] text-[13px] mt-1.5 max-w-[42ch] mx-auto leading-relaxed">
-                    {filter === "unread"
-                        ? "All notifications have been read. Great job staying on top of things."
-                        : "Activity from project proposals, equipment requests, and team updates will appear here."}
-                </p>
             </div>
         </div>
     );

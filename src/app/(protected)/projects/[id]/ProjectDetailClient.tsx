@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
     ArrowLeft, Settings2, ExternalLink, X, Plus, Check,
-    UserPlus, Loader2, Mail, AlertCircle, CheckCircle2, ImagePlus,
-    Pencil, Trash2, FileCode2, Download, Box, Copy, Paperclip,
+    UserPlus, UserCheck, Loader2, Mail, AlertCircle, CheckCircle2, ImagePlus,
+    Pencil, Trash2, FileCode2, Download, Box, Copy, Paperclip, Search,
 } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/lib/hooks/useUser";
@@ -865,6 +865,21 @@ export default function ProjectDetailClient({
                 attachments: (u.attachments as unknown as Attachment[] | null) ?? null,
                 author: u.author as unknown as ProjectUpdate["author"],
             })) as unknown as ProjectUpdate[]);
+
+            // Fetch all profiles for the member picker
+            const { data: profilesData } = await supabase
+                .from("profiles")
+                .select("id, display_name, username, avatar_url")
+                .order("display_name");
+            if (profilesData) setAllProfiles(profilesData);
+
+            // Fetch pending invites for this project
+            const { data: pendingData } = await supabase
+                .from("project_invites")
+                .select("invitee_id")
+                .eq("project_id", project.id)
+                .eq("status", "pending");
+            if (pendingData) setPendingInviteIds(pendingData.map((r) => r.invitee_id as string));
         };
         refetch();
     }, [supabase, project.id]);
@@ -881,41 +896,66 @@ export default function ProjectDetailClient({
     const canManage = isLead || isFaculty;
 
     // Invite
-    const [inviteEmail, setInviteEmail] = useState("");
     const [inviteMsg, setInviteMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
     const [inviting, setInviting] = useState(false);
     const [removingId, setRemovingId] = useState<string | null>(null);
     const [memberError, setMemberError] = useState<string | null>(null);
+    const [allProfiles, setAllProfiles] = useState<{ id: string; display_name: string; username: string | null; avatar_url: string | null }[]>([]);
+    const [selectedInvitees, setSelectedInvitees] = useState<string[]>([]);
+    const [memberSearch, setMemberSearch] = useState("");
+    const [pendingInviteIds, setPendingInviteIds] = useState<string[]>([]);
 
-    const handleInvite = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!inviteEmail.trim() || !user) return;
+    const handleSendInvite = async () => {
+        if (selectedInvitees.length === 0 || !user) return;
         setInviting(true);
         setInviteMsg(null);
-        try {
-            let profile: { id: string; display_name: string } | null = null;
-            if (inviteEmail.includes("@")) {
-                const { data } = await supabase.rpc("lookup_profile_by_email", { lookup_email: inviteEmail.trim().toLowerCase() });
-                if (data && Array.isArray(data) && data.length > 0) profile = data[0];
-            }
-            if (!profile) { setInviteMsg({ type: "err", text: "No member found with that email." }); setInviting(false); return; }
-            if (profile.id === user.id) { setInviteMsg({ type: "err", text: "You can't invite yourself." }); setInviting(false); return; }
-            if (members.some(m => m.user.id === profile!.id)) { setInviteMsg({ type: "err", text: "Already on the team." }); setInviting(false); return; }
 
-            const { error } = await supabase.from("project_invites").insert({ project_id: project.id, inviter_id: user.id, invitee_id: profile.id });
+        let successCount = 0;
+        const errors: string[] = [];
+
+        for (const profileId of selectedInvitees) {
+            if (pendingInviteIds.includes(profileId)) {
+                const prof = allProfiles.find((p) => p.id === profileId);
+                errors.push(`${prof?.display_name ?? profileId} already has a pending invite.`);
+                continue;
+            }
+
+            const { error } = await supabase.from("project_invites").insert({
+                project_id: project.id,
+                inviter_id: user.id,
+                invitee_id: profileId,
+            });
+
             if (error) {
-                setInviteMsg({ type: "err", text: error.code === "23505" ? "Invite already sent." : error.message });
+                errors.push(error.code === "23505" ? "Invite already sent." : error.message);
             } else {
+                // Send notification
+                const prof = allProfiles.find((p) => p.id === profileId);
                 await supabase.from("notifications").insert({
-                    user_id: profile.id, type: "project_invite_received",
+                    user_id: profileId,
+                    type: "project_invite_received",
                     message: `${user.user_metadata?.display_name || "A team lead"} invited you to join ${project.title}.`,
                     related_entity_id: project.id,
                 });
-                setInviteEmail("");
-                setInviteMsg({ type: "ok", text: `Invite sent to ${profile.display_name}` });
-                setTimeout(() => setInviteMsg(null), 3000);
+                successCount++;
             }
-        } catch { setInviteMsg({ type: "err", text: "Something went wrong." }); }
+        }
+
+        if (successCount > 0) {
+            setInviteMsg({ type: "ok", text: `${successCount} invite${successCount > 1 ? "s" : ""} sent.` });
+            setSelectedInvitees([]);
+            setTimeout(() => setInviteMsg(null), 3000);
+            // Refresh
+            const { data: pendingData } = await supabase
+                .from("project_invites")
+                .select("invitee_id")
+                .eq("project_id", project.id)
+                .eq("status", "pending");
+            if (pendingData) setPendingInviteIds(pendingData.map((r) => r.invitee_id as string));
+        }
+        if (errors.length > 0) {
+            setInviteMsg({ type: "err", text: errors.join(" ") });
+        }
         setInviting(false);
     };
 
@@ -1194,43 +1234,85 @@ export default function ProjectDetailClient({
                             {canManage && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <span className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568]">// INVITE</span>
+                                        <span className="font-mono text-[10px] uppercase tracking-[0.20em] text-[#4a5568]">INVITE</span>
                                         <span className="flex-1 h-px bg-[rgba(0,229,255,0.12)]" />
                                     </div>
-                                    <form onSubmit={handleInvite} className="space-y-4 mt-2">
-                                        <div className="input-container" style={{ marginTop: 0 }}>
+                                    <div className="space-y-2">
+                                        {/* Search */}
+                                        <div className="relative">
+                                            <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#4a5568" }} />
                                             <input
-                                                type="email" value={inviteEmail}
-                                                onChange={e => { setInviteEmail(e.target.value); setInviteMsg(null); }}
-                                                placeholder=" "
-                                                className="holo-input"
+                                                type="text"
+                                                value={memberSearch}
+                                                onChange={(e) => setMemberSearch(e.target.value)}
+                                                placeholder="Search members..."
+                                                className="w-full h-8 pl-7 pr-3 rounded-sm text-[12px] bg-[#07090f] text-[#f0f4ff] placeholder:text-[#4a5568] focus:outline-none transition-colors"
+                                                style={{ border: "1px solid rgba(0,229,255,0.18)" }}
                                             />
-                                            <span className="absolute inset-y-0 left-0 grid place-items-center w-10 text-[#00e5ff] pointer-events-none z-20">
-                                                <Mail size={14} />
-                                            </span>
-                                            <label className="input-label" data-text="team@nst.edu">team@nst.edu</label>
-                                            <div className="input-border"></div>
-                                            <div className="input-corners">
-                                                <div className="holo-input-corner corner-tl"></div>
-                                                <div className="holo-input-corner corner-tr"></div>
-                                                <div className="holo-input-corner corner-bl"></div>
-                                                <div className="holo-input-corner corner-br"></div>
-                                            </div>
-                                            <div className="input-glow"></div>
-                                            <div className="input-scanline"></div>
-                                            <div className="input-data-stream">
-                                                <div className="stream-bar" style={{ "--i": 1 } as React.CSSProperties}></div>
-                                                <div className="stream-bar" style={{ "--i": 2 } as React.CSSProperties}></div>
-                                                <div className="stream-bar" style={{ "--i": 3 } as React.CSSProperties}></div>
-                                            </div>
                                         </div>
-                                        <button type="submit" disabled={inviting || !inviteEmail.trim()}
+                                        {/* Member list */}
+                                        <div className="max-h-40 overflow-y-auto space-y-0.5" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(0,229,255,0.15) transparent" }}>
+                                            {allProfiles
+                                                .filter((p) =>
+                                                    p.id !== user?.id &&
+                                                    !members.some((m) => m.user.id === p.id) &&
+                                                    (memberSearch === "" ||
+                                                        p.display_name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+                                                        p.username?.toLowerCase().includes(memberSearch.toLowerCase()))
+                                                )
+                                                .map((p) => {
+                                                    const isSelected = selectedInvitees.includes(p.id);
+                                                    const hasPending = pendingInviteIds.includes(p.id);
+                                                    return (
+                                                        <button
+                                                            key={p.id}
+                                                            type="button"
+                                                            disabled={hasPending}
+                                                            onClick={() => {
+                                                                if (hasPending) return;
+                                                                setSelectedInvitees((prev) =>
+                                                                    isSelected ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                                                                );
+                                                                setInviteMsg(null);
+                                                            }}
+                                                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-left transition-all"
+                                                            style={{
+                                                                background: isSelected ? "rgba(0,229,255,0.08)" : hasPending ? "rgba(245,158,11,0.04)" : "transparent",
+                                                                border: isSelected ? "1px solid rgba(0,229,255,0.22)" : "1px solid transparent",
+                                                                opacity: hasPending ? 0.6 : 1,
+                                                            }}
+                                                        >
+                                                            <div className="w-5 h-5 rounded-sm flex items-center justify-center overflow-hidden shrink-0" style={{ background: "rgba(0,229,255,0.10)", border: "1px solid rgba(0,229,255,0.20)" }}>
+                                                                {p.avatar_url ? (
+                                                                    <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <span className="font-mono text-[8px] font-bold" style={{ color: "#00e5ff" }}>{p.display_name?.slice(0, 2).toUpperCase() || "??"}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[11.5px] truncate" style={{ color: "#f0f4ff" }}>{p.display_name}</p>
+                                                                {p.username && <p className="font-mono text-[9px]" style={{ color: "#4a5568" }}>@{p.username}</p>}
+                                                            </div>
+                                                            {hasPending ? (
+                                                                <span className="font-mono text-[8px] px-1 py-0.5 rounded-sm shrink-0" style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.25)" }}>Pending</span>
+                                                            ) : isSelected ? (
+                                                                <CheckCircle2 size={11} style={{ color: "#00e5ff" }} className="shrink-0" />
+                                                            ) : null}
+                                                        </button>
+                                                    );
+                                                })}
+                                        </div>
+                                        {/* Send button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleSendInvite()}
+                                            disabled={inviting || selectedInvitees.length === 0}
                                             className="btn-3d-cyan w-full text-center disabled:opacity-50 disabled:cursor-not-allowed"
                                             style={{ minWidth: 0, paddingBottom: 0, border: 'none' }}
                                         >
                                             <div className="btn-top flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] font-bold w-full">
-                                                {inviting ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
-                                                <span>Invite Member</span>
+                                                {inviting ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />}
+                                                <span>Send {selectedInvitees.length > 0 ? `${selectedInvitees.length} ` : ""}Invite{selectedInvitees.length !== 1 ? "s" : ""}</span>
                                             </div>
                                             <div className="btn-bottom" />
                                             <div className="btn-base" />
@@ -1244,7 +1326,7 @@ export default function ProjectDetailClient({
                                                 {inviteMsg.text}
                                             </div>
                                         )}
-                                    </form>
+                                    </div>
                                 </div>
                             )}
 
