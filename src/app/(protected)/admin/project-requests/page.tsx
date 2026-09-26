@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
@@ -140,7 +144,7 @@ function ProposalCard({
                     >
                         {req.requester.avatar_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={req.requester.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                            <img src={req.requester.avatar_url} alt="" loading="lazy" className="w-full h-full rounded-full object-cover" />
                         ) : (
                             initials
                         )}
@@ -238,7 +242,7 @@ const FILTER_OPTIONS: { value: FilterKey; label: string; color: string | null }[
     { value: "REJECTED", label: "Rejected", color: "#ef4444"  },
 ];
 
-export default function AdminProjectRequestsPage() {
+export function AdminProjectRequestsPageInner() {
     const { isModerator, isFaculty, loading: userLoading } = useUser();
     const supabase = createClient();
     const [requests, setRequests] = useState<ProjectRequest[]>([]);
@@ -300,7 +304,24 @@ export default function AdminProjectRequestsPage() {
     const handleReject = (id: string) =>
         setRequests(prev => prev.map(r => (r.id !== id ? r : { ...r, status: "rejected" as RequestStatus })));
 
-    if (userLoading) return <VajraLoader fullPage />;
+    const pageSize = usePageSize({ desktop: 20, mobile: 12 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(visible, pageSize);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filter, setPage]);
+
+    if (userLoading || loading) {
+        return (
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
+                    <div className="flex items-end justify-between gap-6 mb-8 h-20" />
+                    <div className="flex flex-wrap gap-2 mb-6 h-8" />
+                    <ListRowSkeleton count={10} />
+                </div>
+            </div>
+        );
+    }
 
     if (!isModerator && !isFaculty) {
         return (
@@ -436,7 +457,7 @@ export default function AdminProjectRequestsPage() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {visible.map((req, i) => (
+                    {pageItems.map((req, i) => (
                         <ProposalCard
                             key={req.id}
                             req={req}
@@ -445,9 +466,26 @@ export default function AdminProjectRequestsPage() {
                             onReject={handleReject}
                         />
                     ))}
+                    <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
                 </div>
             )}
         </div>
         </div>
+    );
+}
+
+export default function AdminProjectRequestsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
+                    <div className="flex items-end justify-between gap-6 mb-8 h-20" />
+                    <div className="flex flex-wrap gap-2 mb-6 h-8" />
+                    <ListRowSkeleton count={10} />
+                </div>
+            </div>
+        }>
+            <AdminProjectRequestsPageInner />
+        </Suspense>
     );
 }

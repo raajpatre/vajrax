@@ -223,7 +223,7 @@ function SocialsCard() {
       <a href="#" target="_blank" rel="noopener noreferrer" className="sc-box sc-box2">
         <TwitterIcon size={22} className="sc-icon" />
       </a>
-      <a href="https://www.instagram.com/vajraxclub/" target="_blank" rel="noopener noreferrer" className="sc-box sc-box3">
+      <a href="https://www.instagram.com/vajrax.club/" target="_blank" rel="noopener noreferrer" className="sc-box sc-box3">
         <InstagramIcon size={22} className="sc-icon" />
       </a>
       <a href="https://www.linkedin.com/company/vajrax-club/" target="_blank" rel="noopener noreferrer" className="sc-box sc-box4">

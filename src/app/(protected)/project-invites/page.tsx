@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import { useUser } from "@/lib/hooks/useUser";
 import { getMyProjectInvites, respondToProjectInvite } from "@/actions/project-invites";
 import VajraLoader from "@/components/ui/VajraLoader";
@@ -379,7 +383,7 @@ function InvSectionHeader({
 }
 
 /* ── Page ─────────────────────────────────────────── */
-export default function ProjectInvitesPage() {
+export function ProjectInvitesPageInner() {
     const { user, loading: userLoading } = useUser();
     const [invites, setInvites] = useState<Invite[]>([]);
     const [loading, setLoading] = useState(true);
@@ -425,12 +429,21 @@ export default function ProjectInvitesPage() {
     };
 
     if (userLoading || loading) {
-        return <VajraLoader fullPage />;
+        return (
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-3xl mx-auto px-6 pt-12 pb-20 space-y-6">
+                    <ListRowSkeleton count={5} />
+                </div>
+            </div>
+        );
     }
 
     const pending = invites.filter((inv) => inv.status === "pending");
     const past = invites.filter((inv) => inv.status !== "pending");
     const bothEmpty = pending.length === 0 && past.length === 0;
+
+    const pageSize = usePageSize({ desktop: 12, mobile: 8 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(past, pageSize);
 
     return (
         <div
@@ -556,15 +569,30 @@ export default function ProjectInvitesPage() {
                             <section>
                                 <InvSectionHeader title="Past Invites" count={null} muted />
                                 <div className="space-y-2">
-                                    {past.map((invite) => (
+                                    {pageItems.map((invite) => (
                                         <PastRow key={invite.id} invite={invite} />
                                     ))}
                                 </div>
+                                <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
                             </section>
                         )}
                     </div>
                 )}
             </div>
         </div>
+    );
+}
+
+export default function ProjectInvitesPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-3xl mx-auto px-6 pt-12 pb-20 space-y-6">
+                    <ListRowSkeleton count={5} />
+                </div>
+            </div>
+        }>
+            <ProjectInvitesPageInner />
+        </Suspense>
     );
 }

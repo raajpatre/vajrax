@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useId, useRef } from "react";
+import React, { useState, useCallback, useMemo, useId, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
     ArrowLeft, Calendar, Clock, MapPin, Users, User, CheckCircle2,
@@ -154,7 +154,6 @@ function ImageUploadField({
                 accept="image/*"
                 className="hidden"
                 onChange={handleUpload}
-                required={field.required && !value}
             />
             {value ? (
                 <div className="relative group rounded-sm overflow-hidden border border-[rgba(0,229,255,0.18)] inline-block">
@@ -220,9 +219,8 @@ function CustomFieldInput({
             <input
                 id={id}
                 type="text"
-                required={field.required}
                 placeholder={field.placeholder ?? ""}
-                value={value as string}
+                value={(value as string) || ""}
                 onChange={(e) => onChange(e.target.value)}
                 className={base}
             />
@@ -232,9 +230,8 @@ function CustomFieldInput({
         return (
             <textarea
                 id={id}
-                required={field.required}
                 placeholder={field.placeholder ?? ""}
-                value={value as string}
+                value={(value as string) || ""}
                 onChange={(e) => onChange(e.target.value)}
                 rows={4}
                 className={`${base} resize-none`}
@@ -246,8 +243,7 @@ function CustomFieldInput({
             <div className="relative">
                 <select
                     id={id}
-                    required={field.required}
-                    value={value as string}
+                    value={(value as string) || ""}
                     onChange={(e) => onChange(e.target.value)}
                     className={`${base} appearance-none pr-9 cursor-pointer`}
                 >
@@ -281,7 +277,6 @@ function CustomFieldInput({
                             checked={value === opt}
                             onChange={() => onChange(opt)}
                             className="sr-only"
-                            required={field.required && !value}
                         />
                         <span className="text-[13px] text-[#8b9ab0] group-hover:text-[#f0f4ff] transition-colors">{opt}</span>
                     </label>
@@ -294,16 +289,7 @@ function CustomFieldInput({
         return (
             <div className="space-y-2">
                 {(field.options ?? []).map((opt) => (
-                    <label key={opt} className="flex items-center gap-3 cursor-pointer group">
-                        <span
-                            className="w-4 h-4 rounded-sm border flex-shrink-0 flex items-center justify-center transition-all"
-                            style={{
-                                borderColor: checked.includes(opt) ? "#00e5ff" : "rgba(0,229,255,0.3)",
-                                background: checked.includes(opt) ? "rgba(0,229,255,0.15)" : "transparent",
-                            }}
-                        >
-                            {checked.includes(opt) && <span className="w-2 h-2 bg-[#00e5ff]" style={{ clipPath: "polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0, 43% 62%)" }} />}
-                        </span>
+                    <label key={opt} className="checkbox">
                         <input
                             type="checkbox"
                             checked={checked.includes(opt)}
@@ -311,9 +297,14 @@ function CustomFieldInput({
                                 if (checked.includes(opt)) onChange(checked.filter((c) => c !== opt));
                                 else onChange([...checked, opt]);
                             }}
-                            className="sr-only"
                         />
-                        <span className="text-[13px] text-[#8b9ab0] group-hover:text-[#f0f4ff] transition-colors">{opt}</span>
+                        <span className="checkmark">
+                            <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="3" />
+                                <polyline points="7 12 10.5 15.5 17 9" />
+                            </svg>
+                            {opt}
+                        </span>
                     </label>
                 ))}
             </div>
@@ -358,7 +349,6 @@ function CustomFieldInput({
                                 value={star.toString()}
                                 checked={value === star.toString()}
                                 onChange={() => onChange(star.toString())}
-                                required={field.required && !value}
                             />
                             <label htmlFor={`${id}-star${star}`}></label>
                         </React.Fragment>
@@ -374,9 +364,8 @@ function CustomFieldInput({
                 <input
                     id={id}
                     type="url"
-                    required={field.required}
                     placeholder={field.placeholder || "https://..."}
-                    value={value as string}
+                    value={(value as string) || ""}
                     onChange={(e) => onChange(e.target.value)}
                     className={`${base} pl-9`}
                 />
@@ -415,10 +404,10 @@ function MemberRow({
                 Member {index + 1}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input required placeholder="Full Name *" value={member.member_name} onChange={(e) => onChange("member_name", e.target.value)} className={base} />
-                <input required type="email" placeholder="Email *" value={member.member_email} onChange={(e) => onChange("member_email", e.target.value)} className={base} />
-                <input required type="tel" placeholder="Mobile Number *" value={member.member_phone} onChange={(e) => onChange("member_phone", e.target.value)} className={base} />
-                <input required placeholder="College Name *" value={member.member_college} onChange={(e) => onChange("member_college", e.target.value)} className={base} />
+                <input placeholder="Full Name *" value={member.member_name} onChange={(e) => onChange("member_name", e.target.value)} className={base} />
+                <input type="email" placeholder="Email *" value={member.member_email} onChange={(e) => onChange("member_email", e.target.value)} className={base} />
+                <input type="tel" placeholder="Mobile Number *" value={member.member_phone} onChange={(e) => onChange("member_phone", e.target.value)} className={base} />
+                <input placeholder="College Name *" value={member.member_college} onChange={(e) => onChange("member_college", e.target.value)} className={base} />
             </div>
         </div>
     );
@@ -480,7 +469,7 @@ function SuccessScreen({ code, eventTitle, type, eventType }: { code: string; ev
                 <CheckCircle2 size={36} className="text-[#22c55e]" />
             </div>
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#22c55e] mb-2">
-                // REGISTRATION CONFIRMED
+                REGISTRATION CONFIRMED
             </div>
             <h2 className="font-sans font-bold text-[#f0f4ff] text-[22px] tracking-tight mb-3">
                 You&apos;re in!
@@ -490,13 +479,13 @@ function SuccessScreen({ code, eventTitle, type, eventType }: { code: string; ev
             </p>
             <div
                 className="rounded-sm border px-8 py-5 mb-4"
-                style={{ borderColor: "rgba(0,229,255,0.25)", background: "rgba(0,229,255,0.04)" }}
+                style={{ borderColor: "rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.04)" }}
             >
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#4a5568] mb-2">Your Registration Code</div>
-                <div className="font-mono text-[32px] font-bold tracking-[0.22em] text-[#00e5ff]" style={{ textShadow: "0 0 20px rgba(0,229,255,0.4)" }}>
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#ef4444] mb-2">Your Verification Code</div>
+                <div className="font-mono text-[32px] font-bold tracking-[0.22em] text-[#ef4444]" style={{ textShadow: "0 0 20px rgba(239,68,68,0.4)" }}>
                     {code}
                 </div>
-                <p className="font-mono text-[10px] text-[#4a5568] mt-2">Save this code for check-in at the event</p>
+                <p className="font-mono text-[10px] text-[#ef4444] mt-2">Write it down, you only see this once</p>
             </div>
             <Link
                 href="/events"
@@ -568,13 +557,50 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
         : 0;
     const isFull = event.max_registrations ? registrationCount >= event.max_registrations : false;
     const isDeadlinePassed = event.registration_deadline ? new Date(event.registration_deadline) < new Date() : false;
-    const registrationClosed = !event.registration_open || isFull || isDeadlinePassed;
+    const registrationClosed = isFull || isDeadlinePassed;
 
     const customFields = (event.custom_fields ?? []) as unknown as CustomField[];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return; // prevent double-submit
         setError(null);
+
+        // ── Client-side validation ─────────────────────────────────
+        // Core required fields
+        if (!leaderName.trim()) { setError("Full name is required."); return; }
+        if (!leaderCollege.trim()) { setError("College name is required."); return; }
+        if (!leaderPhone.trim()) { setError("Mobile number is required."); return; }
+        if (!leaderEmail.trim()) { setError("Email address is required."); return; }
+        if (regType === "team" && !teamName.trim()) { setError("Team name is required."); return; }
+
+        // Team member required fields
+        if (regType === "team") {
+            for (let i = 0; i < teamMembers.length; i++) {
+                const m = teamMembers[i];
+                if (!m.member_name.trim()) { setError(`Member ${i + 1}: Full name is required.`); return; }
+                if (!m.member_email.trim()) { setError(`Member ${i + 1}: Email is required.`); return; }
+                if (!m.member_phone.trim()) { setError(`Member ${i + 1}: Mobile number is required.`); return; }
+                if (!m.member_college.trim()) { setError(`Member ${i + 1}: College name is required.`); return; }
+            }
+        }
+
+        // Required custom fields
+        for (const f of customFields) {
+            if (!f.required) continue;
+            const val = customResponses[f.id];
+            const isEmpty =
+                val === undefined ||
+                val === null ||
+                val === "" ||
+                (Array.isArray(val) && val.length === 0);
+            if (isEmpty) {
+                setError(`"${f.label}" is required.`);
+                return;
+            }
+        }
+        // ────────────────────────────────────────────────────────────
+
         setLoading(true);
         try {
             const body = {
@@ -603,6 +629,36 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
             setLoading(false);
         }
     };
+
+    const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
+
+    // Clear error automatically when user edits the form
+    useEffect(() => {
+        if (error) setError(null);
+    }, [leaderName, leaderCollege, leaderPhone, leaderEmail, teamName, teamMembers, customResponses]);
+
+    useEffect(() => {
+        if (!event.registration_deadline) {
+            setTimeLeft(null);
+            return;
+        }
+        
+        const tick = () => {
+            const diff = new Date(event.registration_deadline!).getTime() - new Date().getTime();
+            if (diff <= 0) {
+                setTimeLeft({ d: 0, h: 0, m: 0, s: 0 });
+                return;
+            }
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const m = Math.floor((diff / 1000 / 60) % 60);
+            const s = Math.floor((diff / 1000) % 60);
+            setTimeLeft({ d, h, m, s });
+        };
+        tick();
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+    }, [event.registration_deadline]);
 
     const inputBase = "w-full bg-[#0d1117] border border-[rgba(255,255,255,0.05)] text-[#f0f4ff] text-[13px] rounded-sm px-3.5 py-2.5 focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/20 placeholder:text-[#4a5568] transition-colors";
 
@@ -701,6 +757,34 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                             </div>
                         )}
 
+                        {/* Countdown */}
+                        {timeLeft && (
+                            <div className="mt-8 mb-4 p-4 rounded-lg bg-[rgba(0,229,255,0.03)] border border-[rgba(0,229,255,0.15)] w-full">
+                                <div className="text-[10px] uppercase tracking-[0.2em] font-mono text-[#00e5ff] mb-3 font-semibold text-center">Registration Deadline</div>
+                                <div className="flex items-center justify-center gap-6 sm:gap-8 text-center">
+                                    <div className="flex flex-col">
+                                        <span className="font-mono text-2xl text-[#f0f4ff] font-bold">{timeLeft.d.toString().padStart(2, '0')}</span>
+                                        <span className="text-[10px] uppercase tracking-wider text-[#4a5568] mt-1">Days</span>
+                                    </div>
+                                    <div className="text-[#00e5ff]/30 font-mono text-2xl pb-4">:</div>
+                                    <div className="flex flex-col">
+                                        <span className="font-mono text-2xl text-[#f0f4ff] font-bold">{timeLeft.h.toString().padStart(2, '0')}</span>
+                                        <span className="text-[10px] uppercase tracking-wider text-[#4a5568] mt-1">Hours</span>
+                                    </div>
+                                    <div className="text-[#00e5ff]/30 font-mono text-2xl pb-4">:</div>
+                                    <div className="flex flex-col">
+                                        <span className="font-mono text-2xl text-[#f0f4ff] font-bold">{timeLeft.m.toString().padStart(2, '0')}</span>
+                                        <span className="text-[10px] uppercase tracking-wider text-[#4a5568] mt-1">Mins</span>
+                                    </div>
+                                    <div className="text-[#00e5ff]/30 font-mono text-2xl pb-4">:</div>
+                                    <div className="flex flex-col">
+                                        <span className="font-mono text-2xl text-[#f0f4ff] font-bold">{timeLeft.s.toString().padStart(2, '0')}</span>
+                                        <span className="text-[10px] uppercase tracking-wider text-[#4a5568] mt-1">Secs</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Description */}
                         <div className="mt-6">
                             <h1 className="font-sans font-extrabold text-[#f0f4ff] text-[24px] tracking-tight leading-snug mb-3">
@@ -773,10 +857,10 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                                 </p>
                             </div>
                         ) : (
-                            <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+                            <form onSubmit={handleSubmit} noValidate className="p-6 sm:p-8 space-y-6">
                                 <div>
                                     {event.event_type !== 'feedback' && (
-                                        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#00e5ff] mb-1">
+                                        <div className="inline-flex items-center px-2 py-1 rounded-sm bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.3)] font-mono text-[9.5px] uppercase tracking-[0.2em] text-[#00e5ff] mb-3 font-semibold">
                                             REGISTRATION FORM
                                         </div>
                                     )}
@@ -789,7 +873,7 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                                 {event.registration_mode === "both" && (
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                                            
                                             <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">Registration Type</span>
                                         </div>
                                         <div className="grid grid-cols-2 rounded-sm border border-[rgba(0,229,255,0.15)] bg-[#07090f]/60 p-1">
@@ -820,26 +904,26 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                                 {regType === "team" && (
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                                            
                                             <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">Team Name *</span>
                                         </div>
-                                        <input required value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="e.g. Team Vajra" className={inputBase} />
+                                        <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="e.g. Team Vajra" className={inputBase} />
                                     </div>
                                 )}
 
                                 {/* Leader / Individual fields */}
                                 <div className="space-y-3 mt-2">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                                        
                                         <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">
                                             {regType === "team" ? "Team Leader Details" : "Your Details"}
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <input required value={leaderName} onChange={(e) => setLeaderName(e.target.value)} placeholder="Full Name *" className={inputBase} />
-                                        <input required value={leaderCollege} onChange={(e) => setLeaderCollege(e.target.value)} placeholder="College Name *" className={inputBase} />
-                                        <input required type="tel" value={leaderPhone} onChange={(e) => setLeaderPhone(e.target.value)} placeholder="Mobile Number *" className={inputBase} />
-                                        <input required type="email" value={leaderEmail} onChange={(e) => setLeaderEmail(e.target.value)} placeholder="Email Address *" className={inputBase} />
+                                        <input value={leaderName} onChange={(e) => setLeaderName(e.target.value)} placeholder="Full Name *" className={inputBase} />
+                                        <input value={leaderCollege} onChange={(e) => setLeaderCollege(e.target.value)} placeholder="College Name *" className={inputBase} />
+                                        <input type="tel" value={leaderPhone} onChange={(e) => setLeaderPhone(e.target.value)} placeholder="Mobile Number *" className={inputBase} />
+                                        <input type="email" value={leaderEmail} onChange={(e) => setLeaderEmail(e.target.value)} placeholder="Email Address *" className={inputBase} />
                                     </div>
                                 </div>
 
@@ -848,7 +932,7 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                                 <div className="space-y-3 mt-2">
                                     <div className="flex items-center justify-between mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                                            
                                             <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">
                                                 Team Members ({totalMembers} total, incl. leader)
                                                 {event.team_size_strict
@@ -909,7 +993,7 @@ export default function EventDetailClient({ event, registrationCount, isPast }: 
                                 {customFields.length > 0 && (
                                 <div className="space-y-5 border-t border-[rgba(255,255,255,0.05)] pt-6 mt-4">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                                        
                                         <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">Additional Information</span>
                                     </div>
                                         {customFields.map((field) => (

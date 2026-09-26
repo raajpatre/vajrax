@@ -130,7 +130,8 @@ const CORE_ITEMS: NavItemDef[] = [
 
 const ADMIN_ITEMS: NavItemDef[] = [
     { href: "/admin",                   label: "Dashboard",          icon: LayoutDashboard, adminOnly: true },
-    { href: "/admin/members",           label: "Members",            icon: Users,           adminOnly: true },
+    { href: "/admin/events",            label: "Events Management",  icon: CalendarDays,    adminOnly: true },
+    { href: "/admin/members",           label: "Members Management", icon: Users,           adminOnly: true },
     { href: "/admin/applicants",        label: "New Applicants",     icon: UserPlus,        adminOnly: true },
     { href: "/admin/attendance",        label: "Attendance",         icon: BarChart2,       adminOnly: true },
     { href: "/admin/requests",          label: "Equipment Requests", icon: PackageOpen,     inventoryOnly: true },
@@ -268,8 +269,12 @@ function NavItem({
     badgeTone = "cyan",
     active,
     collapsed,
-}: NavItemDef & { active: boolean; collapsed: boolean }) {
+    isAdminItem = false,
+}: NavItemDef & { active: boolean; collapsed: boolean; isAdminItem?: boolean }) {
     const b = BADGE_COLORS[badgeTone];
+
+    const activeColor = isAdminItem ? "#fbbf24" : "#00e5ff";
+    const activeShadow = isAdminItem ? "rgba(251,191,36,0.85)" : "rgba(0,229,255,0.85)";
 
     const inner = (
         <Link
@@ -278,7 +283,7 @@ function NavItem({
                 "group relative w-full flex items-center text-left transition-colors duration-150 h-9 rounded-sm",
                 active
                     ? "text-[#f0f4ff]"
-                    : "text-[#8b9ab0] hover:text-[#f0f4ff] hover:bg-[rgba(0,229,255,0.04)]",
+                    : `text-[#8b9ab0] hover:text-[#f0f4ff] ${isAdminItem ? 'hover:bg-[rgba(251,191,36,0.04)]' : 'hover:bg-[rgba(0,229,255,0.04)]'}`,
             ].join(" ")}
             style={{ 
                 background: active ? "#111820" : "transparent",
@@ -289,15 +294,15 @@ function NavItem({
             <span
                 className="absolute left-0 top-1 bottom-1 w-[2px] rounded-sm transition-all duration-200"
                 style={{
-                    background: active ? "#00e5ff" : "transparent",
-                    boxShadow: active ? "0 0 10px rgba(0,229,255,0.85)" : "none",
+                    background: active ? activeColor : "transparent",
+                    boxShadow: active ? `0 0 10px ${activeShadow}` : "none",
                 }}
             />
 
             <Icon
                 size={16}
                 className="shrink-0 transition-colors duration-150"
-                style={{ color: active ? "#00e5ff" : "currentColor" }}
+                style={{ color: active ? activeColor : "currentColor" }}
             />
 
             <div 
@@ -790,6 +795,7 @@ export default function ProtectedSidebar() {
                                             {...item}
                                             active={isActive(item.href)}
                                             collapsed={!isExpanded}
+                                            isAdminItem={true}
                                         />
                                     ))}
                                 </div>

@@ -9,6 +9,10 @@ import {
   useMemo,
 } from "react";
 import Image from "next/image";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { Paginator } from "@/components/ui/Paginator";
 import {
   Camera,
   PlayCircle,
@@ -24,6 +28,8 @@ import {
   Plus,
   ExternalLink,
   MapPin,
+  ArrowRight,
+  Calendar,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Tables } from "@/types/database";
@@ -116,9 +122,7 @@ function KindFilters({
     const el = btnRefs.current[value];
     const wrap = wrapRef.current;
     if (!el || !wrap) return;
-    const er = el.getBoundingClientRect();
-    const wr = wrap.getBoundingClientRect();
-    setBar({ x: er.left - wr.left, w: er.width, ready: true });
+    setBar({ x: el.offsetLeft, w: el.offsetWidth, ready: true });
   };
   measureRef.current = measure;
 
@@ -194,16 +198,16 @@ function KindFilters({
 // =============================================
 function GalleryCard({
   item,
-  onOpen,
   canEdit,
   onEdit,
 }: {
   item: GalleryItem;
-  onOpen: (item: GalleryItem) => void;
   canEdit: boolean;
   onEdit: (item: GalleryItem) => void;
 }) {
   const [hover, setHover] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const kind = inferKind(item);
   const meta = KIND_META[kind];
   const date = new Date(item.created_at).toLocaleDateString("en-US", {
@@ -221,20 +225,33 @@ function GalleryCard({
   const isVideo = kind === "video";
   const isArticle = kind === "article";
 
+  const handleClick = (e: React.MouseEvent) => {
+    setFlipped(!flipped);
+  };
+
   return (
-    <button
-      onClick={() => onOpen(item)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      className="group block w-full mb-5 text-left bg-surface border rounded-md overflow-hidden break-inside-avoid transition-all duration-200"
-      style={{
-        borderColor: hover ? meta.fg : "rgba(0,229,255,0.12)",
-        boxShadow: hover
-          ? `0 0 0 1px ${meta.bd}, 0 14px 32px -16px rgba(0,0,0,0.7), 0 0 26px -10px ${meta.bd}`
-          : "none",
-        transform: hover ? "translateY(-2px)" : "translateY(0)",
-      }}
-    >
+    <div className="w-full h-full">
+      <div 
+        className="relative w-full h-full transition-transform duration-200"
+        style={{ 
+          transform: hover ? "translateY(-2px)" : "translateY(0)"
+        }}
+      >
+        {/* Front */}
+        <button
+          onClick={handleClick}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          className="group flex flex-col w-full text-left bg-[#0d1117] border rounded-md overflow-hidden transition-all duration-300 h-full"
+          style={{
+            opacity: flipped ? 0 : 1,
+            pointerEvents: flipped ? "none" : "auto",
+            borderColor: hover ? meta.fg : "rgba(0,229,255,0.12)",
+            boxShadow: hover
+              ? `0 0 0 1px ${meta.bd}, 0 14px 32px -16px rgba(0,0,0,0.7), 0 0 26px -10px ${meta.bd}`
+              : "none",
+          }}
+        >
       {/* Top meta strip */}
       <div
         className="flex items-center justify-between px-3 h-8 border-b"
@@ -250,32 +267,64 @@ function GalleryCard({
           </span>
         </div>
         <div className="flex items-center gap-1.5">
+          {kind === "photo" && hasThumb && thumbUrl.includes(',') && (
+             <div className="flex justify-center gap-1.5 z-10 mr-1">
+               {thumbUrl.split(',').map((_, dotIdx) => (
+                 <div key={dotIdx} className={`w-1.5 h-1.5 rounded-full ${activePhotoIdx === dotIdx ? 'bg-cyan2' : 'bg-white/20'}`} />
+               ))}
+             </div>
+          )}
           {canEdit && (
             <span
               role="button" tabIndex={0}
               onClick={(e) => { e.stopPropagation(); onEdit(item); }}
               onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onEdit(item); } }}
-              className="grid place-items-center w-5 h-5 rounded-sm text-fg3 hover:text-amber2 transition-colors"
+              className="grid place-items-center w-5 h-5 rounded-sm text-[#fbbf24] hover:text-[#fde68a] transition-colors"
               title="Edit"
             >
               <Pencil size={10} />
             </span>
           )}
-          <ChevronRight size={12} className="text-fg3 group-hover:text-cyan2 transition-colors" />
         </div>
       </div>
 
       {/* Thumbnail area */}
       {hasThumb ? (
         <div className="relative w-full" style={{ aspectRatio: "4/3", background: "#0d1117" }}>
-          <Image
-            src={thumbUrl}
-            alt={item.title}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover"
-            unoptimized={shouldBypass(thumbUrl)}
-          />
+          {kind === "photo" && thumbUrl.includes(',') ? (
+            <div 
+              className="w-full h-full flex overflow-x-auto snap-x snap-mandatory" 
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none", pointerEvents: "auto" }} 
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const idx = Math.round(el.scrollLeft / el.clientWidth);
+                setActivePhotoIdx(idx);
+              }}
+            >
+              <style>{`.snap-x::-webkit-scrollbar { display: none; }`}</style>
+              {thumbUrl.split(',').map((url, i, arr) => (
+                <div key={i} className="relative w-full h-full flex-none snap-center">
+                  <Image
+                    src={url}
+                    alt={`${item.title} - ${i + 1}`}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                    className="object-cover"
+                    unoptimized={shouldBypass(url)}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Image
+              src={thumbUrl}
+              alt={item.title}
+              fill
+              sizes="(max-width: 640px) 100vw, 50vw"
+              className="object-cover"
+              unoptimized={shouldBypass(thumbUrl)}
+            />
+          )}
           {/* Play overlay for videos */}
           {isVideo && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20">
@@ -299,16 +348,19 @@ function GalleryCard({
             </div>
           )}
           {/* Hover overlay */}
-          <div
+            <div
             className="pointer-events-none absolute inset-x-0 bottom-0 transition-all duration-300"
             style={{
-              transform: hover ? "translateY(0)" : "translateY(100%)",
-              opacity: hover ? 1 : 0,
+              transform: "translateY(0)",
+              opacity: 1,
               background: "linear-gradient(to top, rgba(7,9,15,0.95) 0%, rgba(7,9,15,0.65) 70%, rgba(7,9,15,0) 100%)",
               padding: "36px 14px 12px",
             }}
           >
             <div className="text-fg text-[18px] font-bold tracking-tight leading-snug">⚡️ {item.title}</div>
+            <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-fg3 flex items-center justify-end gap-1 w-full">
+              Tap to know more
+            </div>
           </div>
         </div>
       ) : isArticle ? (
@@ -324,21 +376,36 @@ function GalleryCard({
         </div>
       ) : null}
 
-      {/* Body */}
-      <div className="p-4">
-        {item.description && (
-          <p className="text-fg2 text-[12.5px] leading-relaxed line-clamp-2">{item.description}</p>
-        )}
-        <div className="flex items-center justify-between mt-3">
-          <span className="font-mono text-[10px] tabular-nums tracking-[0.10em] text-fg3">
-            {date}
+      </button>
+
+      {/* Back */}
+      <div
+        onClick={handleClick}
+        className="absolute inset-0 w-full h-full flex flex-col items-start justify-start p-6 bg-[#0d1117] border rounded-md text-left cursor-pointer overflow-y-auto transition-opacity duration-300"
+        style={{
+          opacity: flipped ? 1 : 0,
+          pointerEvents: flipped ? "auto" : "none",
+          borderColor: meta.fg,
+        }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <meta.Icon size={16} style={{ color: meta.fg }} />
+          <span className="font-mono text-[12px] uppercase tracking-[0.14em]" style={{ color: meta.fg }}>Story</span>
+        </div>
+        <p className="text-fg2 text-[13px] leading-relaxed flex-1 w-full">
+          {item.description || "No description provided."}
+        </p>
+        <div className="mt-4 pt-4 border-t w-full flex items-center justify-between" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+          <span className="font-mono text-[10px] tabular-nums tracking-[0.10em] text-fg3 flex items-center gap-1.5">
+            <Calendar size={10} /> {date}
           </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-fg3">
-            {item.location_city || "VajraX"}
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-fg3 flex items-center gap-1.5">
+            <MapPin size={10} /> {item.location_city || "VajraX"}
           </span>
         </div>
       </div>
-    </button>
+    </div>
+  </div>
   );
 }
 
@@ -487,14 +554,39 @@ function Lightbox({
 
             {/* Photo */}
             {kind === "photo" && item.cover_image_url && (
-              <Image
-                src={item.cover_image_url}
-                alt={item.title}
-                fill
-                sizes="(max-width: 1024px) 100vw, 900px"
-                className="object-cover"
-                unoptimized={shouldBypass(item.cover_image_url)}
-              />
+              item.cover_image_url.includes(',') ? (
+                <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                  <style>{`.snap-x::-webkit-scrollbar { display: none; }`}</style>
+                  {item.cover_image_url.split(',').map((url, i, arr) => (
+                    <div key={i} className="relative w-full h-full flex-none snap-center">
+                      <Image
+                        src={url}
+                        alt={`${item.title} - ${i + 1}`}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 900px"
+                        className="object-cover"
+                        unoptimized={shouldBypass(url)}
+                      />
+                      {arr.length > 1 && (
+                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10 pointer-events-none">
+                           {arr.map((_, dotIdx) => (
+                             <div key={dotIdx} className={`w-2 h-2 rounded-full ${i === dotIdx ? 'bg-cyan2' : 'bg-white/40'}`} style={{ boxShadow: "0 0 4px rgba(0,0,0,0.5)" }} />
+                           ))}
+                         </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Image
+                  src={item.cover_image_url}
+                  alt={item.title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 900px"
+                  className="object-cover"
+                  unoptimized={shouldBypass(item.cover_image_url)}
+                />
+              )
             )}
 
             {/* Video */}
@@ -744,7 +836,7 @@ function EmptyGallery({ onClear }: { onClear: () => void }) {
             <circle cx="48" cy="48" r="2" fill="#f59e0b" />
           </svg>
         </div>
-        <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-amber2 mb-3">// EMPTY FRAME</div>
+
         <h3 className="text-fg font-bold text-[20px] tracking-tight">No media found</h3>
         <p className="text-fg2 text-[13.5px] mt-2 max-w-[44ch] mx-auto leading-relaxed">
           Nothing in this category yet. Either we haven&apos;t shipped one, or someone&apos;s still editing.
@@ -805,6 +897,33 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
     [filtered]
   );
 
+  const isMobile = useIsMobile();
+  const pageSize = usePageSize({ desktop: 20, mobile: 12 });
+  const { pageItems, page, totalPages, setPage } = usePaginatedList(filtered, pageSize);
+
+  const [mobilePage, setMobilePage] = useState(1);
+  const mobileVisibleCount = mobilePage * pageSize;
+  const mobileHasMore = mobileVisibleCount < filtered.length;
+
+  const displayItems = isMobile ? filtered.slice(0, mobileVisibleCount) : pageItems;
+
+  useEffect(() => {
+    setMobilePage(1);
+    setPage(1);
+  }, [filter, setPage]);
+
+  const bottomSentryRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isMobile || !mobileHasMore || !bottomSentryRef.current) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setMobilePage((p) => p + 1);
+      }
+    }, { rootMargin: "300px" });
+    io.observe(bottomSentryRef.current);
+    return () => io.disconnect();
+  }, [isMobile, mobileHasMore]);
+
   const nav = useCallback(
     (dir: number) => {
       setLbIndex((i) => {
@@ -827,7 +946,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
         <div className="relative max-w-[1480px] mx-auto px-6 lg:px-12 pt-[calc(var(--nav-height)+1.5rem)] pb-14">
           <div className="flex items-end justify-between gap-10 flex-wrap">
             <div className="min-w-0">
-              <h1 className="font-sans font-extrabold tracking-tight text-fg leading-[0.95] text-[56px] lg:text-[80px] max-w-[14ch]">
+              <h1 className="font-sans font-extrabold tracking-tight text-fg leading-[0.95] text-[40px] sm:text-[56px] lg:text-[80px] max-w-[14ch] break-words">
                 Achievements <span className="text-fg2 font-medium">&amp;</span>
                 <br />
                 <span style={{
@@ -904,17 +1023,30 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
         {filtered.length === 0 ? (
           <EmptyGallery onClear={() => setFilter("all")} />
         ) : (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5">
-            {filtered.map((item) => (
-              <GalleryCard
-                key={item.id}
-                item={item}
-                onOpen={openLightbox}
-                canEdit={canEdit}
-                onEdit={(i) => setEditItem(i)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {displayItems.map((item) => (
+                <GalleryCard
+                  key={item.id}
+                  item={item}
+                  canEdit={canEdit}
+                  onEdit={(i) => setEditItem(i)}
+                />
+              ))}
+            </div>
+            
+            {!isMobile && (
+              <div className="mt-8">
+                <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
+              </div>
+            )}
+            
+            {isMobile && mobileHasMore && (
+              <div ref={bottomSentryRef} className="py-8 flex justify-center">
+                <Loader2 size={24} className="animate-spin text-[#00e5ff]" />
+              </div>
+            )}
+          </>
         )}
 
         {filtered.length > 0 && (
@@ -926,15 +1058,7 @@ export default function GalleryClient({ items }: { items: GalleryItem[] }) {
         )}
       </section>
 
-      {/* Lightbox */}
-      <Lightbox
-        items={filtered}
-        index={lbIndex}
-        onClose={() => setLbIndex(null)}
-        onNav={nav}
-        canEdit={canEdit}
-        onEdit={(i) => { setLbIndex(null); setEditItem(i); }}
-      />
+      {/* Lightbox disabled per user request */}
 
       {/* Upload / Edit modal */}
       <GalleryUploadModal

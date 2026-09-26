@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition, useMemo } from "react";
+import { useState, useEffect, useCallback, useTransition, useMemo, Suspense } from "react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
@@ -976,7 +980,7 @@ const MGMT_TABS = [
     { key: "history",  label: "History"  },
 ] as const;
 
-export default function AdminRequestsPage() {
+export function AdminRequestsPageInner() {
     const { isModerator, isFaculty, isInventoryManager, loading: userLoading } = useUser();
     const supabase = createClient();
     const router = useRouter();
@@ -1011,6 +1015,7 @@ export default function AdminRequestsPage() {
     const setManagementTab = useCallback((tab: "carts" | "requests" | "history") => {
         const params = new URLSearchParams(window.location.search);
         if (tab === "carts") { params.delete("tab"); } else { params.set("tab", tab); }
+        params.delete("page");
         const nextQuery = params.toString();
         setManagementTabState(tab);
         router.replace(nextQuery ? `/admin/requests?${nextQuery}` : "/admin/requests", { scroll: false });
@@ -1113,6 +1118,16 @@ export default function AdminRequestsPage() {
     }, [requests]);
     const pendingCount = reqCounts.pending ?? 0;
 
+    const pageSize = usePageSize({ desktop: 20, mobile: 12 });
+    
+    const { pageItems: paginatedCarts, page: cartPage, totalPages: cartTotalPages, setPage: setCartPage } = usePaginatedList(carts, pageSize);
+    const { pageItems: paginatedReqs, page: reqPage, totalPages: reqTotalPages, setPage: setReqPage } = usePaginatedList(filteredReqs, pageSize);
+    const { pageItems: paginatedHistory, page: histPage, totalPages: histTotalPages, setPage: setHistPage } = usePaginatedList(historyEntries, pageSize);
+
+    useEffect(() => setCartPage(1), [cartFilter, setCartPage]);
+    useEffect(() => setReqPage(1), [reqFilter, setReqPage]);
+    useEffect(() => setHistPage(1), [historyFilterAction, setHistPage]);
+
     const handleReject = async (req: RequestDetail) => {
         setProcessingId(req.id);
         setActionError(null);
@@ -1150,7 +1165,17 @@ export default function AdminRequestsPage() {
     const openDrawer = (r: RequestDetail) => { setDrawerReq(r); setDrawerOpen(true); };
     const closeDrawer = () => setDrawerOpen(false);
 
-    if (userLoading) return <VajraLoader fullPage />;
+    if (userLoading) {
+        return (
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
+                    <div className="mb-7 h-20" />
+                    <div className="mb-7 border-b h-10" style={{ borderColor: "rgba(0,229,255,0.12)" }} />
+                    <ListRowSkeleton count={10} />
+                </div>
+            </div>
+        );
+    }
 
     if (!canAccess) {
         return (
@@ -1226,13 +1251,14 @@ export default function AdminRequestsPage() {
                         <EmptyState Icon={ShoppingCart} title="No carts found" subtitle={`No ${cartFilter} carts to review.`} />
                     ) : (
                         <div className="space-y-4">
-                            {carts.map(cart => (
+                            {paginatedCarts.map(cart => (
                                 <CartCard key={cart.id} cart={cart}
                                     onApproveAll={id => { void handleCartApproveAll(id); }}
                                     onRejectAll={id => { void handleCartRejectAll(id); }}
                                     onManualReview={c => setCartReviewTarget(c)}
                                     processing={cartProcessingId === cart.id} />
                             ))}
+                            <Paginator page={cartPage} totalPages={cartTotalPages} onPageChange={setCartPage} />
                         </div>
                     )}
                 </div>
@@ -1255,7 +1281,7 @@ export default function AdminRequestsPage() {
                         <EmptyState Icon={ClipboardList} title="No requests found" subtitle="No requests match this filter." />
                     ) : (
                         <div className="space-y-4">
-                            {filteredReqs.map(r => (
+                            {paginatedReqs.map(r => (
                                 <RequestCard key={r.id} r={r}
                                     onReview={(req: RequestDetail) => setReviewTarget(req)}
                                     onReject={(req: RequestDetail) => { void handleReject(req); }}
@@ -1263,6 +1289,7 @@ export default function AdminRequestsPage() {
                                     onOpenDrawer={openDrawer}
                                     processingId={processingId} />
                             ))}
+                            <Paginator page={reqPage} totalPages={reqTotalPages} onPageChange={setReqPage} />
                         </div>
                     )}
                 </div>
@@ -1313,7 +1340,10 @@ export default function AdminRequestsPage() {
                     {historyLoading ? (
                         <div className="flex items-center justify-center py-16"><VajraLoader /></div>
                     ) : (
-                        <HistoryTable entries={historyEntries} />
+                        <div>
+                            <HistoryTable entries={paginatedHistory} />
+                            <Paginator page={histPage} totalPages={histTotalPages} onPageChange={setHistPage} />
+                        </div>
                     )}
                 </div>
             )}
@@ -1329,5 +1359,21 @@ export default function AdminRequestsPage() {
                 onReject={r => { void handleReject(r); }} processingId={processingId} />
         </div>
         </div>
+    );
+}
+
+export default function AdminRequestsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
+                    <div className="mb-7 h-20" />
+                    <div className="mb-7 border-b h-10" style={{ borderColor: "rgba(0,229,255,0.12)" }} />
+                    <ListRowSkeleton count={10} />
+                </div>
+            </div>
+        }>
+            <AdminRequestsPageInner />
+        </Suspense>
     );
 }

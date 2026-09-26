@@ -134,7 +134,7 @@ function EventFlipCard({
   const kicker   = `// ${t.label}`;
 
   const mode = event.registration_mode ?? "none";
-  const isOpen = event.registration_open && mode !== "none" && mode !== "external";
+  const isOpen = mode !== "none" && mode !== "external";
   const hasExternalUrl = mode === "external" && event.external_registration_url;
   const isNoneMode = mode === "none";
   const isExclusive = event.is_exclusive && !isAuthenticated;
@@ -203,9 +203,12 @@ function EventFlipCard({
           {isOpen && !isPast && event.event_type !== "feedback" && (
             <span
               className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 h-[22px] px-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.14em]"
-              style={{ color: "#07090f", background: "#00e5ff", backdropFilter: "blur(4px)" }}
+              style={{ color: "#07090f", background: "#22c55e", backdropFilter: "blur(4px)" }}
             >
-              <UserCheck size={10} />RSVP Open
+              <UserCheck size={10} />
+              {event.event_type === "hackathon" || event.event_type === "competition" ? "Registrations Open"
+              : event.event_type === "meetup" || event.event_type === "workshop" ? "RSVP Open"
+              : "Registration Open"}
             </span>
           )}
 
@@ -316,10 +319,14 @@ function EventFlipCard({
               {regState === "rsvp" && (
                 <Link
                   href={`/events/${event.id}`}
-                  className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
+                  className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#22c55e] hover:bg-[#22c55e]/90 transition-colors"
                 >
                   {event.event_type === "feedback" ? (
                     <>Feedback</>
+                  ) : event.event_type === "hackathon" || event.event_type === "competition" ? (
+                    <><UserCheck size={11} /> Register</>
+                  ) : event.event_type === "meetup" || event.event_type === "workshop" ? (
+                    <><UserCheck size={11} /> RSVP</>
                   ) : (
                     <><UserCheck size={11} /> Register / RSVP</>
                   )}
@@ -330,9 +337,12 @@ function EventFlipCard({
                   href={event.external_registration_url!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#00e5ff] hover:bg-[#00e5ff]/90 transition-colors"
+                  className="w-full h-9 flex items-center justify-center gap-2 rounded-sm font-mono text-[11px] uppercase tracking-[0.14em] text-[#07090f] bg-[#22c55e] hover:bg-[#22c55e]/90 transition-colors"
                 >
-                  {event.event_type === "feedback" ? "Feedback" : "Register"} <ExternalLink size={11} />
+                  {event.event_type === "feedback" ? "Feedback"
+                  : event.event_type === "hackathon" || event.event_type === "competition" ? "Register"
+                  : event.event_type === "meetup" || event.event_type === "workshop" ? "RSVP"
+                  : "Register / RSVP"} <ExternalLink size={11} />
                 </a>
               )}
               {(regState === "open_to_all" || isNoneMode) && !isPast && (
@@ -530,8 +540,9 @@ export default function EventsClient({ events }: { events: Event[] }) {
       `translate(${Math.sin(t * 0.08 + k) * 6}px, ${Math.cos(t * 0.07 + k * 1.3) * 4}px)`;
 
   const now      = new Date();
-  const upcoming = events.filter((e) => new Date(e.starts_at) >= now);
-  const past     = events.filter((e) => new Date(e.starts_at) <  now);
+  const visibleEvents = events.filter((e) => isAuthenticated || !e.is_exclusive);
+  const upcoming = visibleEvents.filter((e) => new Date(e.starts_at) >= now);
+  const past     = visibleEvents.filter((e) => new Date(e.starts_at) <  now);
 
   const openNew  = () => { setEditingEvent(null); setIsModalOpen(true); };
   const openEdit = (e: Event) => { setEditingEvent(e); setIsModalOpen(true); };

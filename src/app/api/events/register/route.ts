@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Event not found." }, { status: 404 });
     }
 
-    if (!event.registration_open) {
+    if (!event.registration_open && event.registration_mode === "none") {
         return NextResponse.json({ error: "Registration is currently closed for this event." }, { status: 400 });
     }
 

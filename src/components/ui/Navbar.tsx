@@ -831,39 +831,49 @@ function MobileDrawer({
               </div>
               {(isFaculty || isModerator) && (
                 <Link
+                  href="/admin/events"
+                  onClick={onClose}
+                  className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-[rgba(251,191,36,0.06)] text-fg2 hover:text-fg transition-colors"
+                >
+                  <CalendarDays size={14} className="shrink-0" style={{ color: "rgba(251,191,36,0.85)" }} />
+                  <span className="text-[13.5px] tracking-tight">Events Management</span>
+                </Link>
+              )}
+              {(isFaculty || isModerator) && (
+                <Link
                   href="/admin/members"
                   onClick={onClose}
-                  className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-cyan2/[0.06] text-fg2 hover:text-fg transition-colors"
+                  className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-[rgba(251,191,36,0.06)] text-fg2 hover:text-fg transition-colors"
                 >
-                  <Users size={14} className="shrink-0" style={{ color: "rgba(0,229,255,0.85)" }} />
-                  <span className="text-[13.5px] tracking-tight">Manage Members</span>
+                  <Users size={14} className="shrink-0" style={{ color: "rgba(251,191,36,0.85)" }} />
+                  <span className="text-[13.5px] tracking-tight">Members Management</span>
                 </Link>
               )}
               {(isFaculty || isModerator) && (
                 <Link
                   href="/admin/applicants"
                   onClick={onClose}
-                  className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-cyan2/[0.06] text-fg2 hover:text-fg transition-colors"
+                  className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-[rgba(251,191,36,0.06)] text-fg2 hover:text-fg transition-colors"
                 >
-                  <Mail size={14} className="shrink-0" style={{ color: "rgba(0,229,255,0.85)" }} />
+                  <Mail size={14} className="shrink-0" style={{ color: "rgba(251,191,36,0.85)" }} />
                   <span className="text-[13.5px] tracking-tight">New Applicants</span>
                 </Link>
               )}
               <Link
                 href="/admin/requests"
                 onClick={onClose}
-                className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-cyan2/[0.06] text-fg2 hover:text-fg transition-colors"
+                className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-[rgba(251,191,36,0.06)] text-fg2 hover:text-fg transition-colors"
               >
-                <Package size={14} className="shrink-0" style={{ color: "rgba(0,229,255,0.85)" }} />
+                <Package size={14} className="shrink-0" style={{ color: "rgba(251,191,36,0.85)" }} />
                 <span className="text-[13.5px] tracking-tight">Inventory Management</span>
               </Link>
               {(isFaculty || isModerator) && (
                 <Link
                   href="/admin/project-requests"
                   onClick={onClose}
-                  className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-cyan2/[0.06] text-fg2 hover:text-fg transition-colors"
+                  className="flex items-center gap-3 h-11 px-3 rounded-sm hover:bg-[rgba(251,191,36,0.06)] text-fg2 hover:text-fg transition-colors"
                 >
-                  <FolderOpen size={14} className="shrink-0" style={{ color: "rgba(0,229,255,0.85)" }} />
+                  <FolderOpen size={14} className="shrink-0" style={{ color: "rgba(251,191,36,0.85)" }} />
                   <span className="text-[13.5px] tracking-tight">Project Requests</span>
                 </Link>
               )}
@@ -1049,6 +1059,7 @@ export default function Navbar() {
     if (pathname.startsWith("/events"))    return "events";
     if (pathname.startsWith("/innovators"))return "innovators";
     if (pathname.startsWith("/contact"))   return "contact";
+    if (pathname.startsWith("/notice-board")) return "notice-board";
     return "";
   }, [pathname]);
 

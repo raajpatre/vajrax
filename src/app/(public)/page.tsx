@@ -20,7 +20,7 @@ function yearsSinceFounding(now = new Date()): number {
 export default async function HomePage() {
     const supabase = await createClient();
 
-    const [sponsorsResult, membersResult, awardsResult] = await Promise.all([
+    const [sponsorsResult, membersResult, awardsResult, galleryResult] = await Promise.all([
         listActiveSponsors(),
         // Current members in the club (excludes the seeded admin account).
         supabase
@@ -32,7 +32,18 @@ export default async function HomePage() {
             .from("gallery_items")
             .select("id", { count: "exact", head: true })
             .ilike("tag", "achievement"),
+        // Fetch latest 30 gallery items to pick random photos from
+        supabase
+            .from("gallery_items")
+            .select("title, media_url, cover_image_url")
+            .limit(30)
+            .order("created_at", { ascending: false }),
     ]);
+
+    // Shuffle and pick 7 photos for the spiral
+    const galleryItems = galleryResult.data || [];
+    const validGallery = galleryItems.filter((item) => (item.cover_image_url || item.media_url) != null);
+    const shuffledGallery = validGallery.sort(() => 0.5 - Math.random()).slice(0, 7);
 
     return (
         <HomePageClient
@@ -42,6 +53,10 @@ export default async function HomePage() {
                 awards: awardsResult.count ?? 0,
                 years: yearsSinceFounding(),
             }}
+            spiralImages={shuffledGallery.map((item) => ({
+                src: (item.cover_image_url || item.media_url) as string,
+                alt: item.title,
+            }))}
         />
     );
 }

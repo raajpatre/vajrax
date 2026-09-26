@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
@@ -576,7 +580,7 @@ function EmptyState({ filter }: { filter: string }) {
 
 /* ─── Page ────────────────────────────────────────────────────────── */
 
-export default function MyRequestsPage() {
+export function MyRequestsPageInner() {
     const { user, loading: userLoading } = useUser();
     const supabase = createClient();
     const [requests, setRequests] = useState<RequestWithItem[]>([]);
@@ -655,7 +659,40 @@ export default function MyRequestsPage() {
         [requests, tab]
     );
 
-    if (userLoading || loading) return <VajraLoader fullPage />;
+    const pageSize = usePageSize({ desktop: 15, mobile: 8 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(filtered, pageSize);
+
+    useEffect(() => {
+        setPage(1);
+    }, [tab, setPage]);
+
+    if (userLoading || loading) {
+        return (
+            <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+                <div
+                    className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                            "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                        backgroundSize: "40px 40px",
+                        maskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                        WebkitMaskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    }}
+                />
+                
+                <div className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)" }} />
+                <div className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)" }} />
+                <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+                
+                <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16">
+                    <ListRowSkeleton count={15} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
@@ -749,7 +786,9 @@ export default function MyRequestsPage() {
                         className="w-1.5 h-1.5 rounded-full animate-pulse"
                         style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }}
                     />
-                    <span>{filtered.length} of {requests.length} showing</span>
+                    <span>
+                        {filtered.length > 0 ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} showing
+                    </span>
                 </div>
                 <span className="text-[#4a5568] hidden md:block">Click any row to view details</span>
             </div>
@@ -758,11 +797,14 @@ export default function MyRequestsPage() {
             {filtered.length === 0 ? (
                 <EmptyState filter={tab} />
             ) : (
-                <div className="space-y-2">
-                    {filtered.map(r => (
-                        <ReqCard key={r.id} req={r} onClick={setDrawer} />
-                    ))}
-                </div>
+                <>
+                    <div className="space-y-2">
+                        {pageItems.map(r => (
+                            <ReqCard key={r.id} req={r} onClick={setDrawer} />
+                        ))}
+                    </div>
+                    <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
+                </>
             )}
 
             {/* Detail drawer */}
@@ -773,6 +815,38 @@ export default function MyRequestsPage() {
             />
         </div>
         </div>
+    );
+}
+
+export default function MyRequestsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+                <div
+                    className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                            "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                        backgroundSize: "40px 40px",
+                        maskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                        WebkitMaskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    }}
+                />
+                
+                <div className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)" }} />
+                <div className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)" }} />
+                <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+                
+                <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16">
+                    <ListRowSkeleton count={15} />
+                </div>
+            </div>
+        }>
+            <MyRequestsPageInner />
+        </Suspense>
     );
 }
 

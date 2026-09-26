@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition, useMemo, useId, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useCallback, useTransition, useMemo, useId, useRef, useLayoutEffect, Suspense } from "react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
+import { CardGridSkeleton } from "@/components/ui/skeletons/CardGridSkeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import VajraLoader from "@/components/ui/VajraLoader";
@@ -247,7 +251,7 @@ function InvCard({ item, inCart, canManage, canViewExact, onAdd, onEdit, onDelet
             <div className="relative overflow-hidden shrink-0" style={{ height: 160 }}>
                 {item.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                     <InvCoverFallback cat={item.category} />
                 )}
@@ -365,9 +369,7 @@ function InvFilterPills({ value, onChange, counts }: {
         const el = btnRefs.current[value];
         const wrap = wrapRef.current;
         if (!el || !wrap) return;
-        const er = el.getBoundingClientRect();
-        const wr = wrap.getBoundingClientRect();
-        setBar({ x: er.left - wr.left, w: er.width, ready: true });
+        setBar({ x: el.offsetLeft, w: el.offsetWidth, ready: true });
     };
     measureRef.current = measure;
 
@@ -978,7 +980,7 @@ function ModalInput({ icon, placeholder, value, onChange }: {
 
 /* ─── Main page ───────────────────────────────────────────────────── */
 
-export default function InventoryPage() {
+export function InventoryPageInner() {
     const { isAuthenticated, isFaculty, isModerator, isInventoryManager, loading: userLoading } = useUser();
     const canManage = isFaculty || isModerator || isInventoryManager;
     const canViewExact = isStockVisibleToUser({ isFaculty, isModerator, isInventoryManager });
@@ -1031,18 +1033,6 @@ export default function InventoryPage() {
 
     useEffect(() => { void fetchItems(); }, [fetchItems]);
 
-    // Staggered reveal on filter/search change
-    useEffect(() => {
-        setShown(false);
-        const id = setTimeout(() => setShown(true), 60);
-        return () => clearTimeout(id);
-    }, [catFilter, search]);
-
-    useEffect(() => {
-        const id = setTimeout(() => setShown(true), 60);
-        return () => clearTimeout(id);
-    }, []);
-
     const counts = useMemo(() => {
         const c: Record<string, number> = { all: items.length };
         items.forEach(it => { c[it.category] = (c[it.category] ?? 0) + 1; });
@@ -1059,6 +1049,22 @@ export default function InventoryPage() {
         }
         return list;
     }, [items, catFilter, search]);
+
+    const pageSize = usePageSize({ desktop: 18, mobile: 9 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(filtered, pageSize);
+
+    // Staggered reveal on filter/search change
+    useEffect(() => {
+        setShown(false);
+        setPage(1);
+        const id = setTimeout(() => setShown(true), 60);
+        return () => clearTimeout(id);
+    }, [catFilter, search, setPage]);
+
+    useEffect(() => {
+        const id = setTimeout(() => setShown(true), 60);
+        return () => clearTimeout(id);
+    }, []);
 
     const cartIds = useMemo(() => new Set(cart.map(c => c.item.id)), [cart]);
 
@@ -1104,7 +1110,13 @@ export default function InventoryPage() {
         setTimeout(() => { setCartOpen(false); setSubmitSuccess(false); void fetchItems(); }, 2000);
     };
 
-    if (userLoading || loading) return <VajraLoader fullPage />;
+    if (userLoading || loading) {
+        return (
+            <div className="min-h-screen bg-[#07090f] px-4 sm:px-8 pt-10 pb-16 max-w-7xl mx-auto">
+                <CardGridSkeleton count={18} />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
@@ -1266,7 +1278,7 @@ export default function InventoryPage() {
             <div className="flex items-center justify-between mb-5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-[#8b9ab0]">
                 <div className="flex items-center gap-3">
                     <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-                    <span>{String(filtered.length).padStart(2, "0")} of {String(items.length).padStart(2, "0")} items</span>
+                    <span>{filtered.length > 0 ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} items</span>
                 </div>
                 <span className="text-[#4a5568] hidden md:block">// last sync 12s ago</span>
             </div>
@@ -1304,22 +1316,25 @@ export default function InventoryPage() {
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filtered.map((item, i) => (
-                        <InvCard
-                            key={item.id}
-                            item={item}
-                            inCart={cartIds.has(item.id)}
-                            canManage={canManage}
-                            canViewExact={canViewExact}
-                            shown={shown}
-                            delay={Math.min(i, 14) * 35}
-                            onAdd={setAddToCartItem}
-                            onEdit={setEditItem}
-                            onDelete={handleDelete}
-                        />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {pageItems.map((item, i) => (
+                            <InvCard
+                                key={item.id}
+                                item={item}
+                                inCart={cartIds.has(item.id)}
+                                canManage={canManage}
+                                canViewExact={canViewExact}
+                                shown={shown}
+                                delay={Math.min(i, 14) * 35}
+                                onAdd={setAddToCartItem}
+                                onEdit={setEditItem}
+                                onDelete={handleDelete}
+                            />
+                        ))}
+                    </div>
+                    <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
+                </>
             )}
 
             {/* Add-to-cart modal */}
@@ -1355,6 +1370,18 @@ export default function InventoryPage() {
             )}
         </div>
         </div>
+    );
+}
+
+export default function InventoryPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#07090f] px-4 sm:px-8 pt-10 pb-16 max-w-7xl mx-auto">
+                <CardGridSkeleton count={18} />
+            </div>
+        }>
+            <InventoryPageInner />
+        </Suspense>
     );
 }
 

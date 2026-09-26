@@ -33,8 +33,7 @@ function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
 
     const inner = (
         <div
-            className="flex flex-col items-center justify-center gap-3 p-6 rounded-sm h-full min-h-[110px] transition-colors hover:brightness-110"
-            style={{ border: `1px solid ${border}`, background: bg }}
+            className="flex flex-col items-center justify-center gap-3 p-6 rounded-sm h-full min-h-[110px] transition-transform duration-200 hover:scale-[1.03]"
         >
             {sponsor.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element

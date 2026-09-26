@@ -328,31 +328,6 @@ function TagChip({ name, color, onRemove }: { name: string; color: string; onRem
     );
 }
 
-/* ── CertChip ─────────────────────────────────────────────── */
-function CertChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-    return (
-        <span
-            className="inline-flex items-center gap-1.5 h-[22px] pl-2 pr-1 rounded-sm border font-mono text-[10px] tracking-[0.08em]"
-            style={{
-                color: "#f59e0b",
-                background: "rgba(245,158,11,0.10)",
-                borderColor: "rgba(245,158,11,0.45)",
-            }}
-        >
-            <ShieldCheck size={11} />
-            {label}
-            <button
-                onClick={onRemove}
-                className="grid place-items-center w-4 h-4 rounded-sm transition-colors"
-                style={{ color: "#f59e0b" }}
-                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.12)"; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >
-                <X size={10} />
-            </button>
-        </span>
-    );
-}
 
 /* ── AddTagRow ────────────────────────────────────────────── */
 function AddTagRow({ onAdd }: { onAdd: (t: TagObject) => void }) {
@@ -417,47 +392,6 @@ function AddTagRow({ onAdd }: { onAdd: (t: TagObject) => void }) {
     );
 }
 
-/* ── AddCertRow ───────────────────────────────────────────── */
-function AddCertRow({ onAdd }: { onAdd: (c: string) => void }) {
-    const [input, setInput] = useState("");
-    const submit = () => {
-        const t = input.trim();
-        if (!t) return;
-        onAdd(t);
-        setInput("");
-    };
-    return (
-        <div className="flex items-center gap-2 mt-2">
-            <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submit()}
-                placeholder="e.g. OSHA 10 General Industry"
-                className="flex-1 h-8 text-[12px] border rounded-sm px-2.5 outline-none transition-colors placeholder:opacity-40"
-                style={{
-                    background: "#07090f",
-                    color: "#f0f4ff",
-                    borderColor: "rgba(245,158,11,0.20)",
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.55)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.20)"; }}
-            />
-            <button
-                onClick={submit}
-                className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-sm border font-medium text-[11.5px] transition-all shrink-0"
-                style={{
-                    color: "#f59e0b",
-                    background: "rgba(245,158,11,0.08)",
-                    borderColor: "rgba(245,158,11,0.40)",
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.16)"; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; }}
-            >
-                <Plus size={12} /> Add
-            </button>
-        </div>
-    );
-}
 
 /* ── MemberCard ───────────────────────────────────────────── */
 function MemberCard({
@@ -466,7 +400,6 @@ function MemberCard({
     currentUserId,
     onRoleChange,
     onTagsChange,
-    onSafetyCertsChange,
     onDelete,
     updatingId,
     deletingId,
@@ -477,16 +410,13 @@ function MemberCard({
     currentUserId: string | null;
     onRoleChange: (id: string, roles: string[]) => void;
     onTagsChange: (id: string, tags: string[]) => void;
-    onSafetyCertsChange: (id: string, certs: string[]) => void;
     onDelete: (member: MemberProfile) => void;
     updatingId: string | null;
     deletingId: string | null;
     supabase: ReturnType<typeof createClient>;
 }) {
     const [tagErr, setTagErr] = useState<string | null>(null);
-    const [certErr, setCertErr] = useState<string | null>(null);
     const [isUpdatingTag, setIsUpdatingTag] = useState(false);
-    const [isUpdatingCert, setIsUpdatingCert] = useState(false);
 
     const parsedTags = useMemo(
         () => (member.custom_tags ?? []).map(parseTag),
@@ -526,31 +456,6 @@ function MemberCard({
         setIsUpdatingTag(false);
     };
 
-    const addCert = async (cert: string) => {
-        setCertErr(null);
-        if ((member.safety_certifications ?? []).includes(cert)) {
-            setCertErr("Already added"); return;
-        }
-        setIsUpdatingCert(true);
-        const result = await grantSafetyCertification({ userId: member.id, certification: cert });
-        if (result.ok) {
-            onSafetyCertsChange(member.id, [...(member.safety_certifications ?? []), cert]);
-        }
-        setIsUpdatingCert(false);
-    };
-
-    const removeCert = async (cert: string) => {
-        setIsUpdatingCert(true);
-        const result = await revokeSafetyCertification({ userId: member.id, certification: cert });
-        if (result.ok) {
-            onSafetyCertsChange(
-                member.id,
-                (member.safety_certifications ?? []).filter((c) => c !== cert)
-            );
-        }
-        setCertErr(null);
-        setIsUpdatingCert(false);
-    };
 
     return (
         <div
@@ -690,26 +595,7 @@ function MemberCard({
                 <AddTagRow onAdd={addTag} />
             </div>
 
-            <Divider />
 
-            {/* Certifications */}
-            <div className="pl-3">
-                <MicroLabel error={certErr}>CERTIFICATIONS</MicroLabel>
-                <div className={`flex flex-wrap gap-1.5 ${isUpdatingCert ? "opacity-60" : ""}`}>
-                    {(member.safety_certifications ?? []).map((cert) => (
-                        <CertChip key={cert} label={cert} onRemove={() => removeCert(cert)} />
-                    ))}
-                    {(member.safety_certifications ?? []).length === 0 && (
-                        <span
-                            className="font-mono text-[10.5px]"
-                            style={{ color: "#4a5568" }}
-                        >
-                            // no certifications on file
-                        </span>
-                    )}
-                </div>
-                <AddCertRow onAdd={addCert} />
-            </div>
         </div>
     );
 }
@@ -768,11 +654,7 @@ export default function MemberManagement() {
         );
     }, []);
 
-    const handleSafetyCertsChange = useCallback((userId: string, certs: string[]) => {
-        setMembers((prev) =>
-            prev.map((m) => (m.id === userId ? { ...m, safety_certifications: certs } : m))
-        );
-    }, []);
+
 
     const handleDeleteMember = useCallback(
         async (member: MemberProfile) => {
@@ -878,16 +760,7 @@ export default function MemberManagement() {
             <div className="fixed inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
 
             <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
-                {/* Kicker */}
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                    <span
-                        className="font-mono text-[10.5px] uppercase tracking-[0.24em]"
-                        style={{ color: "#00e5ff" }}
-                    >
-                        // ADMIN / MEMBERS
-                    </span>
-                </div>
+
 
                 {/* Page header */}
                 <div className="flex items-end justify-between gap-4 mb-8">
@@ -1029,7 +902,6 @@ export default function MemberManagement() {
                                 currentUserId={user?.id ?? null}
                                 onRoleChange={handleRoleChange}
                                 onTagsChange={handleTagsChange}
-                                onSafetyCertsChange={handleSafetyCertsChange}
                                 onDelete={handleDeleteMember}
                                 updatingId={updatingId}
                                 deletingId={deletingId}

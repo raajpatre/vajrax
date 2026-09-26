@@ -11,6 +11,9 @@ type Profile = Tables<"profiles">;
 
 const HIDDEN_INNOVATOR_DISPLAY_NAMES = new Set(["Dr. Admin"]);
 
+import { Suspense } from "react";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
+
 export default async function InnovatorsPage() {
     const supabase = await createClient();
     
@@ -23,5 +26,16 @@ export default async function InnovatorsPage() {
     const visibleProfiles =
         (profiles ?? []).filter((profile) => !HIDDEN_INNOVATOR_DISPLAY_NAMES.has(profile.display_name));
 
-    return <InnovatorsClient profiles={visibleProfiles} />;
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#07090f] pt-[calc(var(--nav-height)+1.5rem)] px-6">
+                <div className="max-w-6xl mx-auto">
+                    <div className="mb-14 h-40" />
+                    <ListRowSkeleton count={8} />
+                </div>
+            </div>
+        }>
+            <InnovatorsClient profiles={visibleProfiles} />
+        </Suspense>
+    );
 }

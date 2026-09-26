@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, GithubIcon, Linkedin, Users, LayoutGrid } from "lucide-react";
+import { Mail, GithubIcon, Linkedin, Users, LayoutGrid, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { Paginator } from "@/components/ui/Paginator";
 import { Tables } from "@/types/database";
 
 type Profile = Tables<"profiles">;
@@ -82,6 +86,7 @@ function RosterAvatar({ profile, size = 48 }: { profile: Profile; size?: number 
         <img
           src={profile.avatar_url}
           alt={profile.display_name}
+          loading="lazy"
           className="w-full h-full object-cover"
         />
       </span>
@@ -309,9 +314,7 @@ function RosterFilterPills({
     const el = btnRefs.current[value];
     const wrap = wrapRef.current;
     if (!el || !wrap) return;
-    const er = el.getBoundingClientRect();
-    const wr = wrap.getBoundingClientRect();
-    setBar({ x: er.left - wr.left, w: er.width, ready: true });
+    setBar({ x: el.offsetLeft, w: el.offsetWidth, ready: true });
   };
   measureRef.current = measure;
 
@@ -540,6 +543,33 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
     return profiles.filter(def ? def.test : () => true);
   }, [profiles, filter]);
 
+  const isMobile = useIsMobile();
+  const pageSize = usePageSize({ desktop: 20, mobile: 12 });
+  const { pageItems, page, totalPages, setPage } = usePaginatedList(filtered, pageSize);
+
+  const [mobilePage, setMobilePage] = useState(1);
+  const mobileVisibleCount = mobilePage * pageSize;
+  const mobileHasMore = mobileVisibleCount < filtered.length;
+
+  const displayItems = isMobile ? filtered.slice(0, mobileVisibleCount) : pageItems;
+
+  useEffect(() => {
+    setMobilePage(1);
+    setPage(1);
+  }, [filter, setPage]);
+
+  const bottomSentryRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isMobile || !mobileHasMore || !bottomSentryRef.current) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setMobilePage((p) => p + 1);
+      }
+    }, { rootMargin: "300px" });
+    io.observe(bottomSentryRef.current);
+    return () => io.disconnect();
+  }, [isMobile, mobileHasMore]);
+
   return (
     <div className="relative min-h-screen bg-base overflow-hidden">
       {/* 40 px grid overlay, masked radially so edges fade out */}
@@ -639,7 +669,7 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
               className="grid gap-4"
               style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))" }}
             >
-              {filtered.map((p, i) => (
+              {displayItems.map((p, i) => (
                 <TeamCardDesktop
                   key={p.id}
                   profile={p}
@@ -648,6 +678,18 @@ export default function InnovatorsClient({ profiles }: { profiles: Profile[] }) 
                 />
               ))}
             </div>
+            
+            {!isMobile && (
+              <div className="mt-8">
+                <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
+              </div>
+            )}
+            
+            {isMobile && mobileHasMore && (
+              <div ref={bottomSentryRef} className="py-8 flex justify-center">
+                <Loader2 size={24} className="animate-spin text-[#00e5ff]" />
+              </div>
+            )}
           </>
         )}
       </main>

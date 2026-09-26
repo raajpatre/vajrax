@@ -164,7 +164,7 @@ export default function Footer() {
             <div className="mt-5 flex items-center gap-2">
               <SocialButton icon={GithubIcon}    label="GitHub"    href="https://github.com/VajraX-NST-BLR" brandClass="containerGithub" />
               <SocialButton icon={TwitterIcon}   label="Twitter"   href="#" /* TODO: Replace with real Twitter URL */ brandClass="containerTwitter" />
-              <SocialButton icon={InstagramIcon} label="Instagram" href="https://www.instagram.com/vajraxclub/" brandClass="containerInstagram" />
+              <SocialButton icon={InstagramIcon} label="Instagram" href="https://www.instagram.com/vajrax.club/" brandClass="containerInstagram" />
               <SocialButton icon={Linkedin}      label="LinkedIn"  href="https://www.linkedin.com/company/vajrax-club/" brandClass="containerLinkedin" />
               <SocialButton icon={Mail}          label="Email"     href="mailto:vajrax2025@gmail.com" brandClass="containerEmail" />
             </div>

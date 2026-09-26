@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
 import {
     Users, AlertTriangle, CheckCircle2, ChevronDown,
     ChevronRight, BarChart2, ClipboardList, Search, X,
@@ -158,6 +161,18 @@ export default function AttendanceClient({
         ? Math.round(summary.reduce((s, m) => s + Number(m.attendance_pct), 0) / summary.length)
         : 100;
 
+    const pageSize = usePageSize({ desktop: 20, mobile: 12 });
+    const { pageItems: paginatedMembers, page: memberPage, totalPages: memberTotalPages, setPage: setMemberPage } = usePaginatedList(filtered, pageSize);
+    const { pageItems: paginatedSessions, page: sessionPage, totalPages: sessionTotalPages, setPage: setSessionPage } = usePaginatedList(moms, pageSize);
+
+    useEffect(() => setMemberPage(1), [search, filterFlagged, setMemberPage]);
+
+    const handleTabChange = (t: "members" | "sessions") => {
+        setTab(t);
+        setMemberPage(1);
+        setSessionPage(1);
+    };
+
     return (
         <div className="relative min-h-screen bg-[#07090f] overflow-hidden pt-[calc(var(--nav-height,0px)+2.5rem)] pb-24">
             {/* Background */}
@@ -214,7 +229,7 @@ export default function AttendanceClient({
                         <button
                             key={t}
                             type="button"
-                            onClick={() => setTab(t)}
+                            onClick={() => handleTabChange(t)}
                             className="h-8 px-4 rounded-sm font-mono text-[10.5px] uppercase tracking-[0.14em] transition-all"
                             style={{
                                 background: tab === t ? "#00e5ff" : "transparent",
@@ -280,7 +295,7 @@ export default function AttendanceClient({
                                 </div>
                             )}
 
-                            {filtered.map((m) => {
+                            {paginatedMembers.map((m) => {
                                 const isExpanded = expandedMember === m.member_id;
                                 // Get per-session history for this member
                                 const history = moms.map((mom) => {
@@ -382,6 +397,12 @@ export default function AttendanceClient({
                                     </div>
                                 );
                             })}
+                            
+                            {filtered.length > 0 && (
+                                <div className="px-5 py-3">
+                                    <Paginator page={memberPage} totalPages={memberTotalPages} onPageChange={setMemberPage} />
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
@@ -394,7 +415,7 @@ export default function AttendanceClient({
                                 No sessions recorded yet.
                             </div>
                         )}
-                        {moms.map((mom) => {
+                        {paginatedSessions.map((mom) => {
                             const isExpanded = expandedSession === mom.id;
                             const momRows = rowLookup.get(mom.id) ?? new Map<string, boolean>();
                             const presentCount = [...momRows.values()].filter(Boolean).length;
@@ -481,6 +502,12 @@ export default function AttendanceClient({
                                 </div>
                             );
                         })}
+                        
+                        {moms.length > 0 && (
+                            <div className="px-5 py-3">
+                                <Paginator page={sessionPage} totalPages={sessionTotalPages} onPageChange={setSessionPage} />
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -92,11 +92,10 @@ type SignupState = {
   email: string;
   password: string;
   currentSemester: string;
-  purpose: string;
 };
 
 const initialState: SignupState = {
-  firstName: "", lastName: "", email: "", password: "", currentSemester: "3", purpose: "",
+  firstName: "", lastName: "", email: "", password: "", currentSemester: "3",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -136,7 +135,6 @@ function SignupForm() {
         email:           form.email,
         password:        form.password,
         currentSemester: Number(form.currentSemester),
-        purpose:         form.purpose,
       }),
     });
 
@@ -355,20 +353,7 @@ function SignupForm() {
               </div>
             </div>
 
-            {/* Purpose */}
-            <div className="relative group">
-              <textarea
-                rows={4}
-                value={form.purpose}
-                onChange={(e) => set("purpose", e.target.value)}
-                required
-                placeholder=" "
-                className="peer w-full bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] px-4 py-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors resize-none leading-relaxed"
-              />
-              <label className="absolute left-4 top-3 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[0.85] peer-focus:-translate-x-2 peer-focus:bg-[#111820] peer-focus:px-2 peer-focus:text-[#00e5ff] peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:scale-[0.85] peer-valid:-translate-x-2 peer-valid:bg-[#111820] peer-valid:px-2 peer-valid:text-[#00e5ff]">
-                Purpose
-              </label>
-            </div>
+
 
             {error && (
               <div

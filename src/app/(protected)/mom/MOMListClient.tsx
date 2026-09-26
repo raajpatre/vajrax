@@ -6,6 +6,9 @@ import {
     Search, Plus, Calendar, Users, Tag, ChevronRight, ClipboardList, ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -123,9 +126,7 @@ function MOMFilterPills({
         const el = btnRefs.current[value];
         const wrap = wrapRef.current;
         if (!el || !wrap) return;
-        const er = el.getBoundingClientRect();
-        const wr = wrap.getBoundingClientRect();
-        setBar({ x: er.left - wr.left + wrap.scrollLeft, w: er.width, ready: true });
+        setBar({ x: el.offsetLeft, w: el.offsetWidth, ready: true });
     };
     measureRef.current = measure;
 
@@ -134,11 +135,9 @@ function MOMFilterPills({
         const ro = new ResizeObserver(() => measureRef.current());
         if (wrapRef.current) {
             ro.observe(wrapRef.current);
-            wrapRef.current.addEventListener("scroll", measureRef.current);
         }
         return () => {
             ro.disconnect();
-            wrapRef.current?.removeEventListener("scroll", measureRef.current);
         };
     }, []);
 
@@ -256,6 +255,13 @@ export default function MOMListClient({
         return matchesType && matchesSearch;
     });
 
+    const pageSize = usePageSize({ desktop: 10, mobile: 6 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(filtered, pageSize);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search, typeFilter, setPage]);
+
     return (
         <div className="relative min-h-screen bg-[#07090f] overflow-hidden pt-[calc(var(--nav-height,0px)+2.5rem)] pb-24">
             {/* Animated grid with radial fade mask */}
@@ -349,7 +355,7 @@ export default function MOMListClient({
                             style={{ boxShadow: "0 0 6px rgba(34,197,94,0.7)" }}
                         />
                         <span>
-                            {String(filtered.length).padStart(2, "0")} of {String(moms.length).padStart(2, "0")} records showing
+                            {filtered.length > 0 ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {String(filtered.length).padStart(2, "0")} records showing
                         </span>
                     </div>
                     {search && (
@@ -374,93 +380,96 @@ export default function MOMListClient({
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
-                        {filtered.map((m) => {
-                            const tc = getTypeColor(m.meeting_type);
-                            const author = m.created_by ? profileMap[m.created_by] : null;
-                            return (
-                                <Link
-                                    key={m.id}
-                                    href={`/mom/${m.id}`}
-                                    className="group flex items-center gap-4 rounded-sm border px-5 py-4 transition-all duration-150"
-                                    style={{
-                                        borderColor: "rgba(0,229,255,0.10)",
-                                        background: "#0d1117",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = "rgba(0,229,255,0.3)";
-                                        e.currentTarget.style.background = "#121824";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = "rgba(0,229,255,0.10)";
-                                        e.currentTarget.style.background = "#0d1117";
-                                    }}
-                                >
-                                    {/* Date column */}
-                                    <div className="shrink-0 w-20 text-center">
-                                        <div className="font-mono text-[18px] font-bold text-[#f0f4ff] leading-none">
-                                            {new Date(m.meeting_date).getDate().toString().padStart(2, "0")}
+                    <>
+                        <div className="space-y-3">
+                            {pageItems.map((m) => {
+                                const tc = getTypeColor(m.meeting_type);
+                                const author = m.created_by ? profileMap[m.created_by] : null;
+                                return (
+                                    <Link
+                                        key={m.id}
+                                        href={`/mom/${m.id}`}
+                                        className="group flex items-center gap-4 rounded-sm border px-5 py-4 transition-all duration-150"
+                                        style={{
+                                            borderColor: "rgba(0,229,255,0.10)",
+                                            background: "#0d1117",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.borderColor = "rgba(0,229,255,0.3)";
+                                            e.currentTarget.style.background = "#121824";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = "rgba(0,229,255,0.10)";
+                                            e.currentTarget.style.background = "#0d1117";
+                                        }}
+                                    >
+                                        {/* Date column */}
+                                        <div className="shrink-0 w-20 text-center">
+                                            <div className="font-mono text-[18px] font-bold text-[#f0f4ff] leading-none">
+                                                {new Date(m.meeting_date).getDate().toString().padStart(2, "0")}
+                                            </div>
+                                            <div className="font-mono text-[10px] text-[#00e5ff] uppercase tracking-[0.12em] mt-0.5">
+                                                {new Date(m.meeting_date).toLocaleDateString("en-GB", { month: "short", year: "2-digit" })}
+                                            </div>
                                         </div>
-                                        <div className="font-mono text-[10px] text-[#00e5ff] uppercase tracking-[0.12em] mt-0.5">
-                                            {new Date(m.meeting_date).toLocaleDateString("en-GB", { month: "short", year: "2-digit" })}
-                                        </div>
-                                    </div>
 
-                                    {/* Divider */}
-                                    <span className="w-px h-10 shrink-0" style={{ background: "rgba(0,229,255,0.10)" }} />
+                                        {/* Divider */}
+                                        <span className="w-px h-10 shrink-0" style={{ background: "rgba(0,229,255,0.10)" }} />
 
-                                    {/* Main info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                                            <span className="font-sans font-semibold text-[#f0f4ff] text-[15px] tracking-tight truncate">
-                                                {m.title}
-                                            </span>
-                                            <span
-                                                className="inline-flex items-center gap-1 h-[18px] px-2 rounded-sm font-mono text-[8.5px] uppercase tracking-[0.12em] shrink-0"
-                                                style={{ color: tc.fg, background: tc.bg, border: `1px solid ${tc.bd}` }}
-                                            >
-                                                <Tag size={8} />
-                                                {m.meeting_type}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-4 font-mono text-[11px] text-[#4a5568]">
-                                            <span className="flex items-center gap-1">
-                                                <Calendar size={10} /> {fmtDate(m.meeting_date)}
-                                            </span>
-                                            {m.attendees != null && (
-                                                <span className="flex items-center gap-1">
-                                                    <Users size={10} /> {m.attendees} present
+                                        {/* Main info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                <span className="font-sans font-semibold text-[#f0f4ff] text-[15px] tracking-tight truncate">
+                                                    {m.title}
                                                 </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Author */}
-                                    {author && (
-                                        <div className="shrink-0 flex items-center gap-2">
-                                            <span className="font-mono text-[11px] text-[#4a5568] hidden sm:block">
-                                                {author.display_name}
-                                            </span>
-                                            <span
-                                                className="relative rounded-full overflow-hidden w-7 h-7"
-                                                style={{ border: "1px solid rgba(0,229,255,0.3)" }}
-                                            >
-                                                {author.avatar_url ? (
-                                                    <Image src={author.avatar_url} alt={author.display_name} width={28} height={28} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="grid place-items-center w-full h-full font-mono text-[9px]" style={{ background: "rgba(0,229,255,0.08)", color: "#00e5ff" }}>
-                                                        {getInitials(author.display_name)}
+                                                <span
+                                                    className="inline-flex items-center gap-1 h-[18px] px-2 rounded-sm font-mono text-[8.5px] uppercase tracking-[0.12em] shrink-0"
+                                                    style={{ color: tc.fg, background: tc.bg, border: `1px solid ${tc.bd}` }}
+                                                >
+                                                    <Tag size={8} />
+                                                    {m.meeting_type}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-4 font-mono text-[11px] text-[#4a5568]">
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={10} /> {fmtDate(m.meeting_date)}
+                                                </span>
+                                                {m.attendees != null && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Users size={10} /> {m.attendees} present
                                                     </span>
                                                 )}
-                                            </span>
+                                            </div>
                                         </div>
-                                    )}
 
-                                    <ChevronRight size={14} className="text-[#4a5568] group-hover:text-[#00e5ff] transition-colors shrink-0" />
-                                </Link>
-                            );
-                        })}
-                    </div>
+                                        {/* Author */}
+                                        {author && (
+                                            <div className="shrink-0 flex items-center gap-2">
+                                                <span className="font-mono text-[11px] text-[#4a5568] hidden sm:block">
+                                                    {author.display_name}
+                                                </span>
+                                                <span
+                                                    className="relative rounded-full overflow-hidden w-7 h-7"
+                                                    style={{ border: "1px solid rgba(0,229,255,0.3)" }}
+                                                >
+                                                    {author.avatar_url ? (
+                                                        <Image src={author.avatar_url} alt={author.display_name} width={28} height={28} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="grid place-items-center w-full h-full font-mono text-[9px]" style={{ background: "rgba(0,229,255,0.08)", color: "#00e5ff" }}>
+                                                            {getInitials(author.display_name)}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <ChevronRight size={14} className="text-[#4a5568] group-hover:text-[#00e5ff] transition-colors shrink-0" />
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                        <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
+                    </>
                 )}
             </div>
         </div>

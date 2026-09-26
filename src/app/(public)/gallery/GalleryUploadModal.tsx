@@ -139,9 +139,9 @@ export default function GalleryUploadModal({
 
     // Photo-specific
     const [imageSource,   setImageSource]   = useState<"upload" | "url">("upload");
-    const [imageFile,     setImageFile]     = useState<File | null>(null);
+    const [imageFiles,    setImageFiles]    = useState<File[]>([]);
     const [imageUrlInput, setImageUrlInput] = useState("");
-    const [imagePreview,  setImagePreview]  = useState<string | null>(null);
+    const [imagePreviews, setImagePreviews]  = useState<string[]>([]);
 
     // Video-specific
     const [youtubeUrl, setPlayUrl] = useState("");
@@ -188,14 +188,14 @@ export default function GalleryUploadModal({
                 setMediaType("photo");
                 setImageSource("url");
                 setImageUrlInput(editItem.cover_image_url || "");
-                setImagePreview(editItem.cover_image_url || null);
+                setImagePreviews(editItem.cover_image_url ? editItem.cover_image_url.split(',') : []);
             }
         } else {
             setMediaType("photo");
             setTitle(""); setDescription("");
             setDate(new Date().toISOString().split("T")[0]);
             setTag("Gallery"); setTagColor(null); setLocationCity("Bengaluru"); setLocationCountry("India");
-            setImageSource("upload"); setImageFile(null); setImageUrlInput(""); setImagePreview(null);
+            setImageSource("upload"); setImageFiles([]); setImageUrlInput(""); setImagePreviews([]);
             setPlayUrl("");
             setArticleUrl(""); setThumbFile(null); setThumbPreview(null); setThumbUrlInput(""); setThumbSource("none");
         }
@@ -206,21 +206,48 @@ export default function GalleryUploadModal({
 
     const canSubmit = useMemo(() => {
         if (!title.trim()) return false;
-        if (mediaType === "photo") return imageSource === "upload" ? !!imageFile : !!imageUrlInput.trim();
+        if (mediaType === "photo") return imageSource === "upload" ? imageFiles.length > 0 : !!imageUrlInput.trim();
         if (mediaType === "video") return !!ytId;
         if (mediaType === "article") return !!articleUrl.trim();
         return false;
-    }, [title, mediaType, imageSource, imageFile, imageUrlInput, ytId, articleUrl]);
+    }, [title, mediaType, imageSource, imageFiles, imageUrlInput, ytId, articleUrl]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setImageFile(file);
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+        
+        const combinedFiles = [...imageFiles, ...files];
+        if (combinedFiles.length > 10) {
+            setError("You can only upload up to 10 photos.");
+            return;
+        }
+        
+        setImageFiles(combinedFiles);
         setImageSource("upload");
         setImageUrlInput("");
-        const reader = new FileReader();
-        reader.onloadend = () => setImagePreview(reader.result as string);
-        reader.readAsDataURL(file);
+        const newPreviews = files.map(file => URL.createObjectURL(file));
+        setImagePreviews([...imagePreviews, ...newPreviews]);
+        
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const removeImage = (index: number) => {
+        if (imageSource === "upload") {
+            const newFiles = [...imageFiles];
+            newFiles.splice(index, 1);
+            setImageFiles(newFiles);
+            
+            const newPreviews = [...imagePreviews];
+            newPreviews.splice(index, 1);
+            setImagePreviews(newPreviews);
+        } else {
+            const newPreviews = [...imagePreviews];
+            newPreviews.splice(index, 1);
+            setImagePreviews(newPreviews);
+            setImageUrlInput(newPreviews.join(","));
+        }
     };
 
     const handleThumbSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,14 +277,19 @@ export default function GalleryUploadModal({
 
             if (mediaType === "photo") {
                 resolvedTag = tag.trim() || "Gallery";
-                setLoadingMessage("Uploading image to Cloudinary…");
-                if (imageSource === "upload" && imageFile) {
-                    if (imageFile.size > 20 * 1024 * 1024) {
-                        setError("Image exceeds 20 MB limit.");
-                        setLoading(false);
-                        return;
+                if (imageSource === "upload" && imageFiles.length > 0) {
+                    setLoadingMessage("Uploading images to Cloudinary…");
+                    const urls: string[] = [];
+                    for (const file of imageFiles) {
+                        if (file.size > 20 * 1024 * 1024) {
+                            setError("An image exceeds 20 MB limit.");
+                            setLoading(false);
+                            return;
+                        }
+                        const url = await uploadToCloudinary(file, "vajrax/gallery");
+                        urls.push(url);
                     }
-                    coverImageUrl = await uploadToCloudinary(imageFile, "vajrax/gallery");
+                    coverImageUrl = urls.join(",");
                 } else {
                     coverImageUrl = imageUrlInput.trim();
                 }
@@ -431,7 +463,7 @@ export default function GalleryUploadModal({
                                 {/* ── PHOTO ── */}
                                 {mediaType === "photo" && (
                                     <div>
-                                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageSelect} className="hidden" />
+                                        <input type="file" accept="image/*" multiple ref={fileInputRef} onChange={handleImageSelect} className="hidden" />
 
                                         {/* Source toggle */}
                                         <div className="flex gap-0 border border-edge rounded-sm overflow-hidden mb-3 w-fit">
@@ -441,7 +473,7 @@ export default function GalleryUploadModal({
                                                     type="button"
                                                     onClick={() => {
                                                         setImageSource(src);
-                                                        if (src === "url") { setImageFile(null); setImagePreview(imageUrlInput || null); }
+                                                        if (src === "url") { setImageFiles([]); setImagePreviews(imageUrlInput ? imageUrlInput.split(',') : []); }
                                                     }}
                                                     className={[
                                                         "flex items-center gap-1.5 px-4 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.14em] transition-all",
@@ -456,56 +488,71 @@ export default function GalleryUploadModal({
                                         </div>
 
                                         {imageSource === "upload" ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="group w-full"
-                                            >
-                                                {imagePreview ? (
-                                                    <div className="relative w-full overflow-hidden rounded-sm border border-edge" style={{ aspectRatio: "16/7" }}>
-                                                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                                                            <Upload size={24} className="text-white" />
-                                                        </div>
-                                                    </div>
-                                                ) : (
+                                            <div className="w-full">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="w-full flex flex-col items-center justify-center gap-3 rounded-sm transition-all mb-3 group"
+                                                    style={{
+                                                        height: "80px",
+                                                        border: "1.5px dashed rgba(0,229,255,0.25)",
+                                                        background: "rgba(0,229,255,0.02)",
+                                                    }}
+                                                >
                                                     <div
-                                                        className="w-full flex flex-col items-center justify-center gap-3 rounded-sm transition-all"
-                                                        style={{
-                                                            aspectRatio: "16/7",
-                                                            border: "1.5px dashed rgba(0,229,255,0.25)",
-                                                            background: "rgba(0,229,255,0.02)",
-                                                        }}
+                                                        className="grid place-items-center w-10 h-10 rounded-sm transition-all group-hover:bg-[rgba(0,229,255,0.12)]"
+                                                        style={{ background: "rgba(0,229,255,0.07)", border: "1px solid rgba(0,229,255,0.2)" }}
                                                     >
-                                                        <div
-                                                            className="grid place-items-center w-12 h-12 rounded-sm transition-all group-hover:bg-[rgba(0,229,255,0.12)]"
-                                                            style={{ background: "rgba(0,229,255,0.07)", border: "1px solid rgba(0,229,255,0.2)" }}
-                                                        >
-                                                            <Upload size={20} className="text-cyan2" />
-                                                        </div>
-                                                        <div className="text-center">
-                                                            <p className="font-sans text-[13px] font-semibold text-fg">Drop image or click to upload</p>
-                                                            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-fg3 mt-1">
-                                                                PNG · JPG · WEBP · UP TO 20MB
-                                                            </p>
-                                                        </div>
+                                                        <Upload size={16} className="text-cyan2" />
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-fg3">
+                                                            Click to upload up to 10 photos
+                                                        </p>
+                                                    </div>
+                                                </button>
+                                                {imagePreviews.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {imagePreviews.map((preview, i) => (
+                                                            <div key={i} className="relative w-16 h-16 rounded-sm border border-edge overflow-hidden group/thumb">
+                                                                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); removeImage(i); }}
+                                                                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 )}
-                                            </button>
+                                            </div>
                                         ) : (
                                             <div className="flex flex-col gap-2">
                                                 <FloatingField
                                                     icon={Link2}
-                                                    label="Image URL"
+                                                    label="Image URL(s) - comma separated"
                                                     type="url"
                                                     value={imageUrlInput}
-                                                    onChange={(e: any) => { setImageUrlInput(e.target.value); setImagePreview(e.target.value || null); setError(null); }}
-                                                    placeholder="https://res.cloudinary.com/…"
+                                                    onChange={(e: any) => { setImageUrlInput(e.target.value); setImagePreviews(e.target.value ? e.target.value.split(',') : []); setError(null); }}
+                                                    placeholder="https://...1.jpg,https://...2.jpg"
                                                 />
-                                                {imagePreview ? (
-                                                    <div className="relative w-full overflow-hidden rounded-sm border border-edge" style={{ aspectRatio: "16/7" }}>
-                                                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"
-                                                            onError={() => { setImagePreview(null); setError("Could not load image from that URL."); }} />
+                                                {imagePreviews.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {imagePreviews.map((preview, i) => (
+                                                            <div key={i} className="relative w-16 h-16 rounded-sm border border-edge overflow-hidden group/thumb">
+                                                                <img src={preview} alt="Preview" className="w-full h-full object-cover"
+                                                                    onError={() => setError(`Could not load image ${i + 1}`)} />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); removeImage(i); }}
+                                                                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 ) : (
                                                     <div

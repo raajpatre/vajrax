@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import AttendanceClient from "./AttendanceClient";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 
 export const metadata = { title: "Attendance Tracker — VajraX Admin" };
 
@@ -41,10 +43,20 @@ export default async function AttendancePage() {
         : { data: [] };
 
     return (
-        <AttendanceClient
-            summary={(summary as any) ?? []}
-            moms={moms ?? []}
-            attendanceRows={attendanceRows ?? []}
-        />
+        <Suspense fallback={
+            <div className="relative min-h-screen bg-[#07090f] pt-[calc(var(--nav-height,0px)+2.5rem)] pb-24">
+                <div className="relative max-w-[1100px] mx-auto px-4 sm:px-8">
+                    <div className="mb-8 h-20" />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 h-24" />
+                    <ListRowSkeleton count={10} />
+                </div>
+            </div>
+        }>
+            <AttendanceClient
+                summary={(summary as any) ?? []}
+                moms={moms ?? []}
+                attendanceRows={attendanceRows ?? []}
+            />
+        </Suspense>
     );
 }

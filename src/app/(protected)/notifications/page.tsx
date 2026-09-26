@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useRouter } from "next/navigation";
@@ -281,7 +285,7 @@ function EmptyState({ filter }: { filter: "all" | "unread" }) {
 
 /* ─── Page ────────────────────────────────────────────────────────── */
 
-export default function NotificationsPage() {
+export function NotificationsPageInner() {
     const { user, loading: userLoading } = useUser();
     const supabase = createClient();
     const router = useRouter();
@@ -367,7 +371,43 @@ export default function NotificationsPage() {
         [notifications, tab]
     );
 
-    if (userLoading || loading) return <VajraLoader fullPage />;
+    const pageSize = usePageSize({ desktop: 20, mobile: 12 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(filtered, pageSize);
+
+    useEffect(() => {
+        setPage(1);
+    }, [tab, setPage]);
+
+    if (userLoading || loading) {
+        return (
+            <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+                {/* Grid Background */}
+                <div
+                    className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                            "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                        backgroundSize: "40px 40px",
+                        maskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                        WebkitMaskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    }}
+                />
+                
+                {/* Radial cyan glows */}
+                <div className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)" }} />
+                <div className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)" }} />
+                
+                <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+                
+                <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-16">
+                    <ListRowSkeleton count={20} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
@@ -488,16 +528,19 @@ export default function NotificationsPage() {
             {filtered.length === 0 ? (
                 <EmptyState filter={tab} />
             ) : (
-                <div className="space-y-2">
-                    {filtered.map(n => (
-                        <NotifCard
-                            key={n.id}
-                            notif={n}
-                            onMarkRead={markRead}
-                            onNavigate={handleNavigate}
-                        />
-                    ))}
-                </div>
+                <>
+                    <div className="space-y-2">
+                        {pageItems.map(n => (
+                            <NotifCard
+                                key={n.id}
+                                notif={n}
+                                onMarkRead={markRead}
+                                onNavigate={handleNavigate}
+                            />
+                        ))}
+                    </div>
+                    <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
+                </>
             )}
 
             {/* Footer hint */}
@@ -512,6 +555,39 @@ export default function NotificationsPage() {
             )}
             </div>
         </div>
+    );
+}
+
+export default function NotificationsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen relative overflow-hidden bg-[#07090f]">
+                {/* Grid Background */}
+                <div
+                    className="absolute inset-0 pointer-events-none z-0 animate-grid-pan"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px)," +
+                            "linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)",
+                        backgroundSize: "40px 40px",
+                        maskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                        WebkitMaskImage:
+                            "radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%)",
+                    }}
+                />
+                
+                <div className="absolute -bottom-32 -left-32 w-[640px] h-[640px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.13) 0%, transparent 70%)" }} />
+                <div className="absolute -top-40 -right-40 w-[560px] h-[560px] pointer-events-none z-0" style={{ background: "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)" }} />
+                <div className="absolute inset-0 pointer-events-none scanline animate-scanline-pan opacity-50 z-0" />
+                
+                <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-16">
+                    <ListRowSkeleton count={20} />
+                </div>
+            </div>
+        }>
+            <NotificationsPageInner />
+        </Suspense>
     );
 }
 

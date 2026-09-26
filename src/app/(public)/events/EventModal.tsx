@@ -69,7 +69,6 @@ const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
 const MODAL_TABS = [
     { id: "details", label: "Event Details", icon: Calendar },
     { id: "registration", label: "Registration", icon: Users },
-    { id: "custom_fields", label: "Custom Fields", icon: Settings2 },
     { id: "report", label: "Event Report", icon: FileText },
 ] as const;
 type ModalTab = typeof MODAL_TABS[number]["id"];
@@ -78,7 +77,7 @@ type ModalTab = typeof MODAL_TABS[number]["id"];
 const AuthInput = ({ label, className, placeholder, ...props }: any) => (
     <div className={`relative w-full ${className || ""}`}>
         <label className="mb-2 flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+            
             <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">{label}</span>
         </label>
         <input
@@ -92,7 +91,7 @@ const AuthInput = ({ label, className, placeholder, ...props }: any) => (
 const AuthTextarea = ({ label, className, placeholder, ...props }: any) => (
     <div className={`relative w-full ${className || ""}`}>
         <label className="mb-2 flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+            
             <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">{label}</span>
         </label>
         <textarea
@@ -107,7 +106,7 @@ function AuthSelect({ label, children, className = "", ...props }: any) {
     return (
         <div className={`relative w-full ${className}`}>
             <label className="mb-2 flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                
                 <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">{label}</span>
             </label>
             <div className="relative">
@@ -127,7 +126,7 @@ function AuthDateTime({ label, className = "", ...props }: any) {
     return (
         <div className={`relative w-full ${className}`}>
             <label className="mb-2 flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                
                 <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">{label}</span>
             </label>
             <input
@@ -203,7 +202,7 @@ function FieldBuilderRow({
             {needsOptions && (
                 <div className="pl-6 space-y-2 mt-2">
                     <label className="flex items-center gap-2 mb-3">
-                        <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                        
                         <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium">Options</span>
                     </label>
                     
@@ -420,7 +419,7 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
                 // Registration
                 registration_mode: registrationMode,
                 external_registration_url: registrationMode === "external" ? externalRegistrationUrl.trim() || null : null,
-                registration_open: registrationOpen,
+                registration_open: registrationMode !== "none",
                 registration_deadline: deadline,
                 max_registrations: maxReg,
                 team_size_min: teamSizeMin,
@@ -533,57 +532,23 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
                                             <div className="rounded-lg border border-cyan-200/10 bg-white/[0.03] p-4 sm:p-5 lg:sticky lg:top-0">
                                                 <div className="flex flex-col items-center text-center">
                                                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageSelect} className="hidden" />
-                                                    <div className="mb-3 grid w-full grid-cols-2 rounded-lg border border-[var(--ghost-border)] bg-black/10 p-1 sm:mb-4">
-                                                        <button type="button" onClick={() => setImageSource("upload")}
-                                                            className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${imageSource === "upload" ? "bg-cyan-300/12 text-cyan-100" : "text-text-muted hover:text-foreground"}`}>
-                                                            <Upload className="h-3.5 w-3.5" /> Upload
-                                                        </button>
-                                                        <button type="button" onClick={() => { setImageSource("url"); setImageFile(null); setImagePreview(normalizedImageUrl || null); }}
-                                                            className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${imageSource === "url" ? "bg-cyan-300/12 text-cyan-100" : "text-text-muted hover:text-foreground"}`}>
-                                                            <Link2 className="h-3.5 w-3.5" /> Embed URL
-                                                        </button>
-                                                    </div>
-                                                    {imageSource === "upload" ? (
-                                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="group w-full">
-                                                            {imagePreview ? (
-                                                                <div className="relative mx-auto h-32 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-[0_0_30px_rgba(0,229,255,0.08)] sm:h-40">
-                                                                    <img src={imagePreview} alt="Cover" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"><Upload className="h-8 w-8 text-white" /></div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/70 text-text-muted transition-all group-hover:border-primary/50 group-hover:bg-primary/5 group-hover:text-primary sm:h-40">
-                                                                    <ImageIcon className="mb-2 h-8 w-8" /><span className="text-sm font-medium">Click to select an image</span>
-                                                                </div>
-                                                            )}
-                                                        </button>
-                                                    ) : (
-                                                        <div className="w-full space-y-4">
-                                                            <div className="relative group w-full">
-                                                                <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b9ab0] pointer-events-none transition-colors peer-focus:text-[#00e5ff]" />
-                                                                <input type="url" value={imageUrlInput}
-                                                                    onChange={(e) => { setImageUrlInput(e.target.value); setImagePreview(normalizeImageUrl(e.target.value) || null); setError(null); }}
-                                                                    placeholder=" "
-                                                                    className="peer w-full h-11 bg-transparent border border-[rgba(0,229,255,0.2)] rounded-md text-[14px] text-[#f0f4ff] pl-9 pr-3 focus:border-[rgba(0,229,255,0.55)] focus:outline-none transition-colors"
-                                                                />
-                                                                <label className="absolute left-9 top-1/2 -translate-y-1/2 text-[#8b9ab0] text-[14px] pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:scale-[0.85] peer-focus:-translate-y-1/2 peer-focus:-translate-x-7 peer-focus:bg-background peer-focus:px-2 peer-focus:text-[#00e5ff] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:scale-[0.85] peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:-translate-x-7 peer-[:not(:placeholder-shown)]:bg-background peer-[:not(:placeholder-shown)]:px-2">
-                                                                    Image URL or Drive link
-                                                                </label>
+
+                                                    <div className="w-full flex flex-col items-center gap-4">
+                                                        <label className="group cursor-pointer bg-[rgba(0,229,255,0.03)] hover:bg-[rgba(0,229,255,0.06)] px-6 py-8 w-full rounded-[10px] border-2 border-dashed border-[rgba(0,229,255,0.2)] hover:border-[rgba(0,229,255,0.5)] shadow-[0_0_40px_-10px_rgba(0,229,255,0.15)] flex flex-col items-center justify-center gap-1.5 transition-all duration-300">
+                                                            <svg viewBox="0 0 640 512" className="h-[50px] fill-[#8b9ab0] group-hover:fill-[#00e5ff] transition-all duration-300 mb-4 drop-shadow-[0_0_10px_rgba(0,229,255,0)] group-hover:drop-shadow-[0_0_15px_rgba(0,229,255,0.5)]">
+                                                                <path d="M144 480C64.5 480 0 415.5 0 336c0-62.8 40.2-116.2 96.2-135.9c-.1-2.7-.2-5.4-.2-8.1c0-88.4 71.6-160 160-160c59.3 0 111 32.2 138.7 80.2C409.9 102 428.3 96 448 96c53 0 96 43 96 96c0 12.2-2.3 23.8-6.4 34.6C596 238.4 640 290.1 640 352c0 70.7-57.3 128-128 128H144zm79-217c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l39-39V392c0 13.3 10.7 24 24 24s24-10.7 24-24V257.9l39 39c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-80-80c-9.4-9.4-24.6-9.4-33.9 0l-80 80z" />
+                                                            </svg>
+                                                            <span className="bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.2)] px-5 py-2 rounded-xl text-[#00e5ff] text-[13px] font-semibold tracking-wide transition-all duration-300 group-hover:bg-[#00e5ff] group-hover:text-black group-hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] mt-1">
+                                                                Browse file
+                                                            </span>
+                                                            <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+                                                        </label>
+
+                                                        {imagePreview && (
+                                                            <div className="relative mx-auto w-full max-w-[240px] aspect-[3/4] overflow-hidden rounded-xl border border-border shadow-[0_0_30px_rgba(0,229,255,0.08)]">
+                                                                <img src={imagePreview} alt="Cover" className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
                                                             </div>
-                                                            {imagePreview ? (
-                                                                <div className="relative mx-auto h-32 w-full overflow-hidden rounded-lg border border-border bg-surface sm:h-40">
-                                                                    <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" onError={() => { setImagePreview(null); setError("That image URL could not be previewed."); }} />
-                                                                </div>
-                                                            ) : (
-                                                                <div className="mx-auto flex h-32 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/70 text-text-muted sm:h-40">
-                                                                    <ImageIcon className="mb-2 h-8 w-8" /><span className="text-sm font-medium">Paste a valid image URL to preview</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                    <p className="mt-3 text-sm font-semibold text-foreground sm:mt-4 sm:text-base">Event Cover</p>
-                                                    <div className="mt-3 flex w-full items-center gap-2 rounded-lg border border-[var(--ghost-border)] bg-cyan-400/5 px-3 py-2.5 text-left sm:px-4">
-                                                        <Sparkles className="h-4 w-4 shrink-0 text-cyan-200" />
-                                                        <p className="text-[11px] leading-relaxed text-text-secondary sm:text-xs">Highly recommended for flagship events.</p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -649,19 +614,7 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
 
                                             {registrationMode !== "none" && registrationMode !== "external" && (
                                                 <>
-                                                    {/* Registration open toggle */}
-                                                    <div className="flex items-center justify-between rounded-xl border border-[var(--ghost-border)] px-4 py-3">
-                                                        <div>
-                                                            <div className="text-sm font-medium text-text-secondary">Registration Open</div>
-                                                            <div className="text-[11px] text-text-muted mt-0.5">Toggle to open or close the registration form for participants</div>
-                                                        </div>
-                                                        <button type="button" onClick={() => setRegistrationOpen((o) => !o)} className="shrink-0">
-                                                            {registrationOpen
-                                                                ? <ToggleRight size={32} className="text-[#22c55e]" />
-                                                                : <ToggleLeft size={32} className="text-text-muted" />
-                                                            }
-                                                        </button>
-                                                    </div>
+
 
                                                     {/* Deadline + capacity */}
                                                     <div className="grid gap-4 md:grid-cols-2 pt-2">
@@ -687,7 +640,7 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
                                                                 </div>
                                                                 <div className="flex flex-col w-full">
                                                                     <label className="mb-2 flex items-center gap-2">
-                                                                        <span className="font-mono text-[10px] uppercase text-[#4a5568]">$</span>
+                                                                        
                                                                         <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8b9ab0] font-medium truncate">
                                                                             {teamSizeStrict ? `Exact (${teamSizeMax})` : `Range (${teamSizeMin}–${teamSizeMax})`}
                                                                         </span>
@@ -700,42 +653,40 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
                                                             </div>
                                                         </div>
                                                     )}
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
 
-                                    {/* ── CUSTOM FIELDS TAB ───────────────────────── */}
-                                    {activeTab === "custom_fields" && (
-                                        <div className="p-4 sm:p-6 space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <div className="text-sm font-medium text-text-secondary">Custom Registration Fields</div>
-                                                    <div className="text-[11px] text-text-muted mt-0.5">Add extra fields to collect from participants (appears on registration form)</div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCustomFields((f) => [...f, newField()])}
-                                                    className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold bg-cyan-300/10 text-cyan-200 border border-cyan-400/30 hover:bg-cyan-300/15 transition-colors"
-                                                >
-                                                    <Plus size={13} /> Add Field
-                                                </button>
-                                            </div>
-                                            {customFields.length === 0 ? (
-                                                <div className="rounded-xl border border-dashed border-[var(--ghost-border)] p-8 text-center text-text-muted text-sm">
-                                                    No custom fields yet. Click &quot;Add Field&quot; to add questions to the registration form.
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {customFields.map((field, i) => (
-                                                        <FieldBuilderRow
-                                                            key={field.id}
-                                                            field={field}
-                                                            onChange={(updated) => setCustomFields((f) => f.map((ff, idx) => idx === i ? updated : ff))}
-                                                            onDelete={() => setCustomFields((f) => f.filter((_, idx) => idx !== i))}
-                                                        />
-                                                    ))}
-                                                </div>
+                                                    {/* ── CUSTOM FIELDS ───────────────────────────── */}
+                                                    <div className="pt-4 mt-6 border-t border-[rgba(255,255,255,0.05)] space-y-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <div className="text-sm font-medium text-text-secondary">Custom Registration Fields</div>
+                                                                <div className="text-[11px] text-text-muted mt-0.5">Add extra fields to collect from participants</div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setCustomFields((f) => [...f, newField()])}
+                                                                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold bg-cyan-300/10 text-cyan-200 border border-cyan-400/30 hover:bg-cyan-300/15 transition-colors"
+                                                            >
+                                                                <Plus size={13} /> Add Field
+                                                            </button>
+                                                        </div>
+                                                        {customFields.length === 0 ? (
+                                                            <div className="rounded-xl border border-dashed border-[var(--ghost-border)] p-8 text-center text-text-muted text-sm">
+                                                                No custom fields yet. Click "Add Field" to add questions to the registration form.
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-3">
+                                                                {customFields.map((field, i) => (
+                                                                    <FieldBuilderRow
+                                                                        key={field.id}
+                                                                        field={field}
+                                                                        onChange={(updated) => setCustomFields((f) => f.map((ff, idx) => idx === i ? updated : ff))}
+                                                                        onDelete={() => setCustomFields((f) => f.filter((_, idx) => idx !== i))}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     )}
@@ -761,12 +712,7 @@ export default function EventModal({ isOpen, onClose, onSuccess, event }: EventM
 
                                     {/* Footer with submit */}
                                     <div className="p-5 border-t border-[rgba(255,255,255,0.05)] flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${title.trim() ? "bg-[#22c55e]" : "bg-[#f59e0b]"} animate-pulse`} />
-                                            <span className={`font-mono text-[9px] uppercase tracking-[0.2em] ${title.trim() ? "text-[#22c55e]" : "text-[#f59e0b]"}`}>
-                                                {title.trim() ? "Ready to publish" : "Fields pending"}
-                                            </span>
-                                        </div>
+                                        <div />
                                         <div className="flex items-center gap-3">
                                             <button
                                                 type="button"

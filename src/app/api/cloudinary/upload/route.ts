@@ -16,7 +16,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB (images)
 const MAX_RAW_FILE_SIZE = 25 * 1024 * 1024; // 25 MB (code / STL)
 const ALLOWED_FOLDERS = new Set([
     "vajrax", "gallery", "projects", "avatars", "sponsors",
-    "inventory", "progress-logs", "project-files", "mom",
+    "inventory", "progress-logs", "project-files", "mom", "event_custom_fields"
 ]);
 
 // Code + 3D-model extensions allowed for "raw" uploads (project log attachments).
@@ -37,10 +37,6 @@ function fileExtension(name: string): string {
 }
 
 export async function POST(req: Request) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     let formData: FormData;
     try {
         formData = await req.formData();
@@ -48,13 +44,23 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid form data." }, { status: 400 });
     }
 
+    const rawFolder = (formData.get("folder") as string | null)?.trim() ?? "vajrax";
+    const folder = ALLOWED_FOLDERS.has(rawFolder) ? rawFolder : "vajrax";
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Only allow unauthenticated uploads for public event registration fields
+    if (!user && folder !== "event_custom_fields") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const file = formData.get("file");
     if (!file || !(file instanceof Blob)) {
         return NextResponse.json({ error: "No file provided." }, { status: 400 });
     }
 
-    const rawFolder = (formData.get("folder") as string | null)?.trim() ?? "vajrax";
-    const folder = ALLOWED_FOLDERS.has(rawFolder) ? rawFolder : "vajrax";
+
 
     // "raw" => code / STL files (not images). Anything else is treated as an image.
     const kind = (formData.get("kind") as string | null)?.trim();

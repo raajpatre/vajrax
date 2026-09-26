@@ -1583,3 +1583,90 @@ body {
   box-shadow: 0 0 22px -4px rgba(0,229,255,0.65);
   color: #33eaff;
 }
+
+/* ── Skeleton shimmer ─────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+/* From Uiverse.io by andrew-manzyk */ 
+.checkbox {
+  --checkbox-color: #8b9ab0;
+  --checkbox-size: 1.25rem;
+  display: block;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--checkbox-color);
+  display: flex;
+  align-items: center;
+  transition: color 150ms ease;
+}
+.checkbox:hover {
+  color: #f0f4ff;
+}
+
+.checkbox input {
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  opacity: 0;
+}
+
+.checkbox .checkmark {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--checkbox-size) / 2.5);
+  opacity: 0.7;
+  transition: opacity 150ms ease;
+}
+
+.checkbox .checkmark:hover {
+  opacity: 0.85;
+}
+
+.checkbox input:checked ~ .checkmark {
+  opacity: 1;
+}
+
+.checkbox .checkmark svg {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+}
+
+.checkbox .checkmark svg rect {
+  stroke-dasharray: 88 0;
+  stroke-dashoffset: 73;
+  transition: stroke-dasharray 100ms ease;
+  stroke: rgba(0,229,255,0.4);
+}
+
+.checkbox input:checked ~ .checkmark svg rect {
+  stroke-dasharray: 80 18;
+  stroke: #00e5ff;
+}
+
+.checkbox .checkmark svg polyline {
+  stroke-dasharray: 0 30;
+  stroke-dashoffset: 1;
+  transition: stroke-dasharray 150ms ease;
+  stroke: #00e5ff;
+}
+
+.checkbox input:checked ~ .checkmark svg polyline {
+  stroke-dasharray: 30 30;
+}

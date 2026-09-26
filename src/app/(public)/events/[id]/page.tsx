@@ -21,6 +21,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     const { data: event } = await supabase.from("events").select("*").eq("id", id).single();
     if (!event) notFound();
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (event.is_exclusive && !user) {
+        notFound();
+    }
+
     // Get registration count
     const { count } = await supabase
         .from("event_registrations")

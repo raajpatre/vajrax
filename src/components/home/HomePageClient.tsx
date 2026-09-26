@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowRight, ArrowDown } from "lucide-react";
 import type { Sponsor } from "@/actions/sponsors";
 import SponsorshipShowcase from "@/components/home/SponsorshipShowcase";
+import InfiniteSpiral, { SpiralItem } from "@/components/ui/InfiniteSpiral";
 
 type HomePageClientProps = {
     sponsors: Sponsor[];
@@ -14,6 +15,7 @@ type HomePageClientProps = {
         awards: number;
         years: number;
     };
+    spiralImages?: SpiralItem[];
 };
 
 /* ── Circuit-trace SVG decorations ── */
@@ -83,7 +85,7 @@ function CircuitTrace({ which = 0, className = "", style }: CircuitTraceProps) {
 }
 
 /* ── Home page ── */
-export default function HomePageClient({ sponsors, stats }: HomePageClientProps) {
+export default function HomePageClient({ sponsors, stats, spiralImages = [] }: HomePageClientProps) {
     const [t, setT] = useState(0);
     const [shown, setShown] = useState(false);
 
@@ -333,6 +335,57 @@ export default function HomePageClient({ sponsors, stats }: HomePageClientProps)
                         boxShadow: "0 -4px 24px rgba(0,229,255,0.35)",
                     }}
                 />
+            </section>
+
+            {/* ── ABOUT ── */}
+            <section id="about" className="relative px-6 py-16 lg:py-20 bg-[#07090f] overflow-hidden border-b border-white/5">
+                <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(ellipse at 100% 0%, rgba(0,229,255,0.06) 0%, transparent 50%)" }} />
+                
+                <div className="max-w-6xl mx-auto relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                        <div className="flex flex-col gap-6">
+                            <h2 className="text-fg text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+                                We build intelligent machines.
+                            </h2>
+                            <p className="text-fg2 text-[18px] md:text-[20px] leading-relaxed font-medium">
+                                No theoretical fluff. We are a collective of developers, engineers, and tinkerers obsessed with pushing the boundaries of what student teams can build.
+                            </p>
+                            <div className="text-fg2 text-[15px] leading-relaxed space-y-4">
+                                <p>
+                                    VajraX is the premier hardware and robotics club at Newton School of Technology. From autonomous drones to combat robotics and smart inventory systems, we design, fabricate, and ship real hardware.
+                                </p>
+                                <p>
+                                    We compete in national-level hackathons, host intense technical workshops, and provide our members with the resources, components, and mentorship needed to bring their wildest engineering ideas to life. If it can be built, we're building it.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="w-full h-[350px] md:h-[400px] lg:h-[450px] relative flex items-center justify-center scale-[1.25] translate-x-8 md:scale-100 md:translate-x-0">
+                            {spiralImages.length > 0 ? (
+                                <InfiniteSpiral
+                                    items={spiralImages}
+                                    animationMode="all"
+                                    speed={0.55}
+                                    radius={170}
+                                    cardWidth={152}
+                                    cardHeight={100}
+                                    verticalSpacing={60}
+                                    perspective={1000}
+                                    cardRadius={10}
+                                    centerScale={1.2}
+                                    edgeBlur={6}
+                                    cardsPerTurn={7}
+                                    pauseOnHover
+                                    grayscale={0}
+                                />
+                            ) : (
+                                <div className="text-fg3 font-mono text-[11px] uppercase tracking-[0.2em]">
+                                    // Loading visual logs
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </section>
 
             {/* ── SPONSORS ── */}

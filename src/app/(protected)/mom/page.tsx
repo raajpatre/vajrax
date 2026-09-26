@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import MOMListClient from "./MOMListClient";
+import { Suspense } from "react";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 
 export const metadata = { title: "Minutes Of Meeting — VajraX" };
 
@@ -25,10 +27,16 @@ export default async function MOMPage() {
     const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]));
 
     return (
-        <MOMListClient
-            moms={moms ?? []}
-            profileMap={profileMap}
-            userRole={profile?.role ?? "member"}
-        />
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#07090f] overflow-hidden pt-[calc(var(--nav-height,0px)+2.5rem)] pb-24 px-4 sm:px-8 max-w-[1100px] mx-auto">
+                <ListRowSkeleton count={10} />
+            </div>
+        }>
+            <MOMListClient
+                moms={moms ?? []}
+                profileMap={profileMap}
+                userRole={profile?.role ?? "member"}
+            />
+        </Suspense>
     );
 }

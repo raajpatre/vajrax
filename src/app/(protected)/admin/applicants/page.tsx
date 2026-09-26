@@ -1,6 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
+import { usePageSize } from "@/hooks/usePageSize";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { Paginator } from "@/components/ui/Paginator";
+import { ListRowSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import {
     AlertCircle,
     Calendar,
@@ -150,15 +154,11 @@ function FilterPill({
 /* ── Applicant card ───────────────────────────────────────── */
 function ApplicantCard({
     applicant,
-    note,
-    onNoteChange,
     onReview,
     processingId,
     processingAction,
 }: {
     applicant: Applicant;
-    note: string;
-    onNoteChange: (id: string, val: string) => void;
     onReview: (id: string, action: "approve" | "reject") => void;
     processingId: string | null;
     processingAction: "approve" | "reject" | null;
@@ -231,73 +231,19 @@ function ApplicantCard({
                     </span>
                 </div>
 
-                {/* Purpose blockquote */}
-                <div
-                    className="relative pl-4 mb-4"
-                    style={{ borderLeft: "2px solid rgba(0,229,255,0.55)" }}
-                >
-                    <div
-                        className="font-mono text-[9.5px] uppercase tracking-[0.18em] mb-1.5"
-                        style={{ color: "#4a5568" }}
-                    >
-                        PURPOSE
-                    </div>
-                    <p
-                        className="text-[13px] italic leading-relaxed"
-                        style={{ color: "#8b9ab0" }}
-                    >
-                        {applicant.purpose}
-                    </p>
-                </div>
 
-                {/* Review note textarea */}
-                <div className="mb-4">
-                    <div
-                        className="font-mono text-[9.5px] uppercase tracking-[0.18em] mb-1.5"
-                        style={{ color: "#4a5568" }}
-                    >
-                        REVIEW NOTE
-                    </div>
-                    <textarea
-                        rows={2}
-                        value={note}
-                        onChange={(e) => onNoteChange(applicant.id, e.target.value)}
-                        placeholder="Add review note…"
-                        disabled={!isPending}
-                        className="w-full text-[12.5px] border rounded-sm px-3 py-2 resize-none transition-all leading-relaxed outline-none"
-                        style={{
-                            background: "#07090f",
-                            color: "#f0f4ff",
-                            borderColor: isPending
-                                ? "rgba(0,229,255,0.18)"
-                                : "rgba(0,229,255,0.08)",
-                            opacity: isPending ? 1 : 0.7,
-                        }}
-                        onFocus={(e) => {
-                            if (isPending) {
-                                e.currentTarget.style.borderColor = "rgba(0,229,255,0.55)";
-                                e.currentTarget.style.boxShadow = "0 0 0 1px rgba(0,229,255,0.25)";
-                            }
-                        }}
-                        onBlur={(e) => {
-                            e.currentTarget.style.borderColor = isPending
-                                ? "rgba(0,229,255,0.18)"
-                                : "rgba(0,229,255,0.08)";
-                            e.currentTarget.style.boxShadow = "none";
-                        }}
-                    />
-                </div>
+
 
                 {/* Review history (non-pending) */}
-                {!isPending && (applicant.reviewerName || applicant.reviewed_at || applicant.review_note) && (
+                {!isPending && (applicant.reviewerName || applicant.reviewed_at) && (
                     <div
-                        className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-sm"
+                        className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-sm"
                         style={{
                             background: "rgba(0,229,255,0.04)",
                             border: "1px solid rgba(0,229,255,0.10)",
                         }}
                     >
-                        <StatusIcon size={13} style={{ color: c.fg, marginTop: 1, flexShrink: 0 }} />
+                        <StatusIcon size={13} style={{ color: c.fg, flexShrink: 0 }} />
                         <div>
                             <span className="font-mono text-[10.5px]" style={{ color: "#8b9ab0" }}>
                                 Reviewed
@@ -314,14 +260,6 @@ function ApplicantCard({
                                     </>
                                 )}
                             </span>
-                            {applicant.review_note && (
-                                <div
-                                    className="font-mono text-[11px] mt-1 italic"
-                                    style={{ color: "#8b9ab0" }}
-                                >
-                                    &ldquo;{applicant.review_note}&rdquo;
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}
@@ -399,13 +337,13 @@ function ApplicantCard({
 }
 
 /* ── Page ─────────────────────────────────────────────────── */
-export default function AdminApplicantsPage() {
+export function AdminApplicantsPageInner() {
     const { isFaculty, isModerator, loading: authLoading } = useUser();
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState<FilterValue>("all");
-    const [notes, setNotes] = useState<Record<string, string>>({});
+
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [processingAction, setProcessingAction] = useState<"approve" | "reject" | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -458,9 +396,14 @@ export default function AdminApplicantsPage() {
         });
     }, [applicants, filter, search]);
 
-    const handleNoteChange = useCallback((id: string, val: string) => {
-        setNotes((prev) => ({ ...prev, [id]: val }));
-    }, []);
+    const pageSize = usePageSize({ desktop: 5, mobile: 5 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(visible, pageSize);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filter, search, setPage]);
+
+
 
     const handleReview = useCallback(
         async (applicantId: string, action: "approve" | "reject") => {
@@ -471,7 +414,7 @@ export default function AdminApplicantsPage() {
             const response = await fetch(`/api/admin/applicants/${applicantId}/${action}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ reviewNote: notes[applicantId]?.trim() || null }),
+                body: JSON.stringify({ reviewNote: null }),
             });
             const data = await response.json().catch(() => ({ error: `Failed to ${action} applicant.` }));
 
@@ -482,15 +425,24 @@ export default function AdminApplicantsPage() {
                 return;
             }
 
-            setNotes((prev) => ({ ...prev, [applicantId]: "" }));
             await fetchApplicants();
             setProcessingId(null);
             setProcessingAction(null);
         },
-        [notes, fetchApplicants]
+        [fetchApplicants]
     );
 
-    if (authLoading || loading) return <VajraLoader fullPage />;
+    if (authLoading || loading) {
+        return (
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
+                    <div className="mb-8 h-16" />
+                    <div className="flex gap-4 mb-8 h-24" />
+                    <ListRowSkeleton count={10} />
+                </div>
+            </div>
+        );
+    }
 
     if (!isFaculty && !isModerator) {
         return (
@@ -539,16 +491,7 @@ export default function AdminApplicantsPage() {
             <div className="fixed inset-0 pointer-events-none scanline animate-scanline-pan opacity-50" />
 
             <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
-                {/* Kicker */}
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="h-px w-8" style={{ background: "rgba(0,229,255,0.6)" }} />
-                    <span
-                        className="font-mono text-[10.5px] uppercase tracking-[0.24em]"
-                        style={{ color: "#00e5ff" }}
-                    >
-                        // ADMIN / APPLICANTS
-                    </span>
-                </div>
+
 
                 {/* Page header */}
                 <div className="mb-8">
@@ -673,20 +616,35 @@ export default function AdminApplicantsPage() {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {visible.map((a) => (
+                        {pageItems.map((a) => (
                             <ApplicantCard
                                 key={a.id}
                                 applicant={a}
-                                note={notes[a.id] ?? a.review_note ?? ""}
-                                onNoteChange={handleNoteChange}
                                 onReview={handleReview}
                                 processingId={processingId}
                                 processingAction={processingAction}
                             />
                         ))}
+                        <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
                     </div>
                 )}
             </div>
         </div>
+    );
+}
+
+export default function AdminApplicantsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen relative" style={{ background: "#07090f" }}>
+                <div className="relative max-w-3xl mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-20">
+                    <div className="mb-8 h-16" />
+                    <div className="flex gap-4 mb-8 h-24" />
+                    <ListRowSkeleton count={10} />
+                </div>
+            </div>
+        }>
+            <AdminApplicantsPageInner />
+        </Suspense>
     );
 }

@@ -181,9 +181,7 @@ function RegistrationFilterPills({ value, onChange }: {
         const el = btnRefs.current[value];
         const wrap = wrapRef.current;
         if (!el || !wrap) return;
-        const er = el.getBoundingClientRect();
-        const wr = wrap.getBoundingClientRect();
-        setBar({ x: er.left - wr.left, w: er.width, ready: true });
+        setBar({ x: el.offsetLeft, w: el.offsetWidth, ready: true });
     };
     measureRef.current = measure;
 
