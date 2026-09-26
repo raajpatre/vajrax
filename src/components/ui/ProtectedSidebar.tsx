@@ -456,6 +456,9 @@ export default function ProtectedSidebar() {
     const [collapsed, setCollapsed] = useState(true);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [attendancePct, setAttendancePct] = useState<number | null>(null);
+    const [attendanceEligible, setAttendanceEligible] = useState(0);
+    const [attendanceAttended, setAttendanceAttended] = useState(0);
 
     useEffect(() => {
         document.body.classList.toggle("sidebar-collapsed", collapsed);
@@ -481,6 +484,21 @@ export default function ProtectedSidebar() {
     useEffect(() => {
         void fetchUnread();
     }, [fetchUnread]);
+
+    // Fetch attendance stats for sidebar widget
+    useEffect(() => {
+        if (!user) return;
+        fetch("/api/attendance/me")
+            .then((r) => r.json())
+            .then((d) => {
+                if (d && typeof d.attendance_pct === "number") {
+                    setAttendancePct(Number(d.attendance_pct));
+                    setAttendanceEligible(d.sessions_eligible ?? 0);
+                    setAttendanceAttended(d.sessions_attended ?? 0);
+                }
+            })
+            .catch(() => {});
+    }, [user]);
 
     useEffect(() => {
         if (!user) return;
@@ -725,7 +743,44 @@ export default function ProtectedSidebar() {
                             ))}
                         </div>
 
-                        </div>
+                        {/* Attendance widget — shown after Request Project */}
+                        {attendancePct !== null && attendanceEligible > 0 && (
+                            <div
+                                className="mx-2 mt-2 rounded-sm px-3 py-2.5 transition-opacity duration-200"
+                                style={{
+                                    border: "1px solid rgba(0,229,255,0.10)",
+                                    background: "#111820",
+                                    opacity: isExpanded ? 1 : 0,
+                                    pointerEvents: isExpanded ? "auto" : "none",
+                                }}
+                            >
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="font-mono text-[9.5px] uppercase tracking-[0.16em]" style={{ color: "#4a5568" }}>My Attendance</span>
+                                    <span
+                                        className="font-mono text-[10.5px] font-bold tabular-nums"
+                                        style={{
+                                            color: attendancePct >= 75 ? "#22c55e" : attendancePct >= 50 ? "#f59e0b" : "#ef4444",
+                                        }}
+                                    >
+                                        {attendancePct}%
+                                    </span>
+                                </div>
+                                {/* Progress bar */}
+                                <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                                    <div
+                                        className="h-full rounded-full transition-all duration-700"
+                                        style={{
+                                            width: `${Math.min(attendancePct, 100)}%`,
+                                            background: attendancePct >= 75 ? "#22c55e" : attendancePct >= 50 ? "#f59e0b" : "#ef4444",
+                                            boxShadow: attendancePct >= 75 ? "0 0 8px rgba(34,197,94,0.5)" : attendancePct >= 50 ? "0 0 8px rgba(245,158,11,0.5)" : "0 0 8px rgba(239,68,68,0.5)",
+                                        }}
+                                    />
+                                </div>
+                                <div className="font-mono text-[9px] text-[#4a5568] mt-1.5 tabular-nums">
+                                    {attendanceAttended}/{attendanceEligible} sessions
+                                </div>
+                            </div>
+                        )}
 
                         {/* Admin */}
                         {showAdmin && (
