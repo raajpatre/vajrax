@@ -586,6 +586,13 @@ export default function ProjectManagePage() {
                 continue;
             }
 
+            // Clear any previously rejected invites
+            await supabase
+                .from("project_invites")
+                .delete()
+                .eq("project_id", id)
+                .eq("invitee_id", profileId);
+
             const { error } = await supabase.from("project_invites").insert({
                 project_id: id,
                 inviter_id: user.id,

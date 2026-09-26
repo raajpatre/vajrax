@@ -920,6 +920,13 @@ export default function ProjectDetailClient({
                 continue;
             }
 
+            // Clear any previously rejected invites
+            await supabase
+                .from("project_invites")
+                .delete()
+                .eq("project_id", project.id)
+                .eq("invitee_id", profileId);
+
             const { error } = await supabase.from("project_invites").insert({
                 project_id: project.id,
                 inviter_id: user.id,
