@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useMemo, useState, useEffect, useRef, useLayoutEffect, useId } from "react";
 import Link from "next/link";
 import { FolderOpen, Lightbulb, ArrowRight } from "lucide-react";
 import { Tables } from "@/types/database";
@@ -50,7 +50,7 @@ function projectHue(id: string) {
 // ─── SVG cover fallback ────────────────────────────────────────────────────────
 
 function ProjectCoverFallback({ hue }: { hue: number }) {
-  const id = useMemo(() => Math.random().toString(36).slice(2), []);
+  const id = useId();
   const tint = `hsl(${hue} 90% 60%)`;
   const c1   = `hsl(${hue} 60% 12%)`;
   const c2   = `hsl(${(hue + 30) % 360} 70% 7%)`;
