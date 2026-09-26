@@ -428,6 +428,13 @@ export function ProjectInvitesPageInner() {
         );
     };
 
+    const pending = invites.filter((inv) => inv.status === "pending");
+    const past = invites.filter((inv) => inv.status !== "pending");
+    const bothEmpty = pending.length === 0 && past.length === 0;
+
+    const pageSize = usePageSize({ desktop: 12, mobile: 8 });
+    const { pageItems, page, totalPages, setPage } = usePaginatedList(past, pageSize);
+
     if (userLoading || loading) {
         return (
             <div className="min-h-screen relative" style={{ background: "#07090f" }}>
@@ -437,13 +444,6 @@ export function ProjectInvitesPageInner() {
             </div>
         );
     }
-
-    const pending = invites.filter((inv) => inv.status === "pending");
-    const past = invites.filter((inv) => inv.status !== "pending");
-    const bothEmpty = pending.length === 0 && past.length === 0;
-
-    const pageSize = usePageSize({ desktop: 12, mobile: 8 });
-    const { pageItems, page, totalPages, setPage } = usePaginatedList(past, pageSize);
 
     return (
         <div
