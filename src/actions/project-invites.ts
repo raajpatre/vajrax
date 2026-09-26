@@ -116,7 +116,11 @@ export async function respondToProjectInvite(input: {
     const projectObj = Array.isArray(invite.project) ? invite.project[0] : invite.project;
     const projectTitle = projectObj?.title || "a project";
     const actionVerb = input.action === "accepted" ? "accepted" : "declined";
-    const displayName = user.user_metadata?.display_name || user.email || "Someone";
+    
+    // Fetch user's profile to get their display name
+    const { data: profile } = await admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+    const displayName = profile?.display_name || user.user_metadata?.display_name || user.email || "Someone";
+    
     await admin.from("notifications").insert({
         user_id: invite.inviter_id,
         type: `project_invite_${input.action}`,
