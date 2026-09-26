@@ -72,7 +72,7 @@ export async function respondToProjectInvite(input: {
 
     const { data: invite, error: inviteError } = await admin
         .from("project_invites")
-        .select("id, project_id, invitee_id, status")
+        .select("id, project_id, invitee_id, status, inviter_id, project:projects(title)")
         .eq("id", input.inviteId)
         .maybeSingle();
 
@@ -112,6 +112,17 @@ export async function respondToProjectInvite(input: {
         }
     }
 
+    // Send notification to the inviter
+    const projectObj = Array.isArray(invite.project) ? invite.project[0] : invite.project;
+    const projectTitle = projectObj?.title || "a project";
+    const actionVerb = input.action === "accepted" ? "accepted" : "declined";
+    const displayName = user.user_metadata?.display_name || user.email || "Someone";
+    await admin.from("notifications").insert({
+        user_id: invite.inviter_id,
+        type: `project_invite_${input.action}`,
+        message: `${displayName} ${actionVerb} your invite to join ${projectTitle}.`,
+        related_entity_id: invite.project_id,
+    });
     revalidatePath("/project-invites");
     revalidatePath("/projects");
     return { ok: true };

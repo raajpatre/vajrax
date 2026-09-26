@@ -595,6 +595,13 @@ export default function ProjectManagePage() {
             if (error) {
                 errors.push(error.message);
             } else {
+                const prof = allProfiles.find((p) => p.id === profileId);
+                await supabase.from("notifications").insert({
+                    user_id: profileId,
+                    type: "project_invite_received",
+                    message: `${user.user_metadata?.display_name || "A team lead"} invited you to join ${project?.title || "a project"}.`,
+                    related_entity_id: id,
+                });
                 successCount++;
             }
         }
