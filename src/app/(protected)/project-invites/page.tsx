@@ -207,7 +207,7 @@ function PendingCard({
                         className="font-mono text-[10px] uppercase tracking-[0.18em]"
                         style={{ color: "#4a5568" }}
                     >
-                        // AWAITING RESPONSE
+                        AWAITING RESPONSE
                     </span>
                 </div>
             </div>
