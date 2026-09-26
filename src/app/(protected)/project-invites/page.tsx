@@ -557,9 +557,6 @@ export function ProjectInvitesPageInner() {
                                     >
                                         All caught up
                                     </p>
-                                    <p className="text-[12.5px] mt-1" style={{ color: "#8b9ab0" }}>
-                                        No pending invites.
-                                    </p>
                                 </div>
                             </section>
                         )}
