@@ -389,10 +389,10 @@ body {
   border-style: solid;
   pointer-events: none;
 }
-.corner-ticks::before { top: -1px;    left: -1px;   border-width: 1px 0 0 1px; }
-.corner-ticks::after  { bottom: -1px; right: -1px;  border-width: 0 1px 1px 0; }
-.corner-ticks > .ct-tr { top: -1px;    right: -1px; border-width: 1px 1px 0 0; }
-.corner-ticks > .ct-bl { bottom: -1px; left: -1px;  border-width: 0 0 1px 1px; }
+.corner-ticks::before { top: -1px;    left: -1px;   border-width: 1px 0 0 1px; border-radius: 6px 0 0 0; }
+.corner-ticks::after  { bottom: -1px; right: -1px;  border-width: 0 1px 1px 0; border-radius: 0 0 6px 0; }
+.corner-ticks > .ct-tr { top: -1px;    right: -1px; border-width: 1px 1px 0 0; border-radius: 0 6px 0 0; }
+.corner-ticks > .ct-bl { bottom: -1px; left: -1px;  border-width: 0 0 1px 1px; border-radius: 0 0 0 6px; }
 
 /* ============================================
    Button Variants
