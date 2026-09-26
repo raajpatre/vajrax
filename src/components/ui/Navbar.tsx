@@ -26,6 +26,7 @@ import {
   Boxes,
   ClipboardList,
   GitPullRequest,
+  CalendarDays,
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
