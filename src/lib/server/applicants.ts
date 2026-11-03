@@ -13,7 +13,7 @@ export type ApplicantSubmission = {
     email: string;
     password: string;
     currentSemester: number;
-    purpose: string;
+    purpose?: string;
 };
 
 export function validateApplicantSubmission(payload: Partial<ApplicantSubmission>) {
@@ -24,7 +24,7 @@ export function validateApplicantSubmission(payload: Partial<ApplicantSubmission
     const currentSemester = Number(payload.currentSemester);
     const purpose = payload.purpose?.trim() ?? "";
 
-    if (!firstName || !lastName || !email || !password || !purpose) {
+    if (!firstName || !lastName || !email || !password) {
         return { error: "All fields are required." };
     }
 

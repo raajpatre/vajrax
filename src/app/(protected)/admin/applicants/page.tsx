@@ -387,7 +387,7 @@ export function AdminApplicantsPageInner() {
         if (q) {
             list = list.filter((a) => {
                 const name = `${a.first_name} ${a.last_name}`.toLowerCase();
-                return name.includes(q) || a.email.toLowerCase().includes(q) || a.purpose.toLowerCase().includes(q);
+                return name.includes(q) || a.email.toLowerCase().includes(q) || (a.purpose ?? "").toLowerCase().includes(q);
             });
         }
         return [...list].sort((a, b) => {

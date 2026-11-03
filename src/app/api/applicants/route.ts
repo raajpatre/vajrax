@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         email: value.email,
         encrypted_password: encryptApplicantPassword(value.password),
         current_semester: value.currentSemester,
-        purpose: value.purpose,
+        purpose: value.purpose ?? "",
         status: "pending",
     });
 
